@@ -1,0 +1,62 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx} % pour les images
+\bibliographystyle{plain}
+
+
+
+\title{ENcoinS}
+
+\begin{document}
+
+\maketitle
+
+\begin{figure}[h]
+    \center
+    \includegraphics[width=0.5\textwidth]{encoins.png}
+\end{figure}
+
+\bigskip
+\bigskip
+
+\tableofcontents
+
+\newpage
+
+\section*{Context and goal of the project}
+\paragraph{}
+Current cryptocurrencies are mainly based on universal consensus which is a slow and costly process. Recently, Rachid Guerraoui and his team \cite{crypto} proposed a more efficient way of implementing cryptocurrencies based on a weaker consensus named causal order broadcast. The goal of this project is to first implement some primivites which are used in the full consensus protocol proposed by Guerraoui. According to the pace of the students, they may have the time to work on the full protocol.
+The students can choose the programming language they want to use but coding in Rust is recommended. The project is articulated around differents steps which are described below.
+
+
+
+\section{Primitives in distributed systems} \label{step1}
+
+\paragraph{} 
+The idea is to implement some useful primitives in distributed systems that are described in the book \cite{livre}, starting from basic protocols. The main checkpoints may be implementing :
+\begin{enumerate}
+    \item 1 to 1 messaging plain text
+    \item securisation of the exchanges : encryption for confidentiality and authentifiction (asymetric cryptography)
+    \item broadcast : sending a message to everyone, develop a distributed architecture
+    \item reliable broadcast (that works if computers of the system crash)
+    \item Byzantine reliable broadcast (that works even if there is malicious people too)
+\end{enumerate}
+
+\paragraph{} To do so, a MPI-like library may be used to simulate a network. According to student’s pace, a real network may be used for the application (more information in section \ref{step3}).
+
+\section{Transfert system based on secure broadcast} \label{step2}
+\paragraph{} The second step of this project would be to implement the algorithm described in \cite{crypto}. It is a new blockchain protocol in which consensus is replaced by a casual broadcast order. More precisely, students will focus on the part with the \emph{1-shared asset transfert} which basically means that we assume that only one person has access to the account and can make payments. In this part, the primitives implemented in section \ref{step1} must be widely used.
+
+\section{Extra mile} \label{step3}
+
+\paragraph{}
+According to student’s pace, some improvements can be added to the project. 
+\begin{itemize}
+    \item Attacks and failures tests are very important to decide wether a scheme is secure. Therefore, implementing crash failures or evil behaviors may be a relevent option.
+    \item Simulating a network thanks to a MPI-like library is good, but testing the protocol on a real network is better. In this context, why not using the machines of the Europe room for a life-size test ?
+    \item The complete protol described in \cite{crypto} handles shared account (multiple people can pay with same account). To do so, a concensus between these people must be reached and the way to do it has to be designed (or implemented) from scratch. Once this is done, the final protocol may be implemented.
+\end{itemize}
+
+\bibliography{ref}
+
+\end{document}
