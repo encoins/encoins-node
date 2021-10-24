@@ -1,17 +1,31 @@
-/// We define aliases here to be able to change our mind on the implementation in the future
-pub type UserId = i32;
-pub type Currency = i32;
-pub type SeqId = i32;
+use crate::base_types::*;
+use std::ptr::eq;
 
-/// Defining a base struct transaction
+/// A transaction is an exchange of money between two accounts
 pub struct Transaction
 {
     /// seq_id is the id of the transaction. For a transaction t, seq_id will be the number of validated transfers outgoing form the sender +1.
     pub(crate) seq_id: SeqId,
+    /// the user id of the transaction's sender
     pub(crate) sender_id: UserId,
+    /// the user id of the transaction's receiver
     pub(crate) receiver_id: UserId,
+    /// the currency exchanged
     pub(crate) amount: Currency
 }
+
+impl PartialEq for Transaction
+{
+    fn eq(&self, other: &Self) -> bool {
+        return self.sender_id == other.sender_id && self.seq_id == other.seq_id;
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        return !eq(self, other);
+    }
+}
+
+impl Eq for Transaction {}
 
 pub fn print_transaction(transaction: &Transaction)
 {
