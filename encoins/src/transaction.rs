@@ -1,7 +1,7 @@
 /// We define aliases here to be able to change our mind on the implementation in the future
-pub type UserId = i32;
-pub type Currency = i32;
-pub type SeqId = i32;
+pub type UserId = u32;
+pub type Currency = u32;
+pub type SeqId = u32;
 
 /// Defining a base struct transaction
 pub struct Transaction
