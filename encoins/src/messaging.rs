@@ -1,13 +1,12 @@
 extern crate mpi;
 use mpi::traits::*;
-use mpi::datatype::{Buffer, DynBuffer};
 use mpi::environment::Universe;
-
-use crate::transaction::{Transaction, print_transaction};
+use crate::transaction::{print_transaction};
 use crate::base_types::*;
 use mpi::topology::Rank;
+use crate::message::Message;
 
-fn send(universe : Universe, transaction : Transaction, sender_id : UserId, receiver_id : UserId)
+pub fn send(universe : Universe, message : Message, sender_id : UserId, receiver_id : UserId)
 {
 
     let world = universe.world();
@@ -18,27 +17,28 @@ fn send(universe : Universe, transaction : Transaction, sender_id : UserId, rece
 
     if receiver_rank>size
     {
-        panic!("Trying to send to rank {} when there are only {} processes");
+        panic!("Trying to send to rank {} when there are only {} processes", receiver_rank, size);
     }
     else
     {
         if rank == sender_rank
         {
-            let message = vec![transaction];
-            world.process_at_rank(receiver_rank).send(&transaction);
+            world.process_at_rank(receiver_rank).send(&message);
         }
         else if rank == receiver_rank
         {
-            let (msg,status) = world.process_at_rank(sender_rank).receive::<Transaction>();
-            print_transaction(&msg);
+            let (msg,status) = world.process_at_rank(sender_rank).receive::<Message>();
+            println!("Transaction Received!");
+            print_transaction(&msg.transaction);
         }
     }
 }
-
-fn broadcast(universe : Universe, transaction : Transaction, sender_id : UserId)
+/*
+fn broadcast(universe : Universe, message : Message, sender_id : UserId)
 {
-}
 
+}
+*/
 /// We suppose here that UserID == rank! A better get_rank() function is to be implemented!
 fn get_rank(id : UserId) -> Rank
 {

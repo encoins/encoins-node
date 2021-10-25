@@ -1,5 +1,6 @@
 use crate::base_types::*;
-use std::ptr::eq;
+use mpi::datatype::{Equivalence, UserDatatype};
+use std::mem;
 
 /// A transaction is an exchange of money between two accounts
 pub struct Transaction
@@ -14,18 +15,31 @@ pub struct Transaction
     pub(crate) amount: Currency
 }
 
-impl PartialEq for Transaction
+/// Implements the Equivalence trait for the Transaction struct.
+/// This is needed to be able to send transaction as a message in MPI
+unsafe impl Equivalence for Transaction
 {
-    fn eq(&self, other: &Self) -> bool {
-        return self.sender_id == other.sender_id && self.seq_id == other.seq_id;
-    }
+    type Out = UserDatatype;
 
-    fn ne(&self, other: &Self) -> bool {
-        return !eq(self, other);
+    ///Building an equivalent type of transaction as an MPI datatype
+    fn equivalent_datatype() -> Self::Out
+    {
+        UserDatatype::structured(
+            4,
+            &[1, 1, 1, 1],
+            &[
+            mem::size_of::<SeqId>() as mpi::Address,
+            mem::size_of::<UserId>() as mpi::Address,
+            mem::size_of::<UserId>() as mpi::Address,
+            mem::size_of::<Currency>() as mpi::Address,
+        ], &[
+            &SeqId::equivalent_datatype(),
+            &UserId::equivalent_datatype(),
+            &UserId::equivalent_datatype(),
+            &Currency::equivalent_datatype()
+        ])
     }
 }
-
-impl Eq for Transaction {}
 
 pub fn print_transaction(transaction: &Transaction)
 {
