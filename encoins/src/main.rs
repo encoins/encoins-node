@@ -1,4 +1,6 @@
 mod transaction;
+mod base_types;
+
 extern crate mpi;
 
 //use mpi::traits::*;
