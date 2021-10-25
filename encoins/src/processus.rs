@@ -1,15 +1,5 @@
 use std::collections::HashSet;
-
-pub type UserId = usize;
-pub type Currency = u32;
-
-pub struct Transaction
-{
-    /// seq_id is the id of the transaction. For a transaction t, seq_id will be the number of validated transfers outgoing form the sender +1.
-    pub(crate) sender_id: UserId,
-    pub(crate) receiver_id: UserId,
-    pub(crate) amount: Currency
-}
+use crate::transaction::{UserId, Currency, Transaction};
 
 
 const N : usize = 10;
@@ -28,14 +18,13 @@ pub struct Processus {
 
 
 impl Processus {
-
     pub fn init(rank: i32) -> Processus {
         let mut s= vec![];
         for i in 1..N {
             s.push(HashSet::<Transaction>::new())
         }
         Processus {
-            id_proc : rank as usize,
+            id_proc : rank as u32,
             seq : [0;N],
             rec : [0;N],
             hist : s,
@@ -57,7 +46,7 @@ impl Processus {
 
     fn read(&self) -> u32 {
         let a = self.id_proc;
-        let dep = &self.hist[a];
+        let dep = &self.hist[a as usize];
         // dep = dep.union(&deps)
         return Processus::balance(a, dep)
     }
