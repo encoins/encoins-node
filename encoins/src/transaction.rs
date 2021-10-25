@@ -14,6 +14,19 @@ pub struct Transaction
     pub(crate) amount: Currency
 }
 
+impl PartialEq for Transaction
+{
+    fn eq(&self, other: &Self) -> bool {
+        return self.sender_id == other.sender_id && self.seq_id == other.seq_id;
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        return !eq(self, other);
+    }
+}
+
+impl Eq for Transaction {}
+
 pub fn print_transaction(transaction: &Transaction)
 {
     println!("Transaction infos:     \n\
