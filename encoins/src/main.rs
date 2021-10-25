@@ -1,5 +1,4 @@
 mod transaction;
-mod messaging;
 mod base_types;
 
 extern crate mpi;
