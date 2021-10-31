@@ -22,8 +22,8 @@ unsafe impl Equivalence for Message
             2,
             &[1, 1],
             &[
-                mem::size_of::<Transaction>() as mpi::Address,
                 mem::size_of::<u8>() as mpi::Address,
+                0,
             ], &[
                 &Transaction::equivalent_datatype(),
                 &u8::equivalent_datatype()

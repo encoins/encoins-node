@@ -22,25 +22,27 @@ unsafe impl Equivalence for Transaction
     type Out = UserDatatype;
 
     ///Building an equivalent type of transaction as an MPI datatype
+    /// Note: the displacement is the added sizes of the data in the structure starting from the bottom
     fn equivalent_datatype() -> Self::Out
     {
         UserDatatype::structured(
             4,
             &[1, 1, 1, 1],
             &[
-            mem::size_of::<SeqId>() as mpi::Address,
-            mem::size_of::<UserId>() as mpi::Address,
-            mem::size_of::<UserId>() as mpi::Address,
-            mem::size_of::<Currency>() as mpi::Address,
+                (2*mem::size_of::<UserId>() + mem::size_of::<Currency>())as mpi::Address,
+                (mem::size_of::<UserId>() + mem::size_of::<Currency>())as mpi::Address,
+                mem::size_of::<Currency>() as mpi::Address,
+                0,
         ], &[
-            &SeqId::equivalent_datatype(),
-            &UserId::equivalent_datatype(),
-            &UserId::equivalent_datatype(),
-            &Currency::equivalent_datatype()
+                &SeqId::equivalent_datatype(),
+                &UserId::equivalent_datatype(),
+                &UserId::equivalent_datatype(),
+                &Currency::equivalent_datatype()
         ])
     }
 }
 
+/// Prints a transaction
 pub fn print_transaction(transaction: &Transaction)
 {
     println!("Transaction infos:     \n\

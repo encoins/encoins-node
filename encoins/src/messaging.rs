@@ -1,7 +1,7 @@
 extern crate mpi;
 use mpi::traits::*;
 use mpi::environment::Universe;
-use crate::transaction::{print_transaction};
+use crate::transaction::{print_transaction, Transaction};
 use crate::base_types::*;
 use mpi::topology::Rank;
 use crate::message::Message;
@@ -33,12 +33,14 @@ pub fn send(universe : Universe, message : Message, sender_id : UserId, receiver
         }
     }
 }
+
 /*
 fn broadcast(universe : Universe, message : Message, sender_id : UserId)
 {
 
 }
 */
+
 /// We suppose here that UserID == rank! A better get_rank() function is to be implemented!
 fn get_rank(id : UserId) -> Rank
 {
