@@ -14,8 +14,6 @@ pub struct Transaction
     pub(crate) amount: Currency
 }
 
-impl Eq for Transaction {}
-
 pub fn print_transaction(transaction: &Transaction)
 {
     println!("Transaction infos:     \n\
