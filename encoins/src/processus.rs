@@ -51,7 +51,7 @@ impl Processus {
         return Processus::balance(a, dep)
     }
 
-    fn balance( a: UserId, h: &HashSet<Transaction>) -> Currency {
+    fn balance(a: UserId, h: &HashSet<Transaction>) -> Currency {
         let mut balance : u32 = 0;
         for transfert in h {
             if transfert.receiver_id == a {
