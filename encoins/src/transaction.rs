@@ -22,3 +22,20 @@ pub fn print_transaction(transaction: &Transaction)
              \t- Amount transferred : {}\n"
              , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount)
 }
+
+
+use std::ptr::eq;
+
+impl PartialEq for Transaction
+{
+    fn eq(&self, other: &Self) -> bool {
+        return self.sender_id == other.sender_id && self.seq_id == other.seq_id;
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        return !eq(self, other);
+    }
+}
+
+impl Eq for Transaction {}
+
