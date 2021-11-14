@@ -1,7 +1,7 @@
 /// We define aliases here to be able to change our mind on the implementation in the future
-pub type UserId = u32;
-pub type Currency = u32;
-pub type SeqId = u32;
+pub type UserId = usize;
+pub type Currency = usize;
+pub type SeqId = usize;
 
 /// Defining a base struct transaction
 pub struct Transaction
@@ -15,10 +15,10 @@ pub struct Transaction
 
 pub fn print_transaction(transaction: &Transaction)
 {
-    println!("Transaction infos:     \n\
-             \t- Sender Id : {}       \n\
-             \t- Receiver Id : {}      \n\
-             \t- Sender's seq id : {} \n\
+    println!("Transaction infos:        \n\
+             \t- Sender Id : {}         \n\
+             \t- Receiver Id : {}       \n\
+             \t- Sender's seq id : {}   \n\
              \t- Amount transferred : {}\n"
              , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount)
 }

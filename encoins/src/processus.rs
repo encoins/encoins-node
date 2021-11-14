@@ -1,12 +1,11 @@
-use std::collections::HashSet;
 use crate::transaction::{UserId, Currency, Transaction};
-
 
 const N : usize = 10;
 const M : usize = 10;
 type ProcId = usize;
-type Table = [u32;N];
+type Table = [usize;N];
 type Stack = Vec<Transaction>;
+type Message = (ProcId, Transaction);
 
 
 pub struct Processus {
@@ -15,21 +14,21 @@ pub struct Processus {
     rec : Table,
     hist : Vec<Stack>,
     deps : Stack,
-    to_validate : Stack,
+    to_validate : Vec<Message>,
     mu : [ProcId;M]
 }
 
 
 impl Processus {
+
     pub fn init(rank: i32, mu: [ProcId;M]) -> Processus {
         let mut hist = vec![];
-        for i in 1..N {
+        for _ in 1..N {
             let new_el:Stack = vec![];
             hist.push(new_el);
-
         }
         Processus {
-            proc_id : rank as u32,
+            proc_id : rank as usize,
             seq : [0;N],
             rec : [0;N],
             hist : hist,
@@ -39,21 +38,40 @@ impl Processus {
         }
     }
     
-    pub fn transfert(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> () {
-        if self.read(user_id) < amount {
-            println!("Not enough money");
+    pub fn transfert(& mut self, sender_id: UserId, receiver_id: UserId, amount : Currency) -> () {
+        let mut transaction:Transaction = Transaction {
+            seq_id : 0,
+            sender_id : 0,
+            receiver_id : 0,
+            amount : 0
+        };
+        let owner_proc = self.mu[sender_id];
+        if owner_proc == self.proc_id {
+            if self.read(sender_id) < amount {
+                println!("Not enough money");
+            }
+            else {
+                transaction.seq_id = self.seq[self.proc_id] + 1;
+                transaction.sender_id = sender_id;
+                transaction.receiver_id = receiver_id;
+                transaction.amount = amount;
+            }
+            // Broadcast transaction
         }
         else {
-            self.deps = vec![];
+            // Receive in transaction
+            self.save_message((owner_proc, transaction));
         }
-        // let message = (sender_id, receiverId, amount, &self.seq[self.proc_id] + 1, &self.deps );
-        // message.sign() : Waiting for Milan
-        // broadcast(message); Waiting for Arthur
+        while !self.to_validate.is_empty() {
+        }
     }
-    fn save_transaction(& mut self, q:ProcId, t:Transaction) -> () {
+
+    fn save_message(& mut self, m:Message) -> () {
+        let q = m.0;
+        let t = m.1;
         if t.seq_id == self.rec[q] + 1 {
             self.rec[q] += 1;
-            self.to_validate.push(t);
+            self.to_validate.push((q,t));
         }
         else {
             println!("Some transactions of proc {} have not been received by proc {}", q, self.proc_id);
@@ -65,7 +83,7 @@ impl Processus {
     }
 
     fn balance(a: UserId, h: &Stack) -> Currency {
-        let mut balance : u32 = 0;
+        let mut balance : usize = 0;
         for transfert in h {
             if transfert.receiver_id == a {
                 balance += transfert.amount;

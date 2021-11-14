@@ -17,24 +17,5 @@ fn main() {
     let mut p = processus::Processus::init(rank, mu);
     let root_rank = 0;
 
-    p.transfert(0,1,0);
-
-    
-    
-    
-    /* 
-    Thread 1 :
-        loop:
-            if p.toValidate not empty:
-                (q, t, h) = toValidate.pop()
-                if p.valid(q, t, h):
-                    p.adjust(q, t, h) (l.14-20)
-    
-    Thread 2 :
-        if rank == 0:
-            p.transfert(0, 1, 0)
-        loop:
-            Rcv(q,m)
-            p.verify(q,m) (l.9-12)
-    */
+    p.transfert(0,1,0); 
 }
