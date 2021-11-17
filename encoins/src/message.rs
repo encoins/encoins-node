@@ -5,11 +5,12 @@ use std::mem;
 
 pub const SEND  : u8 = 0;
 pub const ECHO  : u8 = 1;
-pub const READY : u8 = 2;
+pub const FINAL : u8 = 2;
 
 pub struct Message
 {
     pub transaction : Transaction,
+   /// pub dependencies : vec!(Transaction),
     pub message_type: u8
 }
 

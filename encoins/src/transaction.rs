@@ -3,6 +3,7 @@ use mpi::datatype::{Equivalence, UserDatatype};
 use std::mem;
 
 /// A transaction is an exchange of money between two accounts
+#[derive(Clone, Copy)]
 pub struct Transaction
 {
     /// seq_id is the id of the transaction. For a transaction t, seq_id will be the number of validated transfers outgoing form the sender +1.
@@ -39,6 +40,17 @@ unsafe impl Equivalence for Transaction
                 &UserId::equivalent_datatype(),
                 &Currency::equivalent_datatype()
         ])
+    }
+}
+
+impl PartialEq for Transaction
+{
+    fn eq(&self, other: &Self) -> bool {
+        return self.seq_id == other.seq_id && self.sender_id == other.sender_id && self.receiver_id == other.receiver_id && self.amount == other.amount;
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        return ! ( self == other )
     }
 }
 
