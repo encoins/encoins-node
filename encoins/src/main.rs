@@ -14,5 +14,5 @@ fn main() {
     let world = universe.world();
     let size = world.size();
     let rank = world.rank();
-    let p = processus::Processus::init(rank);
+    let p = processus::Processus::init(world);
 }

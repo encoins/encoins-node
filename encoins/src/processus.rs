@@ -1,6 +1,11 @@
 use std::collections::HashSet;
 use crate::transaction::{UserId, Currency, Transaction};
 
+extern crate mpi;
+use mpi::request::WaitGuard;
+use mpi::topology::SystemCommunicator;
+use mpi::traits::*;
+
 
 const N : usize = 10;
 type List = [u32;N];
@@ -13,27 +18,29 @@ pub struct Processus {
     rec : List,
     hist : Set,
     deps : HashSet<Transaction>,
-    to_validate : HashSet<Transaction>
+    to_validate : HashSet<Transaction>,
+    world : SystemCommunicator
 }
 
 
 impl Processus {
-    pub fn init(rank: i32) -> Processus {
+    pub fn init(world: SystemCommunicator) -> Processus {
         let mut s= vec![];
         for i in 1..N {
             s.push(HashSet::<Transaction>::new())
         }
         Processus {
-            id_proc : rank as u32,
+            id_proc : world.rank() as u32,
             seq : [0;N],
             rec : [0;N],
             hist : s,
             deps : HashSet::<Transaction>::new(),
-            to_validate : HashSet::<Transaction>::new()
+            to_validate : HashSet::<Transaction>::new(),
+            world : world
         }
     }
     
-    fn transfert(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
+    pub fn transfert(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
         if self.read() < amount {
             return false
         }
