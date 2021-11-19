@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::{env, thread};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
