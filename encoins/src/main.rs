@@ -1,3 +1,4 @@
+#![allow(unused)]
 mod transaction;
 mod messaging;
 mod base_types;
