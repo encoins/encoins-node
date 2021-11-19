@@ -1,3 +1,4 @@
+#![allow(unused)]
 mod transaction;
 mod processus;
 extern crate mpi;
