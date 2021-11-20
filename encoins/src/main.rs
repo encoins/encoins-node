@@ -11,6 +11,7 @@ mod logging;
 mod base_types;
 mod message;
 mod messaging;
+mod processus;
 
 
 fn main()
