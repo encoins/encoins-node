@@ -52,17 +52,20 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, mai
 
         let main_transmitter = main_transmitter.clone();
 
-        let thread_senders = senders.clone();
+        // The list of all transmitters with the convention :
+        // thread_senders[0] = main and thread_senders[i] = transmitter to i for i > 0
+        let mut thread_senders = vec![main_transmitter];
+        thread_senders.append(&mut senders.clone());
         let thread_receiver = match receivers.pop() {
             None => { panic!("Something went wrong during initialization of threads") }
             Some(x) => {x}
         };
 
         thread::spawn(move || {
-            let proc_nb = i+1;
+            let proc = processus::Processus::init(i+1,nb_process,thread_senders,thread_receiver);
 
             loop {
-                messaging::deal_with_messages(proc_nb, &thread_receiver, &thread_senders, &main_transmitter);
+                //messaging::deal_with_messages(proc_id, &thread_receiver, &thread_senders, &main_transmitter);
                 thread::sleep(Duration::from_millis(500));
             }
         });

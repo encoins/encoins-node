@@ -2,6 +2,8 @@
 
 use crate::transaction::Transaction;
 use crate::base_types::*;
+use std::sync::mpsc::{Receiver, Sender};
+use crate::message::Message;
 
 type List = Vec<u32>;
 type TransfertSet = Vec<Transaction>;
@@ -13,12 +15,14 @@ pub struct Processus {
     rec : List,
     hist : Vec<TransfertSet>,
     deps : TransfertSet,
-    to_validate : TransfertSet
+    to_validate : TransfertSet,
+    senders : Vec<Sender<Message>>,
+    receiver : Receiver<Message>
 }
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Message>>, receiver : Receiver<Message>) -> Processus {
         let mut s : Vec<TransfertSet> = vec![];
         for i in 0..nb_process {
             s.push(TransfertSet::new())
@@ -29,7 +33,9 @@ impl Processus {
             rec : vec![0;nb_process as usize],
             hist : s,
             deps : TransfertSet::new(),
-            to_validate : TransfertSet::new()
+            to_validate : TransfertSet::new(),
+            senders,
+            receiver
         }
     }
 
