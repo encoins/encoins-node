@@ -11,6 +11,7 @@ mod logging;
 mod base_types;
 mod message;
 mod messaging;
+mod input_management;
 
 
 fn main()
@@ -25,6 +26,11 @@ fn main()
     let senders= initialize_processes(args[1].parse::<u32>().unwrap(), &transmit_main, &receive_main);
     thread::sleep(Duration::from_millis(1000));
 
+    loop
+    {
+        let trans: Transaction = input_management::read_input();
+        // transmit the input to the adequate proc;
+    }
 
 }
 
