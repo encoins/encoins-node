@@ -24,7 +24,16 @@ pub fn deal_with_messages(proc_nb : u32, receiver : &Receiver<Message>, transmit
     if message.signature == 0
     {
         // If message sent by main process then it means that it is a new transaction to deal with
+
+        let new_msg = Message{
+            transaction: message.transaction.clone(),
+            dependencies: message.dependencies.clone(),
+            message_type: STANDARD,
+            signature: proc_nb
+        };
+
         log!(proc_nb, "Received Transaction request from user! Processing it");
+        log!(proc_nb, "Broadcasting message to everyone");
 
         // Process the transaction here !
 
