@@ -11,6 +11,7 @@ mod logging;
 mod base_types;
 mod message;
 mod messaging;
+mod input_management;
 
 
 fn main()
@@ -37,6 +38,10 @@ fn main()
     senders[3].send(test_message);
     thread::sleep(Duration::from_millis(1000));
 
+    loop {
+        let trans: Transaction = input_management::read_input();
+        // transmit the input to the adequate proc;
+    }
 
 }
 
@@ -50,7 +55,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, mai
     for i in 0..nb_process {
 
         let main_transmitter = main_transmitter.clone();
-
+      
         let thread_senders = senders.clone();
         let thread_receiver = match receivers.pop() {
             None => { panic!("Something went wrong during initialization of threads") }
