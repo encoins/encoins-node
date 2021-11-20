@@ -22,14 +22,14 @@ fn main()
     let (transmit_main, receive_main): (Sender<Message>, Receiver<Message>) = mpsc::channel();
 
     &println!("Initializing with {} processes", &args[1]);
-    let receivers= initialize_processes(args[1].parse::<u32>().unwrap(), &transmit_main, &receive_main);
+    let senders= initialize_processes(args[1].parse::<u32>().unwrap(), &transmit_main, &receive_main);
     thread::sleep(Duration::from_millis(1000));
 
 
 }
 
 /// Initializes all process
-fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, main_receiver: &Receiver<Message>) -> Vec<Receiver<Message>>{
+fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, main_receiver: &Receiver<Message>) -> Vec<Sender<Message>>{
     let (senders, receivers): (Vec<Sender<Message>>, Vec<Receiver<Message>>) =
         (0..nb_process).into_iter().map(|_| mpsc::channel()).unzip();
 
@@ -52,5 +52,5 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, mai
         });
     }
 
-    receivers
+    senders
 }
