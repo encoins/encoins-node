@@ -1,3 +1,4 @@
+//! Definition of a message type
 use crate::base_types::Signature;
 use crate::transaction::Transaction;
 
