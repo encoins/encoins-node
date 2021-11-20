@@ -25,6 +25,7 @@ fn main()
 
     println!("Initializing with {} processes", &args[1]);
     let senders= initialize_processes(args[1].parse::<u32>().unwrap(), &transmit_main, &receive_main);
+    thread::sleep(Duration::from_millis(1000));
 
     loop {
         let possible_comm: Option<Communication> = input_management::read_input();
