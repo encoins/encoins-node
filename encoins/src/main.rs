@@ -26,8 +26,7 @@ fn main()
     let senders= initialize_processes(args[1].parse::<u32>().unwrap(), &transmit_main, &receive_main);
     thread::sleep(Duration::from_millis(1000));
 
-    loop
-    {
+    loop {
         let trans: Transaction = input_management::read_input();
         // transmit the input to the adequate proc;
     }
@@ -42,17 +41,17 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, mai
     for i in 0..nb_process {
         let main_transmitter = main_transmitter.clone();
 
-        let thread_senders = senders.clone();
+        /*let thread_senders = senders.clone();
         let thread_receiver = match receivers.get(i as usize) {
             None => panic!("Something went wrong in the initialization!"),
             Some(x) => x.clone(),
-        };
+        };*/
 
         thread::spawn(move || {
             let proc_nb = i+1;
 
             loop {
-                messaging::deal_with_messages(proc_nb,thread_receiver, &thread_senders, &main_transmitter);
+               // messaging::deal_with_messages(proc_nb,thread_receiver, &thread_senders, &main_transmitter);
                 thread::sleep(Duration::from_millis(500));
             }
         });

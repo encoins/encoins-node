@@ -8,13 +8,14 @@
 use std::io;
 use crate::transaction::Transaction;
 
+// Read a terminal line and parses it into a transaction
 pub fn read_input() -> Transaction {
     
     // Parameters
     let nb_args_required: [usize; 4] = [3, 3, 4, 2];
 
     loop {
-        println!("What action would you like to do ?");
+        println!("What operation would you like to do ?");
 
         // Save the line entered on the terminal in the string input_line
         let mut input_line = String::new();
@@ -27,8 +28,9 @@ pub fn read_input() -> Transaction {
         let len = input_line.len();
         let input_line = &input_line[..len-1];
 
-        // Parsing of the input line as an op_type and a usize array of args
+        // Parsing of the input line as an op_type and an array args of arguments, managing the syntax errors
         let words: Vec<&str> = input_line.split(' ').collect();
+        // op_type
         let mut op_type: usize = match words[0] {
             "add"       => 0,
             "remove"    => 1,
@@ -44,9 +46,10 @@ pub fn read_input() -> Transaction {
             println!("Wrong number of arguments");
         }
         
+        // args
         let mut args: Vec<u32> = vec![];
-        for k in [1..nb_args_required[op_type]] {
-            let word = String::from(words[k][0]);
+        for k in 1..nb_args_required[op_type] {
+            let word = String::from(words[k]);
             let arg: u32 = match word.trim().parse() {
                 Ok(num) => num,
                 Err(_) => {
@@ -60,36 +63,43 @@ pub fn read_input() -> Transaction {
         // Returning the corresponding transaction
         match op_type {
             0 => {
+                println!("request : addition of {} encoins to account {}", args[1], args[0]);
                 return Transaction {
                     seq_id: 0,
                     sender_id: 0,
+                    receiver_id: args[0],
+                    amount: args[1]
+                };
+            }
+            1 => {
+                println!("request : suppression of {} encoins from account {}", args[1], args[0]);
+                return Transaction {
+                    seq_id: 0,
+                    sender_id: args[0],
+                    receiver_id: 0,
+                    amount: args[1]
+                };
+            }
+            2 => {
+                println!("request : transfert of {} encoins from account {} to account {}", args[2], args[0], args[1]);
+                return Transaction {
+                    seq_id: 0,
+                    sender_id: args[0],
                     receiver_id: args[1],
                     amount: args[2]
                 };
             }
-            1 => {
-                return Transaction {
-                    seq_id: 0,
-                    sender_id: args[1],
-                    receiver_id: 0,
-                    amount: args[2]
-                };
-            }
-            2 => {
-                return Transaction {
-                    seq_id: 0,
-                    sender_id: args[1],
-                    receiver_id: args[2],
-                    amount: args[3]
-                };
-            }
             3 => {
+                println!("request : read the amount on account {}", args[0]);
                 return Transaction {
                     seq_id: 0,
-                    sender_id: args[1],
+                    sender_id: args[0],
                     receiver_id: 0,
                     amount: 0
                 };
+            }
+            _ => {
+                panic!("ALALALA");
             }
         }
     }
