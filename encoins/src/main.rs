@@ -5,8 +5,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::message::Message;
 use crate::transaction::{print_transaction, Transaction};
-
-
 mod transaction;
 mod logging;
 mod base_types;
@@ -16,8 +14,10 @@ mod messaging;
 
 fn main()
 {
+    // Gets given arguments at execution
     let args: Vec<String> = env::args().collect();
 
+    // Creating transmitter and receiver for main
     let (transmit_main, receive_main): (Sender<Message>, Receiver<Message>) = mpsc::channel();
 
     &println!("Initializing with {} processes", &args[1]);
@@ -45,23 +45,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Message>, mai
             let proc_nb = i+1;
 
             loop {
-
-                let mut mes = thread_receiver.recv().unwrap();
-
-                if mes.signature == 0
-                {
-                    mes.signature = proc_nb;
-                    log!(proc_nb, "Received Transaction request from user! Processing it");
-                    log!(proc_nb, "Broadcasting transaction to everyone!");
-                    messaging::broadcast(&thread_senders, mes);
-                }
-
-                else
-                {
-                    log!(proc_nb, "Received following transaction from process {}", mes.signature);
-                    print_transaction(&mes.transaction);
-                }
-
+                messaging::deal_with_messages(proc_nb,thread_receiver, &thread_senders, &main_transmitter);
                 thread::sleep(Duration::from_millis(500));
             }
         });
