@@ -3,6 +3,7 @@
 use crate::base_types::*;
 
 /// A transaction is an exchange of money between two accounts
+#[derive(Clone)]
 pub struct Transaction
 {
     /// seq_id is the id of the transaction. For a transaction t, seq_id will be the number of validated transfers outgoing form the sender +1.
@@ -13,4 +14,15 @@ pub struct Transaction
     pub(crate) receiver_id: UserId,
     /// the currency exchanged
     pub(crate) amount: Currency
+}
+
+/// Prints a transaction
+pub fn print_transaction(transaction: &Transaction)
+{
+    println!("Transaction infos:     \n\
+             \t- Sender Id : {}       \n\
+             \t- Receiver Id : {}      \n\
+             \t- Sender's seq id : {} \n\
+             \t- Amount transferred : {}\n"
+             , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount)
 }
