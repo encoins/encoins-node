@@ -17,12 +17,15 @@ pub struct Transaction
 }
 
 /// Prints a transaction
-pub fn print_transaction(transaction: &Transaction)
+pub fn transaction_to_string(transaction: &Transaction) -> String
 {
-    println!("Transaction infos:     \n\
+    let transaction_str = format!("Transaction infos:     \n\
              \t- Sender Id : {}       \n\
              \t- Receiver Id : {}      \n\
              \t- Sender's seq id : {} \n\
              \t- Amount transferred : {}\n"
-             , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount)
+             , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount);
+
+    transaction_str
 }
+

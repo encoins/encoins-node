@@ -4,7 +4,8 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::message::Message;
-use crate::transaction::{print_transaction, Transaction};
+use crate::transaction::{Transaction};
+
 mod transaction;
 mod logging;
 mod base_types;

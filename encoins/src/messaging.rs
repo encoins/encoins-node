@@ -2,7 +2,7 @@
 
 use std::sync::mpsc::{Receiver, Sender};
 use crate::message::{ECHO, Message, STANDARD};
-use crate::transaction::print_transaction;
+use crate::transaction::{transaction_to_string};
 use crate::log;
 
 /// A simple broadcast function to make a basic broadcast to all processes (except main)
@@ -41,7 +41,7 @@ pub fn deal_with_messages(proc_nb : u32, receiver : &Receiver<Message>, transmit
         else
         {
             log!(proc_nb, "Received following transaction from process {}", message.signature);
-            print_transaction(&message.transaction);
+            log!(proc_nb, transaction_to_string(&message.transaction));
 
             // Process transaction here !
 
