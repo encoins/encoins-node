@@ -32,8 +32,9 @@ fn main()
 
     thread::sleep(Duration::from_millis(1000));
 
+    let mut additional_strings = vec![];
     loop {
-        let possible_comm: Option<Communication> = input_management::read_input();
+        let possible_comm: Option<Communication> = input_management::read_input(&mut additional_strings);
         match possible_comm
         {
             None => {}
@@ -72,7 +73,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
             let proc_nb = i+1;
             log!(proc_nb, "Thread initialized correctly");
             loop {
-                messaging::deal_with_messages(proc_nb,thread_receiver, &thread_senders, &main_transmitter);
+                messaging::deal_with_messages(proc_nb,&thread_receiver, &thread_senders, &main_transmitter);
                 thread::sleep(Duration::from_millis(500));
             }
         });
