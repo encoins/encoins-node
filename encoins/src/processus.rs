@@ -3,6 +3,7 @@
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
+use crate::communication::Communication;
 use crate::message::{Message, STANDARD};
 use crate::messaging::broadcast;
 
@@ -18,13 +19,13 @@ pub struct Processus {
     hist : Vec<TransferSet>,
     deps : TransferSet,
     to_validate : TransferSet,
-    senders : Vec<Sender<Message>>,
-    receiver : Receiver<Message>
+    senders : Vec<Sender<Communication>>,
+    receiver : Receiver<Communication>
 }
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Message>>, receiver : Receiver<Message>) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for i in 0..nb_process {
             s.push(TransferSet::new())
@@ -46,17 +47,18 @@ impl Processus {
             return false
         }
 
-        let message : Message = Message {
-            transaction : Transaction {
-                seq_id : self.seq[receiver_id as usize] + 1,
-                sender_id : user_id,
-                receiver_id,
-                amount,
-            },
-            dependencies : self.deps.clone(),
-            message_type : STANDARD,
-            signature : 0 // we all count on Milan
-
+        let message  = Communication::Transfer {
+            message: Message {
+                transaction: Transaction {
+                    seq_id: self.seq[receiver_id as usize] + 1,
+                    sender_id: user_id,
+                    receiver_id,
+                    amount,
+                },
+                dependencies: self.deps.clone(),
+                message_type: STANDARD,
+                signature: 0 // we all count on Milan
+            }
         };
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, message);
@@ -82,4 +84,5 @@ impl Processus {
         }
         balance
     }
+
 }

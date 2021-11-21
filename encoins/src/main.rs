@@ -13,7 +13,7 @@ mod message;
 mod messaging;
 mod input_management;
 mod communication;
-
+mod processus;
 
 fn main()
 {
@@ -72,10 +72,11 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
         };
 
         thread::spawn(move || {
-            let proc = processus::Processus::init(i+1,nb_process,thread_senders,thread_receiver);
-            log!(proc_nb, "Thread initialized correctly");
+            let proc_id = i+1;
+            let proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
+            log!(proc_id, "Thread initialized correctly");
             loop {
-                messaging::deal_with_messages(proc_nb,&thread_receiver, &thread_senders, &main_transmitter);
+                //messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
                 thread::sleep(Duration::from_millis(500));
             }
         });
