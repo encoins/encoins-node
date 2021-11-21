@@ -119,4 +119,31 @@ impl Processus {
         };
     }
 
+    pub fn valid(&self){
+
+    }
+
+    fn is_valid(&self,message : Message) -> bool{
+        // 1) process q (the issuer of transfer op) must be the owner of the outgoing
+        // account for op
+
+        // I think it must be done with the signature
+        let assert1 = true;
+        // 2) any preceding transfers that process q issued must have been validated
+        let assert2 = message.transaction.sender_id == self.seq[message.transaction.sender_id as usize] + 1 ;
+        // 3) the balance of account q must not drop below zero
+        let assert3 = Processus::balance(message.transaction.sender_id,&message.dependencies) >= message.transaction.amount;
+        // 4) the reported dependencies of op (encoded in h of line 26) must have been
+        // validated and exist in hist[q]
+
+        for dependence in message.dependencies {
+            if self.deps.clone().iter().any(|transaction| transaction == &dependence) {
+                return false;
+            }
+        }
+        let mut assert4 = true;
+
+        assert1 && assert2 && assert3 && assert4
+    }
+
 }
