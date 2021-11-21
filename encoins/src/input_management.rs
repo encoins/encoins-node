@@ -121,7 +121,7 @@ fn deal_with_entry(args : Vec<u32>, op_type : usize, strings_to_show: &mut Vec<S
         }
         2 => {
             let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {}", args[2], args[1], args[0]));
-            let comm = Communication::TransferRequest {account1: args[0], account2: args[1], amount: args[2]};
+            let comm = Communication::TransferRequest {sender: args[0], recipient: args[1], amount: args[2]};
             (Some(comm), Some(string_returned))
         }
         3 => {

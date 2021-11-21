@@ -11,7 +11,7 @@ pub enum Communication
 {
     ReadAccount{account : UserId},
     Transfer{message : Message},
-    TransferRequest{account1 : UserId, account2 : UserId, amount : Currency},
+    TransferRequest{sender : UserId, recipient : UserId, amount : Currency},
     Add{account : UserId, amount : Currency},
     Remove{account : UserId, amount : Currency}
 }
@@ -38,9 +38,9 @@ impl Communication
                 {
                     account
                 }
-            Communication::TransferRequest { account1, account2, amount } =>
+            Communication::TransferRequest { sender, recipient, amount } =>
                 {
-                    account1
+                    sender
                 }
         }
     }

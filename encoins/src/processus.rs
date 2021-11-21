@@ -85,4 +85,38 @@ impl Processus {
         balance
     }
 
+    pub fn deliver (& mut self) {
+        let mut comm = self.receiver.recv().unwrap();
+
+
+        match comm {
+            Communication::ReadAccount { account } =>
+                {
+                    println!("{}",self.read());
+                }
+            Communication::Transfer { message } =>
+                {
+                    //let (transaction,dependencies,message_type,signature) = message;
+                    //let (seq_id,sender_id,receiver_id,amount) = transaction.clone();
+                    if message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 {
+                        self.rec[message.transaction.sender_id as usize] += 1;
+                        self.to_validate.push(message.transaction)
+                    }
+                }
+
+            Communication::Add { account, amount } =>
+                {
+                    // Do something
+                }
+            Communication::Remove { account, amount } =>
+                {
+                    self.transfer(self.id_proc,0,amount);
+                }
+            Communication::TransferRequest { sender, recipient, amount } =>
+                {
+                    self.transfer(self.id_proc,recipient,amount);
+                }
+        };
+    }
+
 }

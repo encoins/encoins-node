@@ -76,7 +76,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
             let proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
             log!(proc_id, "Thread initialized correctly");
             loop {
-                //messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
+                // messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
                 thread::sleep(Duration::from_millis(500));
             }
         });
