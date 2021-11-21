@@ -6,9 +6,12 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::communication::Communication;
 use crate::message::{Message, STANDARD};
 use crate::messaging::broadcast;
+use std::collections::HashSet;
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
+type MessageSet = Vec<Message>;
+
 
 
 
@@ -18,7 +21,7 @@ pub struct Processus {
     rec : List,
     hist : Vec<TransferSet>,
     deps : TransferSet,
-    to_validate : TransferSet,
+    to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>
 }
@@ -36,7 +39,7 @@ impl Processus {
             rec : vec![0;nb_process as usize],
             hist : s,
             deps : TransferSet::new(),
-            to_validate : TransferSet::new(),
+            to_validate : MessageSet::new(),
             senders,
             receiver
         }
@@ -100,7 +103,7 @@ impl Processus {
                     //let (seq_id,sender_id,receiver_id,amount) = transaction.clone();
                     if message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 {
                         self.rec[message.transaction.sender_id as usize] += 1;
-                        self.to_validate.push(message.transaction)
+                        self.to_validate.push(message)
                     }
                 }
 
@@ -119,11 +122,19 @@ impl Processus {
         };
     }
 
-    pub fn valid(&self){
-
+    pub fn valid(&mut self){
+        for e in &self.to_validate {
+            if self.is_valid(e) {
+                self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
+                self.hist[e.transaction.sender_id as usize].push(e.transaction.clone());
+                if self.id_proc == e.transaction.receiver_id {
+                    self.deps.push(e.transaction.clone())
+                }
+            }
+        }
     }
 
-    fn is_valid(&self,message : Message) -> bool{
+    fn is_valid(&self,message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
 
@@ -136,8 +147,8 @@ impl Processus {
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
 
-        for dependence in message.dependencies {
-            if self.deps.clone().iter().any(|transaction| transaction == &dependence) {
+        for dependence in &message.dependencies {
+            if self.deps.clone().iter().any(|transaction| transaction == dependence) {
                 return false;
             }
         }
