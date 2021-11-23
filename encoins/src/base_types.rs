@@ -9,5 +9,8 @@ pub type Currency = u32;
 /// For the moment, the sequence id of a transaction is a 32-bit integer. Maybe a specific type for big numbers should be implemented to avoid future problems
 pub type SeqId = u32;
 
+/// For the moment, the unique id of a transaction is a 32-bit integer. Its role is to prevent a copy-paste attack on already signed transactions.
+pub type UId = u32;
+
 /// For the moment, a signature is just an unsigned integer giving the process number of the sender
 pub type Signature = u32;

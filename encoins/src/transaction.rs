@@ -14,6 +14,8 @@ pub struct Transaction
     pub(crate) receiver_id: UserId,
     /// the currency exchanged
     pub(crate) amount: Currency
+    /// the unique ID of the transaction
+    pub(crate) unique_id: UId
 }
 
 /// Prints a transaction
@@ -23,8 +25,9 @@ pub fn transaction_to_string(transaction: &Transaction) -> String
              \t- Sender Id : {}       \n\
              \t- Receiver Id : {}      \n\
              \t- Sender's seq id : {} \n\
-             \t- Amount transferred : {}\n"
-             , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount);
+             \t- Amount transferred : {} \n\
+             \t- Unique ID of the transaction : {}\n"
+             , transaction.sender_id, transaction.receiver_id, transaction.seq_id, transaction.amount, transaction.unique_id);
 
     transaction_str
 }
