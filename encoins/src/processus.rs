@@ -30,7 +30,7 @@ pub struct Processus {
 impl Processus {
     pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
-        for i in 0..nb_process+1 {
+        for i in 0..nb_process+1     {
             s.push(TransferSet::new())
         }
         Processus {
@@ -131,15 +131,22 @@ impl Processus {
 
     pub fn valid(&mut self){
         //println!("{:?}", self.to_validate);
-        for e in &self.to_validate {
+        let mut index = 0;
+        loop {
+            let e = match self.to_validate.get(index) {
+                Some(message) => {message}
+                None => return ()
+            };
             if self.is_valid(e) {
-                self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
+                // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
+                // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
                 self.hist[e.transaction.sender_id as usize].push(e.transaction.clone());
                 if self.id_proc == e.transaction.receiver_id {
                     println!("a moi la moula");
                     self.deps.push(e.transaction.clone())
                 }
-            }
+                self.to_validate.remove(index);
+            } else { index += 1 }
         }
     }
 
