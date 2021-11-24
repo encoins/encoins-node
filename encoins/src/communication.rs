@@ -6,7 +6,7 @@ use crate::transaction::Transaction;
 
 /// A communication is either a transfer or a directive from main process
 /// which can be : read an account, add money to an account, remove money from an account
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub enum Communication
 {
     ReadAccount{account : UserId},

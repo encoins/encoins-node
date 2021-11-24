@@ -13,7 +13,7 @@ type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
 
 
-
+#[derive(Debug)]
 
 pub struct Processus {
     id_proc : UserId,
@@ -30,13 +30,13 @@ pub struct Processus {
 impl Processus {
     pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
-        for i in 0..nb_process {
+        for i in 0..nb_process+1 {
             s.push(TransferSet::new())
         }
         Processus {
             id_proc : id,
-            seq : vec![0;nb_process as usize],
-            rec : vec![0;nb_process as usize],
+            seq : vec![0;(nb_process + 1) as usize],
+            rec : vec![0;(nb_process + 1) as usize],
             hist : s,
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
@@ -46,7 +46,7 @@ impl Processus {
     }
 
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
-        if self.read() < amount {
+        if self.read() < amount && ! user_id == 0 {
             return false
         }
 
@@ -88,13 +88,18 @@ impl Processus {
         balance
     }
 
-    pub fn deliver (& mut self) {
-        let mut comm = self.receiver.recv().unwrap();
+    pub fn deliver (& mut self) -> bool {
+        let mut comm = match self.receiver.try_recv() {
+            Ok(comm) => {comm}
+            Err(E) => {println!("{}",E); return false}
+        };
 
 
         match comm {
             Communication::ReadAccount { account } =>
                 {
+                    println!("gnagagagz");
+                    //println!("{:#?}",self);
                     println!("{}",self.read());
                 }
             Communication::Transfer { message } =>
@@ -120,14 +125,18 @@ impl Processus {
                     self.transfer(self.id_proc,recipient,amount);
                 }
         };
+        println!("C'est dans la boite");
+        true
     }
 
     pub fn valid(&mut self){
+        //println!("{:?}", self.to_validate);
         for e in &self.to_validate {
             if self.is_valid(e) {
                 self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
                 self.hist[e.transaction.sender_id as usize].push(e.transaction.clone());
                 if self.id_proc == e.transaction.receiver_id {
+                    println!("a moi la moula");
                     self.deps.push(e.transaction.clone())
                 }
             }
@@ -154,7 +163,8 @@ impl Processus {
         }
         let mut assert4 = true;
 
-        assert1 && assert2 && assert3 && assert4
+        //println!("{}",(assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0);
+        (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
     }
 
 }

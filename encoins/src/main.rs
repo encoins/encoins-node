@@ -30,6 +30,10 @@ fn main()
     println!("Initializing with {} processes", &args[1]);
     let senders= initialize_processes(number_of_processes, &transmit_main, &receive_main);
 
+    let mut main_senders = vec![transmit_main.clone()];
+    main_senders.append(&mut senders.clone());
+    let mut main_proc = processus::Processus::init(0,number_of_processes,main_senders.clone(),receive_main);
+
     thread::sleep(Duration::from_millis(1000));
 
     let mut additional_strings = vec![];
@@ -38,15 +42,17 @@ fn main()
         match possible_comm
         {
             None => {}
-            Some(comm) => match senders.get((*comm.receiver()) as usize)
+            Some(Communication::Add {account, amount}) => {main_proc.transfer(0,account,amount); println!("{:#?}",Communication::Add {account, amount}); ()}
+            Some(comm) => match main_senders.get((*comm.receiver()) as usize)
             {
                 None => {
                     // Do something
                     }
-                Some(transmitter ) => { transmitter.send(comm).unwrap() }
+                Some(transmitter ) => { println!("{:#?} {}",comm,*comm.receiver());transmitter.send(comm).unwrap() }
 
             }
         }
+        main_proc.valid();
     }
 
 }
@@ -73,11 +79,15 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
 
         thread::spawn(move || {
             let proc_id = i+1;
-            let proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
+            let mut proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
             log!(proc_id, "Thread initialized correctly");
             loop {
+                //println!("test");
                 // messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
-                thread::sleep(Duration::from_millis(500));
+                proc.deliver();
+                proc.valid();
+                //println!("{:#?}",proc);
+                thread::sleep(Duration::from_millis(5000));
             }
         });
     }
