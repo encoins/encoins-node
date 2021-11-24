@@ -32,20 +32,28 @@ fn main()
 
     thread::sleep(Duration::from_millis(1000));
 
+    let mut main_proc = processus::Processus::init(0,number_of_processes,senders.clone(),receive_main);
+
     let mut additional_strings = vec![];
     loop {
         let possible_comm: Option<Communication> = input_management::read_input(&mut additional_strings);
         match possible_comm
         {
             None => {}
-            Some(comm) => match senders.get((*comm.receiver()) as usize)
-            {
-                None => {
-                    // Do something
-                    }
-                Some(transmitter ) => { transmitter.send(comm).unwrap() }
+            Some( Communication::Add{account : UserId, amount : Currency}) => { log!(UserId,"add {} {}", UserId, Currency) ; main_proc.transfer(0,UserId, Currency); (); }
+            Some(Communication::ReadAccount{..} ) => {log!(1,"ra ");()}
+            Some(Communication::Remove{..}) => {log!(1,"rm ");()}
+            Some(Communication::Transfer{..}) => {log!(1,"t ");()}
+            Some(Communication::TransferRequest{..}) => {log!(1,"tr ");()}
 
-            }
+            //Some(comm) => {log!(1,"balok "); match senders.get((*comm.receiver()) as usize)
+             //   {
+             //       None =>
+              //          {
+               //         // Do something
+                //        }
+               //     Some(transmitter) => { transmitter.send(comm).unwrap() }
+             //   } }
         }
     }
 
@@ -73,11 +81,13 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
 
         thread::spawn(move || {
             let proc_id = i+1;
-            let proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
+            //let mut proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
             log!(proc_id, "Thread initialized correctly");
             loop {
                 // messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
-                thread::sleep(Duration::from_millis(500));
+                println!("{:?}", thread_receiver.try_recv());
+                //if proc.deliver() { log!(proc_id,"pock"); };
+                thread::sleep(Duration::from_millis(5000));
             }
         });
     }

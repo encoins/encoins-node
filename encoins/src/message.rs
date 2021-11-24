@@ -11,7 +11,7 @@ pub const FINAL : u8 = 2;
 
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction, a message type and the signature of the process sending the message
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Message
 {
     /// Transaction to be validated

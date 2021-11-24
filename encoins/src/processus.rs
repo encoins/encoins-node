@@ -88,17 +88,25 @@ impl Processus {
         balance
     }
 
-    pub fn deliver (& mut self) {
-        let mut comm = self.receiver.recv().unwrap();
+    pub fn deliver (& mut self) -> bool {
+        println!("in");
+        let mut flag = false;
+        let mut comm = match self.receiver.try_recv() {
+            Ok(comm) => {println!("1");comm}
+            Err(E) => {println!("2"); return false}
+            _ => {panic!("quepassa")}
+        };
+        println!("wtf");
+
 
 
         match comm {
             Communication::ReadAccount { account } =>
-                {
+                {  flag = true;
                     println!("{}",self.read());
                 }
             Communication::Transfer { message } =>
-                {
+                { flag = true;
                     //let (transaction,dependencies,message_type,signature) = message;
                     //let (seq_id,sender_id,receiver_id,amount) = transaction.clone();
                     if message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 {
@@ -113,13 +121,17 @@ impl Processus {
                 }
             Communication::Remove { account, amount } =>
                 {
+                    flag = true;
                     self.transfer(self.id_proc,0,amount);
                 }
             Communication::TransferRequest { sender, recipient, amount } =>
                 {
+                    flag = true;
                     self.transfer(self.id_proc,recipient,amount);
                 }
         };
+        println!("out");
+        flag
     }
 
     pub fn valid(&mut self){
@@ -135,9 +147,11 @@ impl Processus {
     }
 
     fn is_valid(&self,message : &Message) -> bool{
+
+        if message.transaction.sender_id == 0 { return true }
+        println!("Add {} to {} is done",message.transaction.amount, message.transaction.receiver_id);
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
-
         // I think it must be done with the signature
         let assert1 = true;
         // 2) any preceding transfers that process q issued must have been validated

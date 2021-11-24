@@ -50,12 +50,12 @@ pub fn initialize(number_of_process : u32)
     }
 
     // Creates the log files for all processes
-    for i in 0..number_of_process
+    for i in 0..number_of_process + 1
     {
         let file_path;
         unsafe
             {
-                file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i+1);
+                file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i);
             }
 
         let file = File::create(file_path);

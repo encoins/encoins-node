@@ -19,7 +19,7 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
     // Parameters
     let nb_args_required: [usize; 7] = [3, 3, 4, 2, 1 ,1, 1];
 
-    show_terminal(&strings_to_show);
+    //show_terminal(&strings_to_show);
 
     // Save the line entered on the terminal in the string input_line
     let mut args : Vec<u32> = vec![];
@@ -105,12 +105,17 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
 
 fn deal_with_entry(args : Vec<u32>, op_type : usize, strings_to_show: &mut Vec<String>) -> (Option<Communication>, Option<String>)
 {
-
+    println!("fuck");
 
     match op_type {
         0 => {
+            println!("gogogo");
             let string_returned = String::from(format!("Added {} encoins to account {}", args[1], args[0]));
-            let comm = Communication::Add { account: args[0], amount: args[1] };
+            //let comm = Communication::Add { account: args[0], amount: args[1] };
+            //(Some(comm), Some(string_returned))
+            let comm = Communication::TransferRequest {sender: 0, recipient: args[0], amount: args[1]};
+            println!("gagaga");
+
             (Some(comm), Some(string_returned))
 
         }
