@@ -65,14 +65,16 @@ impl Processus {
         };
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, message);
-        self.deps = TransferSet::new();
+        self.hist[self.id_proc as usize].append(&mut self.deps);
+        // self.deps = TransferSet::new(); the line above do it
         true
     }
 
     pub fn read(&self) -> Currency {
         let a = self.id_proc;
-        let mut dep = self.hist[a as usize].clone();
-        dep.append(&mut self.deps.clone());
+        let mut dep = self.deps.clone();
+        dep.append(&mut self.hist[a as usize].clone());
+        println!("{:#?}",&dep);
         return Processus::balance(a, &dep)
     }
 
@@ -91,7 +93,7 @@ impl Processus {
     pub fn deliver (& mut self) -> bool {
         let mut comm = match self.receiver.try_recv() {
             Ok(comm) => {comm}
-            Err(E) => {println!("{}",E); return false}
+            Err(E) => {/*println!("{}",E); */return false}
         };
 
 
@@ -125,7 +127,7 @@ impl Processus {
                     self.transfer(self.id_proc,recipient,amount);
                 }
         };
-        println!("C'est dans la boite");
+        //println!("C'est dans la boite");
         true
     }
 
@@ -146,6 +148,7 @@ impl Processus {
                     self.deps.push(e.transaction.clone())
                 }
                 self.to_validate.remove(index);
+                println!("{} nsm",index);
             } else { index += 1 }
         }
     }
@@ -157,7 +160,8 @@ impl Processus {
         // I think it must be done with the signature
         let assert1 = true;
         // 2) any preceding transfers that process q issued must have been validated
-        let assert2 = message.transaction.sender_id == self.seq[message.transaction.sender_id as usize] + 1 ;
+        let assert2 = message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 ;
+        //println!("{} {}",message.transaction.seq_id,self.seq[message.transaction.sender_id as usize] + 1);
         // 3) the balance of account q must not drop below zero
         let assert3 = Processus::balance(message.transaction.sender_id,&message.dependencies) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
@@ -170,7 +174,7 @@ impl Processus {
         }
         let mut assert4 = true;
 
-        //println!("{}",(assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0);
+        //println!("{} {} {} {}",assert1, assert2 , assert3 , assert4 );
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
     }
 

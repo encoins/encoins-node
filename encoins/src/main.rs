@@ -87,7 +87,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
                 proc.deliver();
                 proc.valid();
                 //println!("{:#?}",proc);
-                thread::sleep(Duration::from_millis(5000));
+                thread::sleep(Duration::from_millis(500));
             }
         });
     }
