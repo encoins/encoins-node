@@ -4,9 +4,10 @@ use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
 use crate::communication::Communication;
-use crate::message::{Message, STANDARD};
-use crate::messaging::broadcast;
+use crate::message::{Message, MessageType};
+use crate::messaging::{broadcast, secure_broadcast};
 use std::collections::HashSet;
+use crate::log;
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
@@ -21,7 +22,7 @@ pub struct Processus {
     rec : List,
     hist : Vec<TransferSet>,
     deps : TransferSet,
-    to_validate : MessageSet,
+    pub(crate) to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>
 }
@@ -50,21 +51,20 @@ impl Processus {
             return false
         }
 
-        let message  = Communication::Transfer {
-            message: Message {
+        let message  = Message {
                 transaction: Transaction {
-                    seq_id: self.seq[receiver_id as usize] + 1,
+                    seq_id: self.seq[user_id as usize] + 1,
                     sender_id: user_id,
                     receiver_id,
                     amount,
                 },
                 dependencies: self.deps.clone(),
-                message_type: STANDARD,
+                message_type: MessageType::Standard,
+                sender_id: self.id_proc,
                 signature: 0 // we all count on Milan
-            }
-        };
+            };
         // message.sign() : Waiting for Milan
-        broadcast(&self.senders, message);
+        secure_broadcast(self, message);
         self.hist[self.id_proc as usize].append(&mut self.deps);
         // self.deps = TransferSet::new(); the line above do it
         true
@@ -74,7 +74,7 @@ impl Processus {
         let a = self.id_proc;
         let mut dep = self.deps.clone();
         dep.append(&mut self.hist[a as usize].clone());
-        println!("{:#?}",&dep);
+        //println!("{:#?}",&dep);
         return Processus::balance(a, &dep)
     }
 
@@ -90,73 +90,39 @@ impl Processus {
         balance
     }
 
-    pub fn deliver (& mut self) -> bool {
-        let mut comm = match self.receiver.try_recv() {
-            Ok(comm) => {comm}
-            Err(E) => {/*println!("{}",E); */return false}
-        };
-
-
-        match comm {
-            Communication::ReadAccount { account } =>
-                {
-                    println!("gnagagagz");
-                    //println!("{:#?}",self);
-                    println!("{}",self.read());
-                }
-            Communication::Transfer { message } =>
-                {
-                    //let (transaction,dependencies,message_type,signature) = message;
-                    //let (seq_id,sender_id,receiver_id,amount) = transaction.clone();
-                    if message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 {
-                        self.rec[message.transaction.sender_id as usize] += 1;
-                        self.to_validate.push(message)
-                    }
-                }
-
-            Communication::Add { account, amount } =>
-                {
-                    // Do something
-                }
-            Communication::Remove { account, amount } =>
-                {
-                    self.transfer(self.id_proc,0,amount);
-                }
-            Communication::TransferRequest { sender, recipient, amount } =>
-                {
-                    self.transfer(self.id_proc,recipient,amount);
-                }
-        };
-        //println!("C'est dans la boite");
-        true
-    }
-
     pub fn valid(&mut self){
         //println!("{:?}", self.to_validate);
         let mut index = 0;
-        loop {
-            let e = match self.to_validate.get(index) {
+        loop
+        {
+            let e = match self.to_validate.get(index)
+            {
                 Some(message) => {message}
-                None => return ()
+                None => break
             };
-            if self.is_valid(e) {
+            if self.is_valid(e)
+            {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
                 self.hist[e.transaction.sender_id as usize].push(e.transaction.clone());
                 if self.id_proc == e.transaction.receiver_id {
-                    println!("a moi la moula");
-                    self.deps.push(e.transaction.clone())
+                    self.deps.push(e.transaction.clone());
                 }
+                log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", e.transaction);
                 self.to_validate.remove(index);
-                println!("{} nsm",index);
-            } else { index += 1 }
+            }
+            else
+            {
+                index += 1;
+                log!(self.id_proc, "Transaction {} is not valid and is refused on my part.", e.transaction);
+
+            }
         }
     }
 
     fn is_valid(&self,message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
-
         // I think it must be done with the signature
         let assert1 = true;
         // 2) any preceding transfers that process q issued must have been validated
@@ -176,6 +142,34 @@ impl Processus {
 
         //println!("{} {} {} {}",assert1, assert2 , assert3 , assert4 );
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
+
+
+    }
+
+
+    pub fn get_id(&self) -> UserId
+    {
+        self.id_proc
+    }
+
+    pub fn get_seq_at(&self, id: usize) -> SeqId
+    {
+        self.seq[id]
+    }
+
+    pub fn incr_rec(&mut self, id:usize)
+    {
+        self.rec[id] +=1;
+    }
+
+    pub fn get_receiver(&self) -> &Receiver<Communication>
+    {
+        &(self.receiver)
+    }
+
+    pub fn get_senders(&self) -> &Vec<Sender<Communication>>
+    {
+        &(self.senders)
     }
 
 }
