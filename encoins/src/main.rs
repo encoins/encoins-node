@@ -42,13 +42,13 @@ fn main()
         match possible_comm
         {
             None => {}
-            Some(Communication::Add {account, amount}) => {main_proc.transfer(0,account,amount); println!("{:#?}",Communication::Add {account, amount}); ()}
+            Some(Communication::Add {account, amount}) => {main_proc.transfer(0,account,amount)}
             Some(comm) => match main_senders.get((*comm.receiver()) as usize)
             {
                 None => {
                     // Do something
                     }
-                Some(transmitter ) => { println!("{:#?} {}",comm,*comm.receiver());transmitter.send(comm).unwrap() }
+                Some(transmitter ) => {transmitter.send(comm).unwrap() }
 
             }
         }
@@ -82,11 +82,9 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
             let mut proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
             log!(proc_id, "Thread initialized correctly");
             loop {
-                //println!("test");
                 // messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
                 proc.deliver();
                 proc.valid();
-                //println!("{:#?}",proc);
                 thread::sleep(Duration::from_millis(5000));
             }
         });

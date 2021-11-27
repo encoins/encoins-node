@@ -48,11 +48,9 @@ impl Processus {
     }
 
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
-        //println!("{} {}",self.read() < amount , self.ongoing_transfer == true);
         if ( self.read() < amount || self.ongoing_transfer == true ) && ! user_id == 0 {
             return false
         }
-        println!("OKLM");
 
         let message  = Communication::Transfer {
             message: Message {
@@ -67,7 +65,6 @@ impl Processus {
                 signature: 0 // we all count on Milan
             }
         };
-        println!("{:#?}", message);
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, message);
         self.hist[self.id_proc as usize].append(&mut self.deps);
@@ -80,7 +77,6 @@ impl Processus {
         let a = self.id_proc;
         let mut dep = self.deps.clone();
         dep.append(&mut self.hist[a as usize].clone());
-        //println!("{:#?}",&dep);
         return Processus::balance(a, &dep)
     }
 
@@ -99,14 +95,13 @@ impl Processus {
     pub fn deliver (& mut self) -> bool {
         let mut comm = match self.receiver.try_recv() {
             Ok(comm) => {comm}
-            Err(E) => {/*println!("{}",E); */return false}
+            Err(e) => {return false}
         };
 
 
         match comm {
             Communication::ReadAccount { account } =>
                 {
-                    //println!("{:#?}",self);
                     println!("{}",self.read());
                 }
             Communication::Transfer { message } =>
@@ -132,12 +127,10 @@ impl Processus {
                     self.transfer(self.id_proc,recipient,amount);
                 }
         };
-        //println!("C'est dans la boite");
         true
     }
 
     pub fn valid(&mut self){
-        //println!("{:?}", self.to_validate);
         let mut index = 0;
         loop {
             let e = match self.to_validate.get(index) {
@@ -147,20 +140,16 @@ impl Processus {
             if self.is_valid(e) {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
-                //println!("{} {}",self.id_proc,e.transaction.sender_id);
                 self.hist[e.transaction.sender_id as usize].push(e.transaction.clone());
                 self.seq[e.transaction.sender_id as usize] = e.transaction.seq_id;
                 if self.id_proc == e.transaction.receiver_id {
-                    //println!("a moi la moula {}", self.id_proc);
                     self.deps.push(e.transaction.clone())
                 } else {
                     if self.id_proc == e.transaction.sender_id {
-                        //println!("je dois passer par là {}", self.id_proc);
                         self.ongoing_transfer = false;
                     }
                     self.hist[e.transaction.receiver_id as usize].push(e.transaction.clone());
                 }
-                //println!("{:#?} valided",e);
                 self.to_validate.remove(index);
             } else { index += 1 }
         }
@@ -174,7 +163,6 @@ impl Processus {
         let assert1 = true;
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 ;
-        //println!("{} {}",message.transaction.seq_id,self.seq[message.transaction.sender_id as usize] + 1);
         // 3) the balance of account q must not drop below zero
         let assert3 = Processus::balance(message.transaction.sender_id, &self.hist[message.transaction.sender_id as usize]) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
@@ -189,7 +177,6 @@ impl Processus {
             }
         }
 
-        //println!("{:#?} {} {}",self,Processus::balance(message.transaction.sender_id,&message.dependencies) , message.transaction.amount );
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
     }
 
