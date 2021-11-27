@@ -52,12 +52,12 @@ impl Processus {
         if ( self.read() < amount || self.ongoing_transfer == true ) && ! user_id == 0 {
             return false
         }
-        //println!("OKLM");
+        println!("OKLM");
 
         let message  = Communication::Transfer {
             message: Message {
                 transaction: Transaction {
-                    seq_id: self.seq[receiver_id as usize] + 1,
+                    seq_id: self.seq[user_id as usize] + 1,
                     sender_id: user_id,
                     receiver_id,
                     amount,
@@ -67,6 +67,7 @@ impl Processus {
                 signature: 0 // we all count on Milan
             }
         };
+        println!("{:#?}", message);
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, message);
         self.hist[self.id_proc as usize].append(&mut self.deps);
@@ -79,7 +80,7 @@ impl Processus {
         let a = self.id_proc;
         let mut dep = self.deps.clone();
         dep.append(&mut self.hist[a as usize].clone());
-        println!("{:#?}",&dep);
+        //println!("{:#?}",&dep);
         return Processus::balance(a, &dep)
     }
 
@@ -146,20 +147,20 @@ impl Processus {
             if self.is_valid(e) {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
-                println!("{} {}",self.id_proc,e.transaction.sender_id);
+                //println!("{} {}",self.id_proc,e.transaction.sender_id);
                 self.hist[e.transaction.sender_id as usize].push(e.transaction.clone());
                 self.seq[e.transaction.sender_id as usize] = e.transaction.seq_id;
                 if self.id_proc == e.transaction.receiver_id {
-                    println!("a moi la moula {}", self.id_proc);
+                    //println!("a moi la moula {}", self.id_proc);
                     self.deps.push(e.transaction.clone())
                 } else {
                     if self.id_proc == e.transaction.sender_id {
-                        println!("je dois passer par là {}", self.id_proc);
+                        //println!("je dois passer par là {}", self.id_proc);
                         self.ongoing_transfer = false;
                     }
                     self.hist[e.transaction.receiver_id as usize].push(e.transaction.clone());
                 }
-                println!("{:#?} valided",e);
+                //println!("{:#?} valided",e);
                 self.to_validate.remove(index);
             } else { index += 1 }
         }
@@ -188,7 +189,7 @@ impl Processus {
             }
         }
 
-        println!("{:#?} {} {}",self,Processus::balance(message.transaction.sender_id,&message.dependencies) , message.transaction.amount );
+        //println!("{:#?} {} {}",self,Processus::balance(message.transaction.sender_id,&message.dependencies) , message.transaction.amount );
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
     }
 
