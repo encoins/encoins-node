@@ -23,7 +23,8 @@ pub struct Processus {
     deps : TransferSet,
     to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
-    receiver : Receiver<Communication>
+    receiver : Receiver<Communication>,
+    ongoing_transfer : bool
 }
 
 
@@ -41,12 +42,13 @@ impl Processus {
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
             senders,
-            receiver
+            receiver,
+            ongoing_transfer : false
         }
     }
 
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
-        if self.read() < amount && ! user_id == 0 {
+        if ( self.read() < amount || self.ongoing_transfer == true ) && ! user_id == 0 {
             return false
         }
 
@@ -66,6 +68,7 @@ impl Processus {
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, message);
         self.hist[self.id_proc as usize].append(&mut self.deps);
+        self.ongoing_transfer = true;
         // self.deps = TransferSet::new(); the line above do it
         true
     }
@@ -146,6 +149,8 @@ impl Processus {
                 if self.id_proc == e.transaction.receiver_id {
                     println!("a moi la moula");
                     self.deps.push(e.transaction.clone())
+                } else if self.id_proc == e.transaction.sender_id {
+                    self.ongoing_transfer = false;
                 }
                 self.to_validate.remove(index);
                 println!("{} nsm",index);
