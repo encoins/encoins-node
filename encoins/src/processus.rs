@@ -8,6 +8,10 @@ use crate::message::{Message, MessageType};
 use crate::messaging::{broadcast, secure_broadcast};
 use std::collections::HashSet;
 use crate::log;
+use ring::{
+    rand,
+    signature::{self, KeyPair},
+};
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
@@ -24,7 +28,8 @@ pub struct Processus {
     deps : TransferSet,
     to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
-    receiver : Receiver<Communication>
+    receiver : Receiver<Communication>,
+    key_pair : signature::Ed25519KeyPair
 }
 
 
@@ -32,8 +37,14 @@ impl Processus {
     pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for i in 0..nb_process+1     {
-            s.push(TransferSet::new())
+            s.push(TransferSet::new());
         }
+
+        // Generate a key pair for signing transactions
+        let rng = rand::SystemRandom::new();
+        let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
+        let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref()).unwrap();
+
         Processus {
             id_proc : id,
             seq : vec![0;(nb_process + 1) as usize],
@@ -41,8 +52,9 @@ impl Processus {
             hist : s,
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
-            senders,
-            receiver
+            senders: senders,
+            receiver: receiver,
+            key_pair: key_pair
         }
     }
 
