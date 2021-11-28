@@ -1,10 +1,14 @@
 //! Definition of a transaction type
 
+use ring::{
+    signature::{self, KeyPair},
+};
+
 use std::fmt::{Display, Formatter};
 use crate::base_types::*;
 
 /// A transaction is an exchange of money between two accounts
-#[derive(Clone, PartialEq,Debug)]
+#[derive(Clone, PartialEq, Copy)]
 pub struct Transaction
 {
     /// seq_id is the id of the transaction. For a transaction t, seq_id will be the number of validated transfers outgoing form the sender +1.
@@ -25,3 +29,11 @@ impl Display for Transaction
     }
 }
 
+impl Transaction
+{
+    pub fn sign(&self, key_pair: &signature::Ed25519KeyPair) -> Signature {
+        let transaction_string = format!("{};{};{};{}", self.sender_id, self.receiver_id, self.seq_id, self.amount);
+        let sig = key_pair.sign(transaction_string.as_ref());
+        return sig;
+    }
+}

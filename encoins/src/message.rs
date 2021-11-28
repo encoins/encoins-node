@@ -5,7 +5,7 @@ use crate::transaction::Transaction;
 
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction, a message type and the signature of the process sending the message
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct Message
 {
     /// Transaction to be validated
@@ -22,7 +22,7 @@ pub struct Message
 
 /// A MessageType can be Standard, Echo or Final and is used by the [`messaging`]
 /// system to evaluate the state of the broadcast
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy)]
 pub enum MessageType
 {
     Standard,

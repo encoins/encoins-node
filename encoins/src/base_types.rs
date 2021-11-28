@@ -10,4 +10,4 @@ pub type Currency = u32;
 pub type SeqId = u32;
 
 /// For the moment, a signature is just an unsigned integer giving the process number of the sender
-pub type Signature = u32;
+pub type Signature = ring::signature::Signature;

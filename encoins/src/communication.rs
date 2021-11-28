@@ -6,7 +6,7 @@ use crate::message::Message;
 use crate::transaction::Transaction;
 
 /// A communication is either a transfer or a directive from main process
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub enum Communication
 {
     /// Request to output the balance of an account

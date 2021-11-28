@@ -18,8 +18,6 @@ type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
 
 
-#[derive(Debug)]
-
 pub struct Processus {
     id_proc : UserId,
     seq : List,
@@ -63,17 +61,19 @@ impl Processus {
             return false
         }
 
+        let transaction = Transaction {
+            seq_id: self.seq[user_id as usize] + 1,
+            sender_id: user_id,
+            receiver_id,
+            amount,
+        };
+
         let message  = Message {
-                transaction: Transaction {
-                    seq_id: self.seq[user_id as usize] + 1,
-                    sender_id: user_id,
-                    receiver_id,
-                    amount,
-                },
+                transaction: transaction,
                 dependencies: self.deps.clone(),
                 message_type: MessageType::Standard,
                 sender_id: self.id_proc,
-                signature: 0 // we all count on Milan
+                signature: transaction.sign(&self.key_pair) // we all count on Milan
             };
         // message.sign() : Waiting for Milan
         secure_broadcast(self, message);

@@ -100,7 +100,6 @@ pub fn secure_broadcast(process: &mut Processus, message: Message)
                 {
                     log!(proc_id, "Agreement found on transaction {}. Broadcasting final message to everyone.", msg.transaction);
                     msg.message_type = MessageType::Final;
-                    msg.signature = 0; //Signe Here
                     let new_comm = Communication::Transfer{ message: msg };
                     broadcast(transmitters, new_comm);
                     break;
@@ -196,7 +195,7 @@ pub(crate) fn deal_with_message(process: &mut Processus, comm: Communication)
                                 dependencies: message.dependencies,
                                 message_type: MessageType::Echo,
                                 sender_id: proc_id,
-                                signature: 0
+                                signature: message.signature
                             } } );
                         }
 
