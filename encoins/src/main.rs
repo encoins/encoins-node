@@ -58,7 +58,7 @@ fn main()
     let mut additional_strings = vec![];
     loop
     {
-        let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings);
+        let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings, &number_of_processes);
         let mut wait = false;
         match input_comm
         {

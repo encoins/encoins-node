@@ -3,14 +3,14 @@
 use std::io;
 use std::io::Write;
 use std::process::Command;
-use std::sync::mpsc::SyncSender;
+use crate::base_types::UserId;
 use crate::communication::Communication;
 use crate::transaction::Transaction;
 use crate::input::Input;
 
 
 /// Reads keyboard inputs from terminal and returns an optional [`Communication`] between [`Processus`]
-pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
+pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> Option<Communication>{
 
     show_terminal(&strings_to_show);
 
@@ -42,7 +42,7 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
         {
             Ok(input) =>
                 {
-                    let (opt_return, opt_string) = deal_with_input( input, strings_to_show);
+                    let (opt_return, opt_string) = deal_with_input( input, strings_to_show, process_number);
                     match opt_string
                     {
                         None => {}
@@ -64,36 +64,68 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
 }
 
 /// Deals with a given [`Input`] and returns an optional associated [`Communication`] and an optional String with a message to display on terminal
-fn deal_with_input(input : Input, strings_to_show: &mut Vec<String> ) -> ( Option<Communication>, Option<String> )
+fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_number : &u32) -> ( Option<Communication>, Option<String> )
 {
-
     match input
     {
         Input::Add { account, amount } =>
             {
-                let string_returned = String::from(format!("Added {} encoins to account {}", amount, account));
-                let comm = Communication::Add { account: account, amount: amount };
-                (Some(comm), Some(string_returned))
+                if account > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",account, process_number))))
+                }
+                else
+                {
+                    let string_returned = String::from(format!("Added {} encoins to account {})", amount, account));
+                    let comm = Communication::Add { account: account, amount: amount };
+                    (Some(comm), Some(string_returned))
+                }
             }
 
         Input::Remove { account, amount } =>
             {
-                let string_returned = String::from(format!("Removed {} encoins to account {}", amount, account));
-                let comm = Communication::Remove { account: account, amount: amount };
-                (Some(comm), Some(string_returned))
+                if account > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",account, process_number))))
+                }
+                else
+                {
+                    let string_returned = String::from(format!("Removed {} encoins to account {}", amount, account));
+                    let comm = Communication::Remove { account: account, amount: amount };
+                    (Some(comm), Some(string_returned))
+                }
+
             }
 
         Input::Transfer { sender, recipient, amount } =>
             {
-                let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {}", amount, sender, recipient));
-                let comm = Communication::TransferRequest {sender: sender, recipient: recipient, amount: amount};
-                (Some(comm), Some(string_returned))
+                if sender > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",sender, process_number))))
+                }
+                else if recipient > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",recipient, process_number))))
+                }
+                else
+                {
+                    let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {})", amount, sender, recipient));
+                    let comm = Communication::TransferRequest {sender: sender, recipient: recipient, amount: amount};
+                    (Some(comm), Some(string_returned))
+                }
             }
 
         Input::Read { account } =>
             {
-                let comm = Communication::ReadAccount {account : account};
-                (Some(comm), None)
+                if account > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",account, process_number))))
+                }
+                else
+                {
+                    let comm = Communication::ReadAccount {account : account};
+                    (Some(comm), None)
+                }
             }
 
         Input::Help =>
