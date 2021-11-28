@@ -97,7 +97,8 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
 
     receivers.reverse();
 
-    for i in 0..nb_process {
+    for i in 0..nb_process
+    {
 
         let main_transmitter = main_transmitter.clone();
 
@@ -114,6 +115,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
             let proc_id = i+1;
             let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver);
             log!(proc_id, "Thread initialized correctly");
+
             loop {
                 let receiver = proc.get_receiver();
                 let mut comm = receiver.recv().unwrap();

@@ -1,7 +1,7 @@
 //! Definition of the communication enum used by process to communicate with each other
 
 use std::fmt::{Display, format, Formatter};
-use crate::base_types::{Currency, UserId};
+use crate::base_types::{Currency, UserId, PublicKey};
 use crate::message::Message;
 use crate::transaction::Transaction;
 
@@ -20,7 +20,9 @@ pub enum Communication
     /// Request to remove a specific amount of money from an account
     Remove{account : UserId, amount : Currency},
     /// Request to output a certain string on screen
-    Output{message : String}
+    Output{message : String},
+    /// Share public key
+    ShareKey{key : PublicKey, sender_id : UserId}
 }
 
 impl Communication
@@ -54,6 +56,10 @@ impl Communication
                 {
                     &0
                 }
+            Communication::ShareKey { .. } =>
+                {
+                    &0
+                }
         }
     }
 }
@@ -69,6 +75,7 @@ impl Display for Communication
             Communication::Add { account, amount } => { write!(f, " Add {} to {}", amount, account) }
             Communication::Remove { account, amount } => { write!(f, " Remove {} from {}", amount, account) }
             Communication::Output { message } => { write!(f, "Output message : {}", message) }
+            Communication::ShareKey { key, sender_id } => { write!(f, "Account {} shared its key", sender_id) } // TODO find a way to print a key
         }
     }
 }

@@ -27,7 +27,8 @@ pub struct Processus {
     to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>,
-    key_pair : SecretKey
+    secret_key : SecretKey,
+    public_keys : Vec<Option<dyn KeyPair>>
 }
 
 
@@ -42,8 +43,11 @@ impl Processus {
         let rng = rand::SystemRandom::new();
         let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref()).unwrap();
+        let peer_public_key_bytes = key_pair.public_key().as_ref();
+        let mut peer_public_key =
+            signature::UnparsedPublicKey::new(&signature::ED25519, peer_public_key_bytes);
 
-        Processus {
+        let return_proc = Processus {
             id_proc : id,
             seq : vec![0;(nb_process + 1) as usize],
             rec : vec![0;(nb_process + 1) as usize],
@@ -52,8 +56,13 @@ impl Processus {
             to_validate : MessageSet::new(),
             senders: senders,
             receiver: receiver,
-            key_pair: key_pair
-        }
+            secret_key: key_pair,
+            public_keys : vec![None ; (nb_process + 1) as usize]
+        };
+
+        broadcast(&senders, Communication::ShareKey {key: Box(peer_public_key), sender_id : id});
+
+        return return_proc;
     }
 
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
@@ -187,6 +196,11 @@ impl Processus {
     pub fn in_to_validate(&mut self, message : Message)
     {
         self.to_validate.push(message);
+    }
+
+    pub fn add_key(&mut self, key : Box<PublicKey>, account : &UserId)
+    {
+        self.public_keys[account as usize] = key.;
     }
 
 }

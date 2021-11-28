@@ -248,5 +248,9 @@ pub(crate) fn deal_with_message(process: &mut Processus, comm: Communication)
             {
                 log!(proc_id,"Received an output message when I should not be receiving any.. Something is going wrong!");
             }
+        Communication::ShareKey { key, sender_id } =>
+            {
+                process.add_key(key, &sender_id);
+            }
     }
 }

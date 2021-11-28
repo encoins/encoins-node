@@ -12,5 +12,8 @@ pub type SeqId = u32;
 /// For the moment, a signature is defined by the crate ring
 pub type Signature = ring::signature::Signature;
 
-/// For the moment, a signature is defined by the crate ring
+/// For the moment, a secret key is defined by the crate ring
 pub type SecretKey = ring::signature::Ed25519KeyPair;
+
+/// For the moment, a public key is defined by the crate ring
+pub type PublicKey = Box<ring::signature::UnparsedPublicKey<[u8]>>;
