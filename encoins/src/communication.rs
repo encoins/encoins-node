@@ -65,7 +65,7 @@ impl Display for Communication
         {
             Communication::ReadAccount { account } => { write!(f, " Read account : {}", account) }
             Communication::Transfer { message } => { write!(f, "Transfer : {}", message) }
-            Communication::TransferRequest {sender,recipient,amount } => { write!(f, "New transer : (sender : {}, recipient :{}, amount {})", sender, recipient, amount) }
+            Communication::TransferRequest {sender,recipient,amount } => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})", sender, recipient, amount) }
             Communication::Add { account, amount } => { write!(f, " Add {} to {}", amount, account) }
             Communication::Remove { account, amount } => { write!(f, " Remove {} from {}", amount, account) }
             Communication::Output { message } => { write!(f, "Output message : {}", message) }

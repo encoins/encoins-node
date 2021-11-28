@@ -211,7 +211,7 @@ pub(crate) fn deal_with_message(process: &mut Processus, comm: Communication)
                             if message.transaction.seq_id == process.get_seq_at(message.transaction.sender_id as usize) + 1
                             {
                                 process.incr_rec(message.transaction.sender_id as usize);
-                                process.to_validate.push(message)
+                                process.in_to_validate(message);
                             }
                             else
                             {

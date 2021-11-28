@@ -22,7 +22,7 @@ pub struct Processus {
     rec : List,
     hist : Vec<TransferSet>,
     deps : TransferSet,
-    pub(crate) to_validate : MessageSet,
+    to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>
 }
@@ -170,6 +170,11 @@ impl Processus {
     pub fn get_senders(&self) -> &Vec<Sender<Communication>>
     {
         &(self.senders)
+    }
+
+    pub fn in_to_validate(&mut self, message : Message)
+    {
+        self.to_validate.push(message);
     }
 
 }
