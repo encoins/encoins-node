@@ -5,7 +5,7 @@ use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
 use crate::communication::Communication;
 use crate::message::{Message, MessageType};
-use crate::messaging::{broadcast, secure_broadcast};
+use crate::messaging::broadcast;
 use std::collections::HashSet;
 use crate::log;
 
@@ -61,12 +61,12 @@ impl Processus {
                     amount,
                 },
                 dependencies: self.deps.clone(),
-                message_type: MessageType::Standard,
+                message_type: MessageType::Init,
                 sender_id: self.id_proc,
                 signature: 0 // we all count on Milan
             };
         // message.sign() : Waiting for Milan
-        secure_broadcast(self, message);
+        broadcast(&self.senders, Communication::Transfer { message: message });
         self.hist[self.id_proc as usize].append(&mut self.deps);
         self.ongoing_transfer = true;
         // self.deps = TransferSet::new(); the line above do it

@@ -5,7 +5,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use crate::communication::Communication;
-use crate::messaging::deal_with_message;
+use crate::messaging::deal_with_comm;
 use crate::transaction::{Transaction};
 
 mod transaction;
@@ -75,7 +75,7 @@ fn main()
                         match communication
                         {
                             Communication::Output { message } => { additional_strings.push(message); wait = false; }
-                            _ => { deal_with_message(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                            _ => { deal_with_comm(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
                         }
                     }
 
@@ -89,7 +89,7 @@ fn main()
                                     match communication
                                     {
                                         Communication::Output { message } => { additional_strings.push(message) }
-                                        _ => { deal_with_message(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                                        _ => { deal_with_comm(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
                                     }
                                 }
                             Err(_) =>
@@ -134,7 +134,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
             loop {
                 let receiver = proc.get_receiver();
                 let mut comm = receiver.recv().unwrap();
-                messaging::deal_with_message(&mut proc, comm);
+                messaging::deal_with_comm(&mut proc, comm);
                 proc.valid();
             }
         });

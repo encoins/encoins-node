@@ -25,9 +25,9 @@ pub struct Message
 #[derive(Clone,Copy,Debug)]
 pub enum MessageType
 {
-    Standard,
+    Init,
     Echo,
-    Final
+    Ready
 }
 
 impl Display for Message
@@ -42,9 +42,9 @@ impl Display for MessageType
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self
         {
-            MessageType::Standard => { write!(f, "Standard") }
+            MessageType::Init => { write!(f, "Init") }
             MessageType::Echo => { write!(f, "Echo") }
-            MessageType::Final => { write!(f, "Final") }
+            MessageType::Ready => { write!(f, "Ready") }
         }
     }
 }
