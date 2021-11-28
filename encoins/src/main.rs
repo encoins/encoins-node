@@ -1,9 +1,11 @@
 #![allow(unused)]
 use std::{env, thread};
+use std::num::ParseIntError;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use crate::communication::Communication;
+use crate::messaging::deal_with_message;
 use crate::transaction::{Transaction};
 
 mod transaction;
@@ -14,15 +16,26 @@ mod messaging;
 mod input_management;
 mod communication;
 mod processus;
+mod input;
 
 fn main()
 {
     // Gets given arguments at execution
     let args: Vec<String> = env::args().collect();
     let number_of_processes = args[1].parse::<u32>().unwrap();
+    let mut write_logs = false;
+    if args.len() >=3
+    {
+        write_logs = match args[2].parse::<bool>()
+        {
+            Ok(b) => { b }
+            Err(_) => { false }
+        }
+    }
+
 
     // Initialize logging
-    logging::initialize(number_of_processes);
+    logging::initialize(number_of_processes, write_logs);
 
     // Creating transmitter and receiver for main
     let (transmit_main, receive_main): (Sender<Communication>, Receiver<Communication>) = mpsc::channel();
@@ -34,25 +47,62 @@ fn main()
     main_senders.append(&mut senders.clone());
     let mut main_proc = processus::Processus::init(0,number_of_processes,main_senders.clone(),receive_main);
 
-    thread::sleep(Duration::from_millis(1000));
-
     let mut additional_strings = vec![];
-    loop {
-        let possible_comm: Option<Communication> = input_management::read_input(&mut additional_strings);
-        match possible_comm
+    loop
+    {
+        let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings);
+        let mut wait = false;
+        match input_comm
         {
             None => {}
-            Some(Communication::Add {account, amount}) => {main_proc.transfer(0,account,amount); ()}
-            Some(comm) => match main_senders.get((*comm.receiver()) as usize)
-            {
-                None => {
-                    // Do something
-                    }
-                Some(transmitter ) => {transmitter.send(comm).unwrap() }
+            Some(Communication::Add {account, amount}) => { main_proc.transfer(0,account,amount); }
+            Some(Communication::ReadAccount {account}) => { main_senders.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true; }
+            Some(comm) => { main_senders.get((*comm.receiver()) as usize).unwrap().send(comm); }
 
-            }
         }
         main_proc.valid();
+
+        // Checks its receive buffer has an element and deals with it
+        let mut receiver = main_proc.get_receiver();
+        let mut stop = false;
+        while !stop
+        {
+            match wait
+            {
+                true =>
+                    {
+                        let communication = receiver.recv().unwrap();
+                        match communication
+                        {
+                            Communication::Output { message } => { additional_strings.push(message); wait = false; }
+                            _ => { deal_with_message(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                        }
+                    }
+
+                false =>
+                    {
+                        let possible_comm = receiver.try_recv();
+                        match possible_comm
+                        {
+                            Ok(communication) =>
+                                {
+                                    match communication
+                                    {
+                                        Communication::Output { message } => { additional_strings.push(message) }
+                                        _ => { deal_with_message(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                                    }
+                                }
+                            Err(_) =>
+                                {
+                                    stop = true;
+                                }
+                        }
+                    }
+            }
+
+        }
+
+
     }
 
 }
@@ -79,13 +129,13 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
 
         thread::spawn(move || {
             let proc_id = i+1;
-            let mut proc = processus::Processus::init(proc_id,nb_process,thread_senders,thread_receiver);
+            let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver);
             log!(proc_id, "Thread initialized correctly");
             loop {
-                // messaging::deal_with_messages(proc_id,&thread_receiver, &thread_senders, &main_transmitter);
-                proc.deliver();
+                let receiver = proc.get_receiver();
+                let mut comm = receiver.recv().unwrap();
+                messaging::deal_with_message(&mut proc, comm);
                 proc.valid();
-                thread::sleep(Duration::from_millis(500));
             }
         });
     }
