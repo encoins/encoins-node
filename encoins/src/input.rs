@@ -1,5 +1,6 @@
 //! Definition of the input enum used to manage inputs
 
+use std::process::Output;
 use crate::base_types::{Currency, UserId};
 use crate::input::Input::{Add, BalanceFor, Balances, Clear, Help, Quit, Read, Remove, Transfer};
 
@@ -28,21 +29,20 @@ pub enum Input
 
 impl Input
 {
+    const WRONG_AMOUNT_OF_ARGS: &'static str = "Wrong amount of arguments! (Type \"help\" to see how to use command)";
+
     /// Converts a Vector of `&str` into an [`Input`]
     /// Returns a tuple made of an optional input and an optional string containing a possible error message
-    pub fn from(value: &Vec<&str>) -> (Option<Input>, Option<String>)
+    pub fn from(value: &Vec<&str>) -> Result<Input,String>
     {
-        let mut returned_input = None;
-        let mut returned_string = None;
         let mut args = vec![];
         if value.len() == 0
         {
 
-           returned_string = Some(String::from("No command entered! Type \"help\" to get a list of possible commands"))
+          return Err(String::from("No command entered! Type \"help\" to get a list of possible commands"));
         }
         else
         {
-            let mut right_types = true;
             for k in 1..value.len()
             {
                 let word = String::from(value[k]);
@@ -51,139 +51,108 @@ impl Input
                     Ok(num) => num,
                     Err(_) =>
                         {
-                            returned_input = None;
-                            returned_string = Some(String::from("Arguments should be numbers! (Type \"help\" to see how to use command)"));
-                            right_types = false;
-                            break;
+                            return Err(String::from("Arguments should be non negative numbers! (Type \"help\" to see how to use command)"));
                         }
                 };
                 args.push(arg);
             }
 
-            if right_types
-            {
                 // Transforms first argument to lowercase
-                let value_lc = &value[0].to_lowercase()[..];
+            let value_lc = &value[0].to_lowercase()[..];
 
-                match value_lc
-                {
-                    "add" =>
+            match value_lc
+            {
+                "add" =>
+                    {
+                        return if args.len() != 2
                         {
-                            if args.len() != 2
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input  = Some(Input::Add {account :args[0], amount: args[1] });
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Add { account: args[0], amount: args[1] })
                         }
+                    }
 
-                    "remove" =>
+                "remove" =>
+                    {
+                        return if args.len() != 2
                         {
-                            if args.len() != 2
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Remove {account: args[0], amount: args[1]});
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Remove { account: args[0], amount: args[1] })
                         }
+                    }
 
-                    "transfer" =>
+                "transfer" =>
+                    {
+                        return if args.len() != 3
                         {
-                            if args.len() != 3
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Transfer {sender: args[0], recipient: args[1], amount: args[2]});
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Transfer { sender: args[0], recipient: args[1], amount: args[2] })
                         }
+                    }
 
-                    "read" =>
+                "read" =>
+                    {
+                        return if args.len() != 1
                         {
-                            if args.len() != 1
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Read{account : args[0]});
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Read { account: args[0] })
                         }
-                    "help" =>
+                    }
+                "help" =>
+                    {
+                        return if args.len() != 0
                         {
-                            if args.len() != 0
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Help);
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Help)
                         }
-                    "clear" =>
+                    }
+                "clear" =>
+                    {
+                        return if args.len() != 0
                         {
-                            if args.len() != 0
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Clear);
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Clear)
                         }
-                    "quit" =>
+                    }
+                "quit" =>
+                    {
+                        return if args.len() != 0
                         {
-                            if args.len() != 0
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Quit);
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Quit)
                         }
-                    "balancefor" =>
+                    }
+                "balancefor" =>
+                    {
+                        return if args.len() != 2
                         {
-                            if args.len() != 2
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::BalanceFor {account: args[0], according_to: args[1]});
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::BalanceFor { account: args[0], according_to: args[1] })
                         }
-                    "balances" =>
+                    }
+                "balances" =>
+                    {
+                        return if args.len() != 1
                         {
-                            if args.len() != 1
-                            {
-                                returned_string = Input::wrong_amount_of_args();
-                            }
-                            else
-                            {
-                                returned_input = Some(Input::Balances {according_to: args[0]});
-                            }
+                            Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
+                        } else {
+                            Ok(Input::Balances { according_to: args[0] })
                         }
-                    _ =>
-                        {
-                            returned_string = Some(String::from("The typed command could not be recognised! (Type \"help\" to get a list of possible commands)"));
-                        }
-                }
+                    }
+                _ =>
+                    {
+                        return Err(String::from("The typed command could not be recognised! (Type \"help\" to get a list of possible commands)"));
+                    }
             }
-
         }
-
-        (returned_input, returned_string)
     }
 
-    fn wrong_amount_of_args() -> Option<String>
-    {
-        Some(String::from("Wrong amount of arguments! (Type \"help\" to see how to use command)"))
-    }
 
 }

@@ -50,12 +50,13 @@ fn main()
     let mut additional_strings = vec![];
     loop
     {
-        let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings);
-        let mut waiting_time = false;
+        let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings, &number_of_processes);
+        let mut wait = false;
         match input_comm
         {
             None => {}
-            Some(Communication::Add {account, amount}) => { main_proc.transfer(0,account,amount); waiting_time = true}
+            Some(Communication::Add {account, amount}) => { main_proc.transfer(0,account,amount); }
+            Some(Communication::ReadAccount {account}) => { main_senders.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true; }
             Some(comm) => { main_senders.get((*comm.receiver()) as usize).unwrap().send(comm); }
 
         }
@@ -66,21 +67,37 @@ fn main()
         let mut stop = false;
         while !stop
         {
-            match receiver.recv_timeout(Duration::from_millis(match waiting_time {
-                true => { 300 }
-                false => { 0 }
-            }))
+            match wait
             {
-                Ok(communication) =>
+                true =>
                     {
+                        let communication = receiver.recv().unwrap();
                         match communication
                         {
-                            Communication::Output { message } => { additional_strings.push(message)}
-                            _ => { deal_with_message(&mut main_proc, communication);  receiver = main_proc.get_receiver() }
-
+                            Communication::Output { message } => { additional_strings.push(message); wait = false; }
+                            _ => { deal_with_message(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
                         }
                     }
-                Err(_) => { stop = true; }
+
+                false =>
+                    {
+                        let possible_comm = receiver.try_recv();
+                        match possible_comm
+                        {
+                            Ok(communication) =>
+                                {
+                                    match communication
+                                    {
+                                        Communication::Output { message } => { additional_strings.push(message) }
+                                        _ => { deal_with_message(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                                    }
+                                }
+                            Err(_) =>
+                                {
+                                    stop = true;
+                                }
+                        }
+                    }
             }
 
         }
