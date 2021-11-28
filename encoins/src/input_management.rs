@@ -35,32 +35,14 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
         // Parsing of the input line as an op_type and an array args of arguments, managing the syntax errors
         words = input_line[..len-1].split(' ').collect();
 
-        let (input,output) = Input::from(&words);
+        let input = Input::from(&words);
 
 
         match input
         {
-            // If no input was returned then it means that the input was not correct and hence that an error message was delivered
-            None =>
+            Ok(input) =>
                 {
-                    match output
-                    {
-                        None =>
-                            {   // No input nor output given should never happen
-                                panic!("Fatal error! No input and no outputs given!")
-                            }
-                        Some(str) =>
-                            {
-                                // Print error message and ask for another input
-                                println!("{}", str);
-                                print!("> ");
-                                io::stdout().flush().unwrap()
-                            }
-                    }
-                }
-            Some(inp) =>
-                {
-                    let (opt_return, opt_string) = deal_with_input( inp, strings_to_show);
+                    let (opt_return, opt_string) = deal_with_input( input, strings_to_show);
                     match opt_string
                     {
                         None => {}
@@ -68,6 +50,13 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
                     }
 
                     return opt_return
+                }
+            Err(string_error) =>
+                {
+                    // Print error message and ask for another input
+                    println!("{}", string_error);
+                    print!("> ");
+                    io::stdout().flush().unwrap()
                 }
         }
     }
