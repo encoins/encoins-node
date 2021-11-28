@@ -28,7 +28,7 @@ pub struct Processus {
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>,
     secret_key : SecretKey,
-    public_keys : Vec<Option<dyn KeyPair>>
+    public_keys : Vec<Option<PublicKey>>
 }
 
 
@@ -60,7 +60,7 @@ impl Processus {
             public_keys : vec![None ; (nb_process + 1) as usize]
         };
 
-        broadcast(&senders, Communication::ShareKey {key: Box(peer_public_key), sender_id : id});
+        broadcast(&senders, Communication::ShareKey {key: peer_public_key_bytes, sender_id : id});
 
         return return_proc;
     }
@@ -198,9 +198,11 @@ impl Processus {
         self.to_validate.push(message);
     }
 
-    pub fn add_key(&mut self, key : Box<PublicKey>, account : &UserId)
+    pub fn add_key(&mut self, key : SharePublicKey, account : &UserId)
     {
-        self.public_keys[account as usize] = key.;
+        let mut peer_public_key =
+            signature::UnparsedPublicKey::new(&signature::ED25519, key);
+        self.public_keys[account as usize] = Some(peer_public_key);
     }
 
 }

@@ -1,7 +1,7 @@
 //! Definition of the communication enum used by process to communicate with each other
 
 use std::fmt::{Display, format, Formatter};
-use crate::base_types::{Currency, UserId, PublicKey};
+use crate::base_types::{Currency, UserId, PublicKey, SharePublicKey};
 use crate::message::Message;
 use crate::transaction::Transaction;
 
@@ -22,7 +22,7 @@ pub enum Communication
     /// Request to output a certain string on screen
     Output{message : String},
     /// Share public key
-    ShareKey{key : PublicKey, sender_id : UserId}
+    ShareKey{key : SharePublicKey, sender_id : UserId}
 }
 
 impl Communication

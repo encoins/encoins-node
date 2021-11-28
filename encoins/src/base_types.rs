@@ -16,4 +16,7 @@ pub type Signature = ring::signature::Signature;
 pub type SecretKey = ring::signature::Ed25519KeyPair;
 
 /// For the moment, a public key is defined by the crate ring
-pub type PublicKey = Box<ring::signature::UnparsedPublicKey<[u8]>>;
+pub type PublicKey = ring::signature::UnparsedPublicKey<[u8]>;
+
+/// Type used to share a public key to others
+pub type SharePublicKey = *const [u8];
