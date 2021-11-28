@@ -1,17 +1,11 @@
 //! Definition of a message type
-use crate::base_types::Signature;
+use std::fmt::{Display, Formatter};
+use crate::base_types::{Signature, UserId};
 use crate::transaction::Transaction;
-
-/// Constant indicating if a message is a regular message
-pub const STANDARD  : u8 = 0;
-/// Constant indicating if a message is an echo message of a broadcast
-pub const ECHO  : u8 = 1;
-/// Constant indicating if a message is the final message of a broadcast
-pub const FINAL : u8 = 2;
 
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction, a message type and the signature of the process sending the message
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Message
 {
     /// Transaction to be validated
@@ -19,8 +13,40 @@ pub struct Message
     /// Needed dependencies to validate transaction
     pub dependencies : Vec<Transaction>,
     /// Message type
-    pub message_type: u8,
+    pub message_type: MessageType,
+    /// Id of the process sending the message
+    pub sender_id : UserId,
     /// Signature of the process sending the message
     pub signature : Signature
 }
+
+/// A MessageType can be Standard, Echo or Final and is used by the [`messaging`]
+/// system to evaluate the state of the broadcast
+#[derive(Clone,Copy,Debug)]
+pub enum MessageType
+{
+    Standard,
+    Echo,
+    Final
+}
+
+impl Display for Message
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, " (Transaction : {} , sender_id : {}, message type : {} )", self.transaction, self.sender_id, self.message_type)
+    }
+}
+
+impl Display for MessageType
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self
+        {
+            MessageType::Standard => { write!(f, "Standard") }
+            MessageType::Echo => { write!(f, "Echo") }
+            MessageType::Final => { write!(f, "Final") }
+        }
+    }
+}
+
 

@@ -1,9 +1,4 @@
-//! Functions managing the reading of the inputs of the clients
-/// Four commands can be entered :
-///     - add account_id amount
-///     - remove account_id amount
-///     - transfert account_id receiver_id amount
-///     - read account_id
+//! A simple module to manage keyboards inputs
 
 use std::io;
 use std::io::Write;
@@ -11,21 +6,21 @@ use std::process::Command;
 use std::sync::mpsc::SyncSender;
 use crate::communication::Communication;
 use crate::transaction::Transaction;
+use crate::input::Input;
 
 
-// Read a terminal line and parses it into a transaction
+/// Reads keyboard inputs from terminal and returns an optional [`Communication`] between [`Processus`]
 pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
-    
-    // Parameters
-    let nb_args_required: [usize; 7] = [3, 3, 4, 2, 1 ,1, 1];
 
     show_terminal(&strings_to_show);
 
     // Save the line entered on the terminal in the string input_line
     let mut args : Vec<u32> = vec![];
     let mut op_type :usize = 7;
+    let mut input: Option<Input> = None;
 
-    while op_type >6
+    // Loops until no correct inputs has been entered
+    loop
     {
         let mut input_line = String::new();
         let mut words: Vec<&str> = vec![];
@@ -40,117 +35,99 @@ pub fn read_input(strings_to_show : &mut Vec<String>) -> Option<Communication>{
         // Parsing of the input line as an op_type and an array args of arguments, managing the syntax errors
         words = input_line[..len-1].split(' ').collect();
 
-        // op_type
-        op_type = match words[0] {
-            "add"       => 0,
-            "remove"    => 1,
-            "transfer"  => 2,
-            "read"      => 3,
-            "help"      => 4,
-            "clear"     => 5,
-            "quit"      => 6,
-            _           => 7
-        };
+        let (input,output) = Input::from(&words);
 
-        if op_type >6
-        {
-            println!("The typed command could not be recognised! (Type \"help\" to get a list of possible commands)");
-            print!("> ");
-            io::stdout().flush().unwrap();
-        }
 
-        else if words.len() != nb_args_required[op_type]
+        match input
         {
-            op_type = 7;
-            println!("Wrong amount of arguments! (Type \"help\" to see how to use command)");
-            print!("> ");
-            io::stdout().flush().unwrap();
-        }
-        else
-        {
-            for k in 1..nb_args_required[op_type] {
-                let word = String::from(words[k]);
-                let arg: u32 = match word.trim().parse()
+            // If no input was returned then it means that the input was not correct and hence that an error message was delivered
+            None =>
                 {
-                    Ok(num) => num,
-                    Err(_) => {
-                        op_type = 7;
-                        continue
+                    match output
+                    {
+                        None =>
+                            {   // No input nor output given should never happen
+                                panic!("Fatal error! No input and no outputs given!")
+                            }
+                        Some(str) =>
+                            {
+                                // Print error message and ask for another input
+                                println!("{}", str);
+                                print!("> ");
+                                io::stdout().flush().unwrap()
+                            }
                     }
-                };
-                args.push(arg);
-            }
+                }
+            Some(inp) =>
+                {
+                    let (opt_return, opt_string) = deal_with_input( inp, strings_to_show);
+                    match opt_string
+                    {
+                        None => {}
+                        Some(s) => {strings_to_show.push(s)}
+                    }
 
-            if op_type >6
-            {
-                println!("Arguments should be numbers! (Type \"help\" to see how to use command)");
-                print!("> ");
-                io::stdout().flush().unwrap();
-            }
+                    return opt_return
+                }
         }
     }
 
-
-    // Returning the corresponding transaction
-    let (opt_return, opt_string) = deal_with_entry(args, op_type, strings_to_show);
-
-    match opt_string
-    {
-        None => {}
-        Some(s) => {strings_to_show.push(s)}
-    }
-
-    opt_return
 }
 
-fn deal_with_entry(args : Vec<u32>, op_type : usize, strings_to_show: &mut Vec<String>) -> (Option<Communication>, Option<String>)
+/// Deals with a given [`Input`] and returns an optional associated [`Communication`] and an optional String with a message to display on terminal
+fn deal_with_input(input : Input, strings_to_show: &mut Vec<String> ) -> ( Option<Communication>, Option<String> )
 {
 
+    match input
+    {
+        Input::Add { account, amount } =>
+            {
+                let string_returned = String::from(format!("Added {} encoins to account {}", amount, account));
+                let comm = Communication::Add { account: account, amount: amount };
+                (Some(comm), Some(string_returned))
+            }
 
-    match op_type {
-        0 => {
-            let string_returned = String::from(format!("Added {} encoins to account {}", args[1], args[0]));
-            let comm = Communication::Add { account: args[0], amount: args[1] };
-            (Some(comm), Some(string_returned))
+        Input::Remove { account, amount } =>
+            {
+                let string_returned = String::from(format!("Removed {} encoins to account {}", amount, account));
+                let comm = Communication::Remove { account: account, amount: amount };
+                (Some(comm), Some(string_returned))
+            }
 
-        }
-        1 => {
-            let string_returned = String::from(format!("Removed {} encoins to account {}", args[1], args[0]));
-            let comm = Communication::Remove {account : args[0], amount: args[1]};
-            (Some(comm), Some(string_returned))
-        }
-        2 => {
-            let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {}", args[2], args[1], args[0]));
-            let comm = Communication::TransferRequest {account1: args[0], account2: args[1], amount: args[2]};
-            (Some(comm), Some(string_returned))
-        }
-        3 => {
-            let comm = Communication::ReadAccount {account : args[0]};
-            (Some(comm), None)
-        }
+        Input::Transfer { sender, recipient, amount } =>
+            {
+                let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {}", amount, sender, recipient));
+                let comm = Communication::TransferRequest {sender: sender, recipient: recipient, amount: amount};
+                (Some(comm), Some(string_returned))
+            }
 
-        4 =>
+        Input::Read { account } =>
+            {
+                let comm = Communication::ReadAccount {account : account};
+                (Some(comm), None)
+            }
+
+        Input::Help =>
             {
                 show_help();
                 (None,None)
             }
-
-        5 =>
+        Input::Clear =>
             {
                 strings_to_show.clear();
                 (None,None)
             }
-        6 =>
+        Input::Quit =>
             {
                 println!("Goodbye!");
                 std::process::exit(0);
             }
-        _ => {
-            panic!("Fatal error in dealing with entry! Exiting...");
-        }
+        Input::BalanceFor { .. } => {  (None,None) }
+        Input::Balances { .. } => { (None, None) }
     }
 }
 
+/// Prints the terminal GUI
 fn show_terminal(strings_to_show : &Vec<String>)
 {
     print!("{esc}c", esc = 27 as char);
@@ -165,6 +142,7 @@ fn show_terminal(strings_to_show : &Vec<String>)
     io::stdout().flush().unwrap();
 }
 
+/// Prints help information
 fn show_help()
 {
     print!("{esc}c", esc = 27 as char);
@@ -172,14 +150,16 @@ fn show_help()
     println!(
         "\n\n\
         =================================================================================================================================================================================\n\n\
-        Available commands : \n
-        \t• add <account> <amount>                  : Adds <amount> of coins to the account <account>\n
-        \t• remove <account> <amount>               : Removes <amount> of coins from the account <account>\n
-        \t• transfer <account1> <account2> <amount> : Transfers <amount> of coins from account <account1> to account <account2> \n
-        \t• read <account>                          : Displays the current amount of money of the account <account>\n
-        \t• clear                                   : Clears terminal from previous entered instructions \n
-        \t• help                                    : Displays the list of possible instructions \n
-        \t• quit                                    : Quits program\n
+        Available commands : \n\
+        \t• add <account> <amount>                  : Adds <amount> of coins to the account <account>\n\
+        \t• remove <account> <amount>               : Removes <amount> of coins from the account <account>\n\
+        \t• transfer <account1> <account2> <amount> : Transfers <amount> of coins from account <account1> to account <account2> \n\
+        \t• read <account>                          : Displays transactions involving the account <account>\n\
+        \t• balancefor <account> <according-to>     : Displays the current balance for account <account> according to account <according-to>\n\
+        \t• balances <according-to>                 : Displays all current balances according to account <according-to>\n\
+        \t• clear                                   : Clears terminal from previous entered instructions \n\
+        \t• help                                    : Displays the list of possible instructions \n\
+        \t• quit                                    : Quits program\n\
         \n=================================================================================================================================================================================\n");
     println!("\nPress any key to exit:");
     print!("> ");
@@ -191,6 +171,7 @@ fn show_help()
 
 }
 
+/// Prints the encoins (c) logo
 fn print_logo()
 {
     println!("
@@ -215,7 +196,6 @@ fn print_logo()
        \\:::\\____\\                /:::/    /              \\:::\\____\\                \\::/____/               \\:::\\____\\                /:::/    /              \\::::/    /
         \\::/    /                \\::/    /                \\::/    /                 ~~                      \\::/    /                \\::/    /                \\::/    /
          \\/____/                  \\/____/                  \\/____/                                           \\/____/                  \\/____/                  \\/____/\
-
          \n\
          \n=================================================================================================================================================================================");
 }

@@ -8,14 +8,23 @@ use chrono::prelude::*;
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
+/// Sates whether logs should be written
+static mut WRITE_LOGS: bool = true;
 /// Path to the logging directory
 pub static mut LOGS_DIRECTORY_PATH : String = String::new();
 
-/// Creates a directory for logs at the path of the executable and creates a log file for every process
-pub fn initialize(number_of_process : u32)
+/// Creates a directory for logs at the path of the executable and creates a log file for every [`Processus`]
+/// including main thread if logs writing was enabled
+pub fn initialize(number_of_process : u32, write_logs : bool)
 {
+    unsafe
+        {
+            WRITE_LOGS = write_logs;
+        }
+
+
     unsafe {
-        if !INITIALIZED
+        if !INITIALIZED && WRITE_LOGS
         {
             INITIALIZED = true;
 
@@ -46,21 +55,22 @@ pub fn initialize(number_of_process : u32)
 
             LOGS_DIRECTORY_PATH = tmp_path.clone();
             fs::create_dir_all(LOGS_DIRECTORY_PATH.to_string());
-        }
-    }
 
-    // Creates the log files for all processes
-    for i in 0..number_of_process
-    {
-        let file_path;
-        unsafe
+            // Creates the log files for all processes
+            for i in 0..number_of_process+1
             {
-                file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i+1);
+                let file_path;
+                unsafe
+                    {
+                        file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i);
+                    }
+
+                let file = File::create(file_path);
             }
 
-        let file = File::create(file_path);
-    }
 
+        }
+    }
 
 }
 
@@ -71,33 +81,33 @@ pub fn write_log(proc_nb : u32, to_write : String)
 {
     let file_path : String;
 
-    // Checks if the logging system has been initialized
     unsafe
         {
-            if !INITIALIZED
+            if WRITE_LOGS
             {
-                panic!("The logging system has not been initialized!");
+                if !INITIALIZED
+                {
+                    // If it was not initialized we panic because we can't let threads try creating files simultaneously
+                    panic!("The logging system has not been initialized!");
+                }
+
+
+                let file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, proc_nb);
+
+                let mut file = match OpenOptions::new().write(true).append(true).open(file_path.clone())
+                {
+                    Ok( f) => {f}
+                    Err(_) => { panic!("Could not access path {}", file_path); }
+                };
+
+
+                // Adding local time to the logs
+                let now = Local::now();
+                let final_string = format!("[{}] : {} \n", now.format("%H:%M"), to_write);
+
+                file.write_all(final_string.as_bytes());
             }
         }
-
-    // Builds the path to the correct log file
-    unsafe
-        {
-            file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, proc_nb);
-        }
-
-
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(file_path)
-        .unwrap();
-
-
-    let now = Local::now();
-    let final_string = format!("[{}] : {} \n", now.format("%H:%M"), to_write);
-
-    file.write_all(final_string.as_bytes());
 }
 
 /// Logs to the standard output, with a new line
@@ -120,10 +130,8 @@ macro_rules! log {
 
     ($proc_nb:expr, $mes:expr, $($arg:tt)*) => {
         let p_nb = $proc_nb as u32;
-        let mes_start = format!("[Process {}]:", p_nb);
-        let mes_end = format!($mes, $($arg)*);
-        let message = format!("{} {}", mes_start, mes_end);
-        $crate::logging::write_log(p_nb, message);
+        let mes = format!($mes, $($arg)*);
+        $crate::logging::write_log(p_nb, mes);
     };
 }
 
