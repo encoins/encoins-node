@@ -51,7 +51,7 @@ impl Input
                     Ok(num) => num,
                     Err(_) =>
                         {
-                            return Err(String::from("Arguments should be numbers! (Type \"help\" to see how to use command)"));
+                            return Err(String::from("Arguments should be non negative numbers! (Type \"help\" to see how to use command)"));
                         }
                 };
                 args.push(arg);
