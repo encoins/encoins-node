@@ -31,7 +31,7 @@ impl Display for Transaction
 
 impl Transaction
 {
-    pub fn sign(&self, key_pair: &signature::Ed25519KeyPair) -> Signature {
+    pub fn sign(&self, key_pair: &SecretKey) -> Signature {
         let transaction_string = format!("{};{};{};{}", self.sender_id, self.receiver_id, self.seq_id, self.amount);
         let sig = key_pair.sign(transaction_string.as_ref());
         return sig;

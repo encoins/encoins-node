@@ -27,7 +27,7 @@ pub struct Processus {
     to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>,
-    key_pair : signature::Ed25519KeyPair
+    key_pair : SecretKey
 }
 
 
