@@ -16,8 +16,6 @@ pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> 
 
     // Save the line entered on the terminal in the string input_line
     let mut args : Vec<u32> = vec![];
-    let mut op_type :usize = 7;
-    let mut input: Option<Input> = None;
 
     // Loops until no correct inputs has been entered
     loop

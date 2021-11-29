@@ -62,7 +62,7 @@ pub(crate) fn deal_with_comm(process: &mut Processus, comm: Communication)
                 match message.message_type
                 {
                     MessageType::Init => {brb(process, message);}
-                    _ => {}
+                    _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
                 }
             }        
 
@@ -84,6 +84,8 @@ fn brb(process: &mut Processus, init_msg: Message)
     let mut echos: Vec<Option<Message>> = vec![None;nb_process];
     let mut ready: Vec<Option<Message>> = vec![None;nb_process];
     let mut actu_msg: Message = init_msg.clone();
+
+    log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
     
     // While not enough processes are ready
     while !quorum(&ready, (2*nb_process)/3, &actu_msg)
@@ -100,6 +102,7 @@ fn brb(process: &mut Processus, init_msg: Message)
                     if empty(&echos[proc_id as usize])
                     {
                         my_msg.message_type = MessageType::Echo;
+                        log!(proc_id, "Broadcasting echo message to everyone.");
                         broadcast(&process.get_senders(), Communication::Transfer { message: my_msg.clone() });
                         echos[proc_id as usize] = Some(my_msg.clone());
                     }
@@ -111,11 +114,13 @@ fn brb(process: &mut Processus, init_msg: Message)
             
             MessageType::Echo =>
                 {
+                    log!(proc_id, "Received an echo message from {}", actu_msg.sender_id);
                     echos[actu_msg.sender_id as usize] = Some(actu_msg.clone());
                 }
             
             MessageType::Ready =>
                 {
+                    log!(proc_id, "Received a ready message from {}", actu_msg.sender_id);
                     ready[actu_msg.sender_id as usize] = Some(actu_msg.clone());
                 }
         }
@@ -125,6 +130,7 @@ fn brb(process: &mut Processus, init_msg: Message)
         {
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
+            log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
             broadcast(&process.get_senders(), Communication::Transfer { message: my_msg.clone() });
             ready[proc_id as usize] = Some(my_msg.clone());
         }
@@ -138,12 +144,13 @@ fn brb(process: &mut Processus, init_msg: Message)
         }
     }
 
+    log!(proc_id, "Quorum was achieved. I can add the message to transactions to process.");
     // Save the message
     process.in_to_validate(actu_msg);
 }
 
 
-// Returns if the number of occurences of msg in tab is greater than k
+/// Returns if the number of occurrences of msg in tab is greater than k
 fn quorum(tab: &Vec<Option<Message>>, k: usize, ref_msg: &Message) -> bool 
 {
     nb_occs(tab, ref_msg) > k
@@ -164,7 +171,7 @@ fn nb_occs(tab: &Vec<Option<Message>>, ref_msg: &Message) -> usize
     nb_occs
 }
 
-// Returns 1 if the messages are equal, 0 else
+/// Returns 1 if the messages are equal, 0 else
 fn same_msg(msg1: &Message, msg2: &Message) -> usize
 {
     let mut equal_deps = true;
@@ -197,7 +204,7 @@ fn same_msg(msg1: &Message, msg2: &Message) -> usize
     }
 }
 
-// Returns true if the Option passed is None
+/// Returns true if the Option passed is None
 fn empty(m: &Option<Message>) -> bool 
 {
     match &m
