@@ -50,13 +50,14 @@ fn main()
     let mut additional_strings = vec![];
     loop
     {
+        println!("Start loop proc 0");
         let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings, &number_of_processes);
         let mut wait = false;
         match input_comm
         {
             None => {}
-            Some(Communication::Add {account, amount}) => { main_proc.transfer(0,account,amount); }
-            Some(Communication::ReadAccount {account}) => { main_senders.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true; }
+            Some(Communication::Add {account, amount}) => { main_proc.transfer(0,account,amount); wait = true; }
+            Some(Communication::ReadAccount {account}) => { main_senders.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); }
             Some(comm) => { main_senders.get((*comm.receiver()) as usize).unwrap().send(comm); }
 
         }
@@ -75,7 +76,7 @@ fn main()
                         match communication
                         {
                             Communication::Output { message } => { additional_strings.push(message); wait = false; }
-                            _ => { deal_with_comm(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                            _ => { deal_with_comm(&mut main_proc, communication); receiver = main_proc.get_receiver(); println!("Proc 0 exits dwcomm successfully");}
                         }
                     }
 
