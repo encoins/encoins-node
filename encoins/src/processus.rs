@@ -86,7 +86,7 @@ impl Processus {
             if transfer.receiver_id == a {
                 balance += transfer.amount;
             } else {
-                balance -= transfer.amount;
+                balance += transfer.amount;
             }
         }
         balance
