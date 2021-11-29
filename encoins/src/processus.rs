@@ -3,7 +3,7 @@
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::communication::Communication;
+use crate::communication::{Communication,IOComm};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use std::collections::HashSet;

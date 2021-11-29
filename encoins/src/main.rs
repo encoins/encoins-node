@@ -4,7 +4,7 @@ use std::num::ParseIntError;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
-use crate::communication::Communication;
+use crate::communication::{Communication, IOComm};
 use crate::messaging::deal_with_comm;
 use crate::transaction::{Transaction};
 
@@ -53,20 +53,17 @@ fn main()
     let mut additional_strings = vec![];
     loop
     {
-        let input_comm: Option<Communication> = input_management::read_input(&mut additional_strings, &number_of_processes);
+        let input_comm: Option<IOComm> = input_management::read_input(&mut additional_strings, &number_of_processes);
         let mut wait = false;
         match input_comm
         {
             None => {}
-            Some(Communication::Add {account, amount}) => { main_proc.transfer(0,account,amount); }
-            Some(Communication::ReadAccount {account}) => { main_senders.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true}
-            Some(comm) => { main_senders.get((*comm.receiver()) as usize).unwrap().send(comm); }
+            Some(IOComm::ReadAccount {account}) => { main_transmitters.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true}
+            Some(comm) => { main_transmitters.get((*comm.receiver()) as usize).unwrap().send(comm); }
 
         }
-        main_proc.valid();
 
         // Checks its receive buffer has an element and deals with it
-        let mut receiver = main_proc.get_receiver();
         let mut stop = false;
         while !stop
         {
@@ -111,7 +108,7 @@ fn main()
 }
 
 /// Initializes all process
-fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<Communication>>,Vec<Receiver<Communication>>){
+fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Vec<Receiver<IOComm>>){
 
     let (senders, mut receivers): (Vec<Sender<Communication>>, Vec<Receiver<Communication>>) =
         (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
