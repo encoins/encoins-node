@@ -47,7 +47,7 @@ fn main()
 
 
     println!("Initializing with {} processes", &args[1]);
-    let (main_transmitters,main_receivers) = initialize_processes(number_of_processes,number_of_byzantine_processes);
+    let (main_transmitters,main_receiver) = initialize_processes(number_of_processes,number_of_byzantine_processes);
 
 
     let mut additional_strings = vec![];
@@ -71,25 +71,25 @@ fn main()
             {
                 true =>
                     {
-                        let communication = receiver.recv().unwrap();
+                        let communication = main_receiver.recv().unwrap();
                         match communication
                         {
-                            Communication::Output { message } => { additional_strings.push(message); wait = false; }
-                            _ => { deal_with_comm(&mut main_proc, communication); receiver = main_proc.get_receiver(); wait = false; }
+                            IOComm::Output { message } => { additional_strings.push(message); wait = false; }
+                            _ => { wait = false; }
                         }
                     }
 
                 false =>
                     {
-                        let possible_comm = receiver.try_recv();
+                        let possible_comm = main_receiver.try_recv();
                         match possible_comm
                         {
                             Ok(communication) =>
                                 {
                                     match communication
                                     {
-                                        Communication::Output { message } => { additional_strings.push(message) }
-                                        _ => { deal_with_comm(&mut main_proc, communication); receiver = main_proc.get_receiver(); }
+                                        IOComm::Output { message } => { additional_strings.push(message) }
+                                        _ => { () }
                                     }
                                 }
                             Err(_) =>
@@ -108,23 +108,22 @@ fn main()
 }
 
 /// Initializes all process
-fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Vec<Receiver<IOComm>>){
+fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
     let (senders, mut receivers): (Vec<Sender<Communication>>, Vec<Receiver<Communication>>) =
         (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
 
+    let (transmitter_to_main,receiver_of_main) = mpsc::channel();
+
     receivers.reverse();
 
     let mut main_transmitters = vec![];
-    let mut main_receivers = vec![];
 
     for i in 0..nb_process+1 {
 
 
-        let (transmitter_from_main,receiver_from_main) = mpsc::channel();
-        let (transmitter_to_main,receiver_of_main) = mpsc::channel();
+        let (transmitter_of_main,receiver_from_main) = mpsc::channel();
         main_transmitters.push(transmitter_of_main);
-        main_receivers.push(receiver_of_main);
 
         // The list of all transmitters with the convention :
         // thread_senders[0] = main and thread_senders[i] = transmitter to i for i > 0
@@ -133,17 +132,18 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
             Some(x) => {x}
         };
         let thread_senders= senders.clone();
+        let main_sender = transmitter_to_main.clone();
 
 
         if i <= nb_process - nb_byzantines {
             thread::spawn(move || {
                 let proc_id = i;
-                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,transmitter_to_main,receiver_from_main);
+                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main);
                 log!(proc_id, "Thread initialized correctly");
                 loop {
                     let receiver = proc.get_receiver();
                     let mut comm = receiver.recv().unwrap();
-                    messaging::deal_with_message(&mut proc, comm);
+                    messaging::deal_with_comm(&mut proc, comm);
                     proc.valid();
                 }
             });
@@ -151,7 +151,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
         } else {
             thread::spawn(move || {
                 let proc_id = i;
-                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,transmitter_to_main,receiver_from_main);
+                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main);
                 log!(proc_id, "Thread initialized correctly as a byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
@@ -160,5 +160,5 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
         }
     }
 
-    (main_transmitters,main_receivers)
+    (main_transmitters,receiver_of_main)
 }

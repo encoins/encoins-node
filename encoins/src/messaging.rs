@@ -73,6 +73,8 @@ pub(crate) fn deal_with_comm(process: &mut Processus, comm: Communication)
     }
 }
 
+
+
 /// A function that enters a byzantine reliable broadcast with the first message received
 /// If everything goes well, pushes the final message in proc.to_validate
 /// Else does not terminate

@@ -97,10 +97,6 @@ impl IOComm
                 {
                     account
                 }
-            IOComm::Transfer { message } =>
-                {
-                    &message.transaction.receiver_id
-                }
 
             IOComm::Add { account, amount } =>
                 {
@@ -128,7 +124,6 @@ impl Display for IOComm
         match self
         {
             IOComm::ReadAccount { account } => { write!(f, " Read account : {}", account) }
-            IOComm::Transfer { message } => { write!(f, "Transfer : {}", message) }
             IOComm::TransferRequest {sender,recipient,amount } => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})", sender, recipient, amount) }
             IOComm::Add { account, amount } => { write!(f, " Add {} to {}", amount, account) }
             IOComm::Remove { account, amount } => { write!(f, " Remove {} from {}", amount, account) }
