@@ -25,12 +25,14 @@ pub struct Processus {
     to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>,
+    output_to_main : Sender<IOComm>,
+    input_from_main : Receiver<IOComm>,
     ongoing_transfer : bool
 }
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for i in 0..nb_process+1     {
             s.push(TransferSet::new())
@@ -44,7 +46,9 @@ impl Processus {
             to_validate : MessageSet::new(),
             senders,
             receiver,
-            ongoing_transfer : false
+            ongoing_transfer : false,
+            output_to_main,
+            input_from_main
         }
     }
 
