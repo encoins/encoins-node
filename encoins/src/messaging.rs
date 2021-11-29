@@ -74,8 +74,8 @@ pub(crate) fn deal_with_comm(process: &mut Processus, comm: Communication)
 }
 
 /// A function that enters a byzantine reliable broadcast with the first message received
-/// If everything goes well, pushed the final message in proc.to_validate
-/// Else do not terminate
+/// If everything goes well, pushes the final message in proc.to_validate
+/// Else does not terminate
 fn brb(process: &mut Processus, init_msg: Message)
 {
     // Initialization
@@ -105,7 +105,7 @@ fn brb(process: &mut Processus, init_msg: Message)
                     }
                     else
                     {
-                        panic!("Somebody sent an init message during a brb, two brb cannot be executed at the same time yet");
+                        panic!("Somebody sent an init message into a brb, two brb cannot be executed at the same time yet");
                     }
                 }
             
@@ -121,8 +121,7 @@ fn brb(process: &mut Processus, init_msg: Message)
         }
 
         // Manage ready messages : if no ready msgs were sent yet and enough echos/ready msgs were received
-        if empty(&ready[proc_id as usize])
-        && ( quorum(&echos, (2*nb_process)/3, &actu_msg) || quorum(&ready, (nb_process)/3, &actu_msg) )
+        if empty(&ready[proc_id as usize]) && ( quorum(&echos, (2*nb_process)/3, &actu_msg) ||   quorum(&ready, nb_process/3, &actu_msg) )
         {
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
@@ -176,8 +175,19 @@ fn same_msg(msg1: &Message, msg2: &Message) -> usize
     {
         equal_deps = false;
     }
+    else
+    {
+        for i in 0..nb_deps_1
+        {
+            if msg1.dependencies[i] != msg2.dependencies[i]
+            {
+                equal_deps = false;
+                break;
+            }
+        }
+    }
 
-    if msg1.transaction == msg2.transaction
+    if equal_deps && msg1.transaction == msg2.transaction
     {
         1
     }
