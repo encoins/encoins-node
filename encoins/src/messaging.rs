@@ -89,9 +89,14 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
                 transmitter.send(comm);
             }
 
-        IOComm::Add { .. } =>
+        IOComm::Add { amount,account} =>
             {
-                log!(proc_id, "Received an \"add\" request when I should not be... Something is going wrong!");
+                if proc_id == 0 {
+                    log!(proc_id,"Received an \"add\" request, what I can do as the well process");
+                    process.transfer(proc_id, account, amount);
+                } else {
+                    log!(proc_id, "Received an \"add\" request when I should not be... Something is going wrong!");
+                }
             }
 
         IOComm::Remove { account, amount } =>

@@ -100,7 +100,7 @@ impl IOComm
 
             IOComm::Add { account, amount } =>
                 {
-                    account
+                    &0
                 }
             IOComm::Remove { account, amount } =>
                 {
