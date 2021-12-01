@@ -152,7 +152,7 @@ fn initialize_processes(nb_process: u32, main_transmitter: &Sender<Communication
                 loop {
                     let receiver = proc.get_receiver();
                     let mut comm = receiver.recv().unwrap();
-                    messaging::deal_with_message(&mut proc, comm);
+                    messaging::deal_with_comm(&mut proc, comm);
                     proc.valid();
                 }
             });
