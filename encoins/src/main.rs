@@ -58,7 +58,7 @@ fn main()
         match input_comm
         {
             None => {}
-            Some(IOComm::ReadAccount {account}) => { main_transmitters.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); println!("done"); wait = true}
+            Some(IOComm::ReadAccount {account}) => { main_transmitters.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true}
             Some(comm) => { main_transmitters.get((*comm.receiver()) as usize).unwrap().send(comm); }
 
         }

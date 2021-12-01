@@ -75,7 +75,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 }
                 else
                 {
-                    let string_returned = String::from(format!("Added {} encoins to account {})", amount, account));
+                    let string_returned = String::from(format!("Added {} encoins to account {}", amount, account));
                     let comm = IOComm::Add { account, amount };
                     (Some(comm), Some(string_returned))
                 }
