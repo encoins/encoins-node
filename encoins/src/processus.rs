@@ -178,14 +178,27 @@ impl Processus {
         &(self.receiver)
     }
 
+    pub fn get_maireceiver(&self) -> &Receiver<IOComm>
+    {
+        &(self.input_from_main)
+    }
+
     pub fn get_senders(&self) -> &Vec<Sender<Communication>>
     {
         &(self.senders)
     }
 
+    pub fn get_mainsender(&self) -> &Sender<IOComm>
+    {
+        &(self.output_to_main)
+    }
+
+
     pub fn in_to_validate(&mut self, message : Message)
     {
         self.to_validate.push(message);
     }
+
+
 
 }

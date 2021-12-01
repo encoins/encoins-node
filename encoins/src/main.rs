@@ -58,7 +58,7 @@ fn main()
         match input_comm
         {
             None => {}
-            Some(IOComm::ReadAccount {account}) => { main_transmitters.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true}
+            Some(IOComm::ReadAccount {account}) => { main_transmitters.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); println!("done"); wait = true}
             Some(comm) => { main_transmitters.get((*comm.receiver()) as usize).unwrap().send(comm); }
 
         }
@@ -142,9 +142,20 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                 log!(proc_id, "Thread initialized correctly");
                 loop {
                     let receiver = proc.get_receiver();
-                    let mut comm = receiver.recv().unwrap();
-                    messaging::deal_with_comm(&mut proc, comm);
+                    let mut comm = receiver.try_recv();
+                    match comm {
+                        Ok(communication) => {messaging::deal_with_comm(&mut proc, communication)}
+                        Err(e) => {()}
+                    };
+                    let receiver = proc.get_maireceiver();
+                    let mut iocomm = receiver.try_recv();
+                    match iocomm {
+                        Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
+                        Err(e) => {()}
+                    };
+
                     proc.valid();
+                    thread::sleep(Duration::from_millis(500));
                 }
             });
 
@@ -155,6 +166,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                 log!(proc_id, "Thread initialized correctly as a byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
+                    println!("{}",i);
                 }
             });
         }
