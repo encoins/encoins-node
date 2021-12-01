@@ -3,7 +3,7 @@
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::communication::Communication;
+use crate::communication::{Communication,IOComm};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use std::collections::HashSet;
@@ -25,12 +25,14 @@ pub struct Processus {
     to_validate : MessageSet,
     senders : Vec<Sender<Communication>>,
     receiver : Receiver<Communication>,
+    output_to_main : Sender<IOComm>,
+    input_from_main : Receiver<IOComm>,
     ongoing_transfer : bool
 }
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for i in 0..nb_process+1     {
             s.push(TransferSet::new())
@@ -44,7 +46,9 @@ impl Processus {
             to_validate : MessageSet::new(),
             senders,
             receiver,
-            ongoing_transfer : false
+            ongoing_transfer : false,
+            output_to_main,
+            input_from_main
         }
     }
 
@@ -174,14 +178,27 @@ impl Processus {
         &(self.receiver)
     }
 
+    pub fn get_maireceiver(&self) -> &Receiver<IOComm>
+    {
+        &(self.input_from_main)
+    }
+
     pub fn get_senders(&self) -> &Vec<Sender<Communication>>
     {
         &(self.senders)
     }
 
+    pub fn get_mainsender(&self) -> &Sender<IOComm>
+    {
+        &(self.output_to_main)
+    }
+
+
     pub fn in_to_validate(&mut self, message : Message)
     {
         self.to_validate.push(message);
     }
+
+
 
 }

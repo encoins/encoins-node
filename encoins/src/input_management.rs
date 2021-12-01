@@ -4,13 +4,14 @@ use std::io;
 use std::io::Write;
 use std::process::Command;
 use crate::base_types::UserId;
-use crate::communication::Communication;
+use crate::communication::{Communication,IOComm};
 use crate::transaction::Transaction;
 use crate::input::Input;
 
 
-/// Reads keyboard inputs from terminal and returns an optional [`Communication`] between [`Processus`]
-pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> Option<Communication>{
+/// Reads keyboard inputs from terminal and returns an optional [`IOComm`] between [`Processus`]
+///
+pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> Option<IOComm>{
 
     show_terminal(&strings_to_show);
 
@@ -61,8 +62,8 @@ pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> 
 
 }
 
-/// Deals with a given [`Input`] and returns an optional associated [`Communication`] and an optional String with a message to display on terminal
-fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_number : &u32) -> ( Option<Communication>, Option<String> )
+/// Deals with a given [`Input`] and returns an optional associated [`IOComm`] and an optional String with a message to display on terminal
+fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_number : &u32) -> ( Option<IOComm>, Option<String> )
 {
     match input
     {
@@ -75,7 +76,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 else
                 {
                     let string_returned = String::from(format!("Added {} encoins to account {})", amount, account));
-                    let comm = Communication::Add { account: account, amount: amount };
+                    let comm = IOComm::Add { account, amount };
                     (Some(comm), Some(string_returned))
                 }
             }
@@ -89,7 +90,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 else
                 {
                     let string_returned = String::from(format!("Removed {} encoins to account {}", amount, account));
-                    let comm = Communication::Remove { account: account, amount: amount };
+                    let comm = IOComm::Remove { account, amount };
                     (Some(comm), Some(string_returned))
                 }
 
@@ -108,7 +109,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 else
                 {
                     let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {})", amount, sender, recipient));
-                    let comm = Communication::TransferRequest {sender: sender, recipient: recipient, amount: amount};
+                    let comm = IOComm::TransferRequest {sender, recipient, amount };
                     (Some(comm), Some(string_returned))
                 }
             }
@@ -121,7 +122,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 }
                 else
                 {
-                    let comm = Communication::ReadAccount {account : account};
+                    let comm = IOComm::ReadAccount {account };
                     (Some(comm), None)
                 }
             }

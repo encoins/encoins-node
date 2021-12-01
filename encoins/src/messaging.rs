@@ -2,7 +2,7 @@
 
 use std::sync::mpsc::{Receiver, Sender};
 use crate::message::{Message, MessageType};
-use crate::communication::Communication;
+use crate::communication::{Communication, IOComm};
 use crate::{log, message, Transaction};
 use crate::processus::Processus;
 
@@ -64,7 +64,7 @@ pub(crate) fn deal_with_comm(process: &mut Processus, comm: Communication)
                     MessageType::Init => {brb(process, message);}
                     _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
                 }
-            }        
+            }
 
         Communication::Output { .. } =>
             {
@@ -72,6 +72,62 @@ pub(crate) fn deal_with_comm(process: &mut Processus, comm: Communication)
             }
     }
 }
+
+
+/// Used by all [`Processus`] to execute a [`IOComm`]
+pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
+{
+    let transmitter = process.get_mainsender();
+    let proc_id = process.get_id();
+    match comm
+    {
+        IOComm::ReadAccount { account } =>
+            {
+                log!(proc_id, "Received a read account request. Transmitting information to main thread.");
+                let msg = format!("Account {} balance is {} encoins", proc_id, process.read());
+                let comm = IOComm::Output {message: msg};
+                transmitter.send(comm);
+            }
+
+        IOComm::Add { amount,account} =>
+            {
+                if proc_id == 0 {
+                    log!(proc_id,"Received an \"add\" request, what I can do as the well process");
+                    process.transfer(proc_id, account, amount);
+                } else {
+                    log!(proc_id, "Received an \"add\" request when I should not be... Something is going wrong!");
+                }
+            }
+
+        IOComm::Remove { account, amount } =>
+            {
+                if account == proc_id
+                {
+                    log!(proc_id,"Received request to remove money from my account. Dealing with it!");
+                    process.transfer(proc_id, 0, amount);
+                }
+                else
+                {
+                    log!(proc_id,"Received a request to remove money from somebody's else account. Something is going wrong!");
+                }
+
+            }
+
+        IOComm::TransferRequest { sender, recipient, amount } =>
+            {
+                log!(proc_id, "Received transfer request from main thread. Dealing with it!");
+                process.transfer(sender, recipient, amount);
+            }
+
+
+        IOComm::Output { .. } =>
+            {
+                log!(proc_id,"Received an output message when I should not be receiving any.. Something is going wrong!");
+            }
+    }
+}
+
+
 
 /// A function that enters a byzantine reliable broadcast with the first message received
 /// If everything goes well, pushes the final message in proc.to_validate
