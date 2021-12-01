@@ -17,6 +17,7 @@ mod input_management;
 mod communication;
 mod processus;
 mod input;
+mod crypto;
 
 fn main()
 {

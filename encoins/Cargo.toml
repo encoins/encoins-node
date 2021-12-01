@@ -7,3 +7,7 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4"
+rand = "0.7"
+
+[dependencies.ed25519-dalek]
+version = "1.0.1"
