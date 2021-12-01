@@ -1,76 +1,32 @@
 //! Basic functions to send message to others processes
 
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Sender};
 use crate::message::{Message, MessageType};
-use crate::communication::{Communication, IOComm};
-use crate::{log, message, Transaction};
+use crate::iocommunication::{IOComm};
+use crate::{log};
 use crate::processus::Processus;
 
 /// A simple broadcast function to make a basic broadcast to all processus including main
-pub fn broadcast(transmitters : &Vec<Sender<Communication>>, comm: Communication)
+pub fn broadcast(transmitters : &Vec<Sender<Message>>, message: Message)
 {
     for transmitter in transmitters
     {
-        let comm_copy = comm.clone();
-        transmitter.send(comm_copy);
+        let message_copy = message.clone();
+        transmitter.send(message_copy);
     }
 
 }
 
-/// Used by all [`Processus`] to execute a [`Communication`]
-pub(crate) fn deal_with_comm(process: &mut Processus, comm: Communication)
+/// Used by all [`Processus`] to execute a [`Message`]
+pub(crate) fn deal_with_message(process: &mut Processus, message: Message)
 {
-    let transmitters = process.get_senders();
     let proc_id = process.get_id();
-    match comm
+    match message.message_type
     {
-        Communication::ReadAccount { account } =>
-            {
-                log!(proc_id, "Received a read account request. Transmitting information to main thread.");
-                let msg = format!("Account {} balance is {} encoins", proc_id, process.read());
-                let comm = Communication::Output {message: msg};
-                transmitters.get(0).unwrap().send(comm);
-            }
-
-        Communication::Add { .. } =>
-            {
-                log!(proc_id, "Received an \"add\" request when I should not be... Something is going wrong!");
-            }
-
-        Communication::Remove { account, amount } =>
-            {
-                if account == proc_id
-                {
-                    log!(proc_id,"Received request to remove money from my account. Dealing with it!");
-                    process.transfer(proc_id, 0, amount);
-                }
-                else
-                {
-                    log!(proc_id,"Received a request to remove money from somebody's else account. Something is going wrong!");
-                }
-
-            }
-
-        Communication::TransferRequest { sender, recipient, amount } =>
-            {
-                log!(proc_id, "Received transfer request from main thread. Dealing with it!");
-                process.transfer(sender, recipient, amount);
-            }
-
-        Communication::Transfer { message } =>
-            {
-                match message.message_type
-                {
-                    MessageType::Init => {brb(process, message);}
-                    _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
-                }
-            }
-
-        Communication::Output { .. } =>
-            {
-                log!(proc_id,"Received an output message when I should not be receiving any.. Something is going wrong!");
-            }
+        MessageType::Init => {brb(process, message);}
+        _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
     }
+
 }
 
 
@@ -81,7 +37,7 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
     let proc_id = process.get_id();
     match comm
     {
-        IOComm::ReadAccount { account } =>
+        IOComm::ReadAccount { .. } =>
             {
                 log!(proc_id, "Received a read account request. Transmitting information to main thread.");
                 let msg = format!("Account {} balance is {} encoins", proc_id, process.read());
@@ -91,9 +47,11 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 
         IOComm::Add { amount,account} =>
             {
-                if proc_id == 0 {
-                    log!(proc_id,"Received an \"add\" request, what I can do as the well process");
+                if proc_id == 0
+                {
+                    log!(proc_id,"Received an \"add\" request, sending transfer request");
                     process.transfer(proc_id, account, amount);
+
                 } else {
                     log!(proc_id, "Received an \"add\" request when I should not be... Something is going wrong!");
                 }
@@ -159,7 +117,7 @@ fn brb(process: &mut Processus, init_msg: Message)
                     {
                         my_msg.message_type = MessageType::Echo;
                         log!(proc_id, "Broadcasting echo message to everyone.");
-                        broadcast(&process.get_senders(), Communication::Transfer { message: my_msg.clone() });
+                        broadcast(&process.get_senders(), my_msg.clone() );
                         echos[proc_id as usize] = Some(my_msg.clone());
                     }
                     else
@@ -187,17 +145,13 @@ fn brb(process: &mut Processus, init_msg: Message)
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
             log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
-            broadcast(&process.get_senders(), Communication::Transfer { message: my_msg.clone() });
+            broadcast(&process.get_senders(), my_msg.clone() );
             ready[proc_id as usize] = Some(my_msg.clone());
         }
 
         // Actualize the actual message
-        let comm = process.get_receiver().recv().unwrap();
-        match comm
-        {
-            Communication::Transfer { message } => {actu_msg = message;}
-            _ => {panic!("During the byzantine reliable broadcast, a communication received is not a transfer");}
-        }
+        actu_msg = process.get_receiver().recv().unwrap();
+
     }
 
     log!(proc_id, "Quorum was achieved. I can add the message to transactions to process.");

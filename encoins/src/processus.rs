@@ -3,10 +3,9 @@
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::communication::{Communication,IOComm};
+use crate::iocommunication::{IOComm};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use std::collections::HashSet;
 use crate::log;
 
 type List = Vec<u32>;
@@ -16,15 +15,16 @@ type MessageSet = Vec<Message>;
 
 #[derive(Debug)]
 
-pub struct Processus {
+pub struct Processus
+{
     id_proc : UserId,
     seq : List,
     rec : List,
     hist : Vec<TransferSet>,
     deps : TransferSet,
     to_validate : MessageSet,
-    senders : Vec<Sender<Communication>>,
-    receiver : Receiver<Communication>,
+    senders : Vec<Sender<Message>>,
+    receiver : Receiver<Message>,
     output_to_main : Sender<IOComm>,
     input_from_main : Receiver<IOComm>,
     ongoing_transfer : bool
@@ -32,9 +32,10 @@ pub struct Processus {
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Message>>, receiver : Receiver<Message>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
-        for i in 0..nb_process+1     {
+        for _ in 0..nb_process+1
+        {
             s.push(TransferSet::new())
         }
         Processus {
@@ -70,7 +71,7 @@ impl Processus {
                 signature: 0 // we all count on Milan
             };
         // message.sign() : Waiting for Milan
-        broadcast(&self.senders, Communication::Transfer { message: message });
+        broadcast(&self.senders,  message);
         self.hist[self.id_proc as usize].append(&mut self.deps);
         self.ongoing_transfer = true;
         // self.deps = TransferSet::new(); the line above do it
@@ -120,12 +121,20 @@ impl Processus {
                     self.hist[e.transaction.receiver_id as usize].push(e.transaction.clone());
                 }
                 log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", e.transaction);
+                if e.transaction.receiver_id == self.id_proc
+                {
+                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I validated the transfer of {} encoins from {}", self.id_proc, e.transaction.amount, e.transaction.sender_id))});
+                }
                 self.to_validate.remove(index);
             }
             else
             {
                 index += 1;
                 log!(self.id_proc, "Transaction {} is not valid and is refused on my part.", e.transaction);
+                if e.transaction.receiver_id == self.id_proc
+                {
+                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I refused the transfer of {} encoins from {}", self.id_proc, e.transaction.amount, e.transaction.sender_id))});
+                }
 
             }
         }
@@ -173,7 +182,7 @@ impl Processus {
         self.rec[id] +=1;
     }
 
-    pub fn get_receiver(&self) -> &Receiver<Communication>
+    pub fn get_receiver(&self) -> &Receiver<Message>
     {
         &(self.receiver)
     }
@@ -183,7 +192,7 @@ impl Processus {
         &(self.input_from_main)
     }
 
-    pub fn get_senders(&self) -> &Vec<Sender<Communication>>
+    pub fn get_senders(&self) -> &Vec<Sender<Message>>
     {
         &(self.senders)
     }

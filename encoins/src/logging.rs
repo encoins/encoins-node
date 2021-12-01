@@ -29,7 +29,7 @@ pub fn initialize(number_of_process : u32, write_logs : bool)
             INITIALIZED = true;
 
             // Gets the path of the executable
-            let mut exec_path_buf = match current_exe(){
+            let exec_path_buf = match current_exe(){
                 Ok(path) => path,
                 Err(e) => panic!("failed to get current exe path: {}", e)
             };
@@ -59,13 +59,8 @@ pub fn initialize(number_of_process : u32, write_logs : bool)
             // Creates the log files for all processes
             for i in 0..number_of_process+1
             {
-                let file_path;
-                unsafe
-                    {
-                        file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i);
-                    }
-
-                let file = File::create(file_path);
+                let file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i);
+                File::create(file_path);
             }
 
 
@@ -79,8 +74,6 @@ pub fn initialize(number_of_process : u32, write_logs : bool)
 /// `write_log` should only be used by [`log!`]. To write logs use the latter.
 pub fn write_log(proc_nb : u32, to_write : String)
 {
-    let file_path : String;
-
     unsafe
         {
             if WRITE_LOGS

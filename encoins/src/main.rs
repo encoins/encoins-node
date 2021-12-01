@@ -1,12 +1,9 @@
-#![allow(unused)]
 use std::{env, thread};
-use std::num::ParseIntError;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
-use crate::communication::{Communication, IOComm};
-use crate::messaging::deal_with_comm;
-use crate::transaction::{Transaction};
+use crate::iocommunication::{IOComm};
+use crate::message::Message;
 
 mod transaction;
 mod logging;
@@ -14,7 +11,7 @@ mod base_types;
 mod message;
 mod messaging;
 mod input_management;
-mod communication;
+mod iocommunication;
 mod processus;
 mod input;
 
@@ -51,57 +48,40 @@ fn main()
 
 
     let mut additional_strings = vec![];
+
     loop
     {
         let input_comm: Option<IOComm> = input_management::read_input(&mut additional_strings, &number_of_processes);
-        let mut wait = false;
         match input_comm
         {
             None => {}
-            Some(IOComm::ReadAccount {account}) => { main_transmitters.get( *(input_comm.as_ref().unwrap().receiver()) as usize).unwrap().send(input_comm.unwrap()); wait = true}
-            Some(comm) => { main_transmitters.get((*comm.receiver()) as usize).unwrap().send(comm); }
+            Some(iocommunication) =>
+                {
+                    let transmit_to;
+                    let final_io = iocommunication.clone();
+                    match iocommunication
+                    {
+                        IOComm::ReadAccount { account } => { transmit_to = account as usize }
+                        IOComm::TransferRequest { sender, .. } => { transmit_to = sender as usize }
+                        IOComm::Add { .. } => { transmit_to = 0 }
+                        IOComm::Remove { .. } => { transmit_to = 0 }
+                        IOComm::Output { message } => { transmit_to = (number_of_processes + 1) as usize; additional_strings.push(message)  }
+                    }
 
+                    if transmit_to < (number_of_processes +1) as usize
+                    {
+                        main_transmitters.get(transmit_to).unwrap().send(final_io);
+                    }
+                }
         }
 
-        // Checks its receive buffer has an element and deals with it
-        let mut stop = false;
-        while !stop
+        let comm_from_proc = main_receiver.recv().unwrap();
+
+        match comm_from_proc
         {
-            match wait
-            {
-                true =>
-                    {
-                        let communication = main_receiver.recv().unwrap();
-                        match communication
-                        {
-                            IOComm::Output { message } => { additional_strings.push(message); wait = false; }
-                            _ => { wait = false; }
-                        }
-                    }
-
-                false =>
-                    {
-                        let possible_comm = main_receiver.try_recv();
-                        match possible_comm
-                        {
-                            Ok(communication) =>
-                                {
-                                    match communication
-                                    {
-                                        IOComm::Output { message } => { additional_strings.push(message) }
-                                        _ => { () }
-                                    }
-                                }
-                            Err(_) =>
-                                {
-                                    stop = true;
-                                }
-                        }
-                    }
-            }
-
+            IOComm::Output { message } => { additional_strings.push(message) }
+            _ => {  }
         }
-
 
     }
 
@@ -110,7 +90,7 @@ fn main()
 /// Initializes all process
 fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
-    let (senders, mut receivers): (Vec<Sender<Communication>>, Vec<Receiver<Communication>>) =
+    let (senders, mut receivers): (Vec<Sender<Message>>, Vec<Receiver<Message>>) =
         (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
 
     let (transmitter_to_main,receiver_of_main) = mpsc::channel();
@@ -142,27 +122,27 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                 log!(proc_id, "Thread initialized correctly");
                 loop {
                     let receiver = proc.get_receiver();
-                    let mut comm = receiver.try_recv();
+                    let comm = receiver.try_recv();
                     match comm {
-                        Ok(communication) => {messaging::deal_with_comm(&mut proc, communication)}
-                        Err(e) => {()}
+                        Ok(message) => {messaging::deal_with_message(&mut proc, message)}
+                        Err(_) => {()}
                     };
                     let receiver = proc.get_maireceiver();
-                    let mut iocomm = receiver.try_recv();
+                    let iocomm = receiver.try_recv();
                     match iocomm {
                         Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
-                        Err(e) => {()}
+                        Err(_) => {()}
                     };
 
                     proc.valid();
-                    thread::sleep(Duration::from_millis(500));
+                    thread::sleep(Duration::from_millis(200));
                 }
             });
 
         } else {
             thread::spawn(move || {
                 let proc_id = i;
-                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main);
+                processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main);
                 log!(proc_id, "Thread initialized correctly as a byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
