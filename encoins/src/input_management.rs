@@ -2,27 +2,23 @@
 
 use std::io;
 use std::io::Write;
-use std::process::Command;
 use crate::base_types::UserId;
-use crate::communication::{Communication,IOComm};
-use crate::transaction::Transaction;
+use crate::iocommunication::{IOComm};
 use crate::input::Input;
 
 
 /// Reads keyboard inputs from terminal and returns an optional [`IOComm`] between [`Processus`]
-///
 pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> Option<IOComm>{
 
     show_terminal(&strings_to_show);
 
     // Save the line entered on the terminal in the string input_line
-    let mut args : Vec<u32> = vec![];
 
     // Loops until no correct inputs has been entered
     loop
     {
         let mut input_line = String::new();
-        let mut words: Vec<&str> = vec![];
+        let words: Vec<&str>;
 
         io::stdin()
             .read_line(&mut input_line)

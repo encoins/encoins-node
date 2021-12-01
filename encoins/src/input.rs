@@ -1,8 +1,6 @@
 //! Definition of the input enum used to manage inputs
 
-use std::process::Output;
 use crate::base_types::{Currency, UserId};
-use crate::input::Input::{Add, BalanceFor, Balances, Clear, Help, Quit, Read, Remove, Transfer};
 
 /// An input can be either a request to make two [`Processus`] interact or to make change on the terminal GUI
 pub enum Input
@@ -36,13 +34,10 @@ impl Input
     pub fn from(value: &Vec<&str>) -> Result<Input,String>
     {
         let mut args = vec![];
-        if value.len() == 0
+        return if value.len() == 0
         {
-
-          return Err(String::from("No command entered! Type \"help\" to get a list of possible commands"));
-        }
-        else
-        {
+            Err(String::from("No command entered! Type \"help\" to get a list of possible commands"))
+        } else {
             for k in 1..value.len()
             {
                 let word = String::from(value[k]);
@@ -57,14 +52,14 @@ impl Input
                 args.push(arg);
             }
 
-                // Transforms first argument to lowercase
+            // Transforms first argument to lowercase
             let value_lc = &value[0].to_lowercase()[..];
 
             match value_lc
             {
                 "add" =>
                     {
-                        return if args.len() != 2
+                        if args.len() != 2
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -74,7 +69,7 @@ impl Input
 
                 "remove" =>
                     {
-                        return if args.len() != 2
+                        if args.len() != 2
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -84,7 +79,7 @@ impl Input
 
                 "transfer" =>
                     {
-                        return if args.len() != 3
+                        if args.len() != 3
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -94,7 +89,7 @@ impl Input
 
                 "read" =>
                     {
-                        return if args.len() != 1
+                        if args.len() != 1
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -103,7 +98,7 @@ impl Input
                     }
                 "help" =>
                     {
-                        return if args.len() != 0
+                        if args.len() != 0
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -112,7 +107,7 @@ impl Input
                     }
                 "clear" =>
                     {
-                        return if args.len() != 0
+                        if args.len() != 0
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -121,7 +116,7 @@ impl Input
                     }
                 "quit" =>
                     {
-                        return if args.len() != 0
+                        if args.len() != 0
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -130,7 +125,7 @@ impl Input
                     }
                 "balancefor" =>
                     {
-                        return if args.len() != 2
+                        if args.len() != 2
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -139,7 +134,7 @@ impl Input
                     }
                 "balances" =>
                     {
-                        return if args.len() != 1
+                        if args.len() != 1
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
@@ -148,7 +143,7 @@ impl Input
                     }
                 _ =>
                     {
-                        return Err(String::from("The typed command could not be recognised! (Type \"help\" to get a list of possible commands)"));
+                        Err(String::from("The typed command could not be recognised! (Type \"help\" to get a list of possible commands)"))
                     }
             }
         }
