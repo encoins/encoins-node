@@ -71,6 +71,9 @@ impl Processus {
 
         let signature = sign(&self.secret_key,&transaction);
 
+        if verif_sig(&transaction,&signature,&self.public_keys[user_id as usize]) {
+        };
+
         let message  = Message {
                 transaction,
                 dependencies: self.deps.clone(),
@@ -78,6 +81,8 @@ impl Processus {
                 sender_id: self.id_proc,
                 signature,
             };
+
+
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, Communication::Transfer { message: message });
         self.hist[self.id_proc as usize].append(&mut self.deps);
@@ -144,7 +149,7 @@ impl Processus {
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
         // I think it must be done with the signature
-        let assert1 = true;
+        let assert1 = verif_sig(&message.transaction,&message.signature,&self.public_keys[message.transaction.sender_id as usize] );
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 ;
         // 3) the balance of account q must not drop below zero

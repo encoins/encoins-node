@@ -100,15 +100,15 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
             {
                 if sender > *process_number as UserId
                 {
-                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",sender, process_number))))
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {}",sender, process_number))))
                 }
                 else if recipient > *process_number as UserId
                 {
-                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",recipient, process_number))))
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {}",recipient, process_number))))
                 }
                 else
                 {
-                    let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {})", amount, sender, recipient));
+                    let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {}", amount, sender, recipient));
                     let comm = IOComm::TransferRequest {sender, recipient, amount };
                     (Some(comm), Some(string_returned))
                 }
