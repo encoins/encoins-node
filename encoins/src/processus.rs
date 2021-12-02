@@ -6,12 +6,12 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::communication::{Communication,IOComm};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use std::collections::HashSet;
 use crate::log;
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
+use ed25519_dalek::{PublicKey, Keypair, SecretKey};
 
 
 #[derive(Debug)]
@@ -27,12 +27,14 @@ pub struct Processus {
     receiver : Receiver<Communication>,
     output_to_main : Sender<IOComm>,
     input_from_main : Receiver<IOComm>,
+    public_keys : Vec<PublicKey>,
+    secret_key : Keypair,
     ongoing_transfer : bool
 }
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Communication>>, receiver : Receiver<Communication>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for i in 0..nb_process+1     {
             s.push(TransferSet::new())
@@ -48,7 +50,9 @@ impl Processus {
             receiver,
             ongoing_transfer : false,
             output_to_main,
-            input_from_main
+            input_from_main,
+            public_keys,
+            secret_key,
         }
     }
 
