@@ -5,9 +5,7 @@ extern crate ed25519_dalek;
 use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
-use crate::message;
 use crate::transaction::Transaction;
-use crate::message::Message;
 
 
 
@@ -22,7 +20,7 @@ pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
 
     let mut list_of_public_keys = vec![];
     let mut list_of_keypair_keys = vec![]; // It's really seem like a bad idea, but sufficient for the moment
-    for i in 0..nb_user + 1 {
+    for _ in 0..nb_user + 1 {
         let keypair: Keypair = Keypair::generate(&mut csprng);
         list_of_public_keys.push(keypair.public);
         list_of_keypair_keys.push(keypair);
