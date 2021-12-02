@@ -4,6 +4,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
 use crate::message::Message;
+use crate::crypto::init_crypto;
+
 
 mod transaction;
 mod logging;
@@ -14,6 +16,7 @@ mod input_management;
 mod iocommunication;
 mod processus;
 mod input;
+mod crypto;
 
 fn main()
 {
@@ -83,6 +86,7 @@ fn main()
             _ => {  }
         }
 
+
     }
 
 }
@@ -99,6 +103,10 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
 
     let mut main_transmitters = vec![];
 
+    let (list_of_public_keys, mut secret_keys) = init_crypto(nb_process);
+
+    secret_keys.reverse();
+
     for i in 0..nb_process+1 {
 
 
@@ -108,17 +116,24 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
         // The list of all transmitters with the convention :
         // thread_senders[0] = main and thread_senders[i] = transmitter to i for i > 0
         let thread_receiver = match receivers.pop() {
-            None => { panic!("Something went wrong during initialization of threads") }
+            None => {  panic!("Receiver initialisation went wrong during initialization of thread {}",i) }
             Some(x) => {x}
         };
         let thread_senders= senders.clone();
         let main_sender = transmitter_to_main.clone();
 
+        let secret_key = match secret_keys.pop() {
+            None => { panic!("Secret key initialisation went wrong during initialization of thread {}",i) }
+            Some(x) => {x}
+        };
+
+        let public_keys = list_of_public_keys.clone();
+
 
         if i <= nb_process - nb_byzantines {
             thread::spawn(move || {
                 let proc_id = i;
-                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main);
+                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
                 log!(proc_id, "Thread initialized correctly");
                 loop {
                     let receiver = proc.get_receiver();
@@ -142,7 +157,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
         } else {
             thread::spawn(move || {
                 let proc_id = i;
-                processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main);
+                processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
                 log!(proc_id, "Thread initialized correctly as a byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));

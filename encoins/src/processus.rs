@@ -3,14 +3,16 @@
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::iocommunication::{IOComm};
+use crate::iocommunication::IOComm;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use crate::log;
+use crate::crypto::{sign,verif_sig};
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
+use ed25519_dalek::{PublicKey, Keypair};
 
 
 #[derive(Debug)]
@@ -27,12 +29,14 @@ pub struct Processus
     receiver : Receiver<Message>,
     output_to_main : Sender<IOComm>,
     input_from_main : Receiver<IOComm>,
+    public_keys : Vec<PublicKey>,
+    secret_key : Keypair,
     ongoing_transfer : bool
 }
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Message>>, receiver : Receiver<Message>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Message>>, receiver : Receiver<Message>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for _ in 0..nb_process+1
         {
@@ -49,7 +53,9 @@ impl Processus {
             receiver,
             ongoing_transfer : false,
             output_to_main,
-            input_from_main
+            input_from_main,
+            public_keys,
+            secret_key,
         }
     }
 
@@ -58,19 +64,26 @@ impl Processus {
             return false
         }
 
+        let transaction = Transaction {
+            seq_id: self.seq[user_id as usize] + 1,
+            sender_id: user_id,
+            receiver_id,
+            amount,
+        };
+
+        let signature = sign(&self.secret_key,&transaction);
+
+        if verif_sig(&transaction,&signature,&self.public_keys[user_id as usize]) {
+        };
+
         let message  = Message {
-                transaction: Transaction {
-                    seq_id: self.seq[user_id as usize] + 1,
-                    sender_id: user_id,
-                    receiver_id,
-                    amount,
-                },
+                transaction,
                 dependencies: self.deps.clone(),
                 message_type: MessageType::Init,
                 sender_id: self.id_proc,
-                signature: 0 // we all count on Milan
+                signature,
             };
-        // message.sign() : Waiting for Milan
+
         broadcast(&self.senders,  message);
         self.hist[self.id_proc as usize].append(&mut self.deps);
         self.ongoing_transfer = true;
@@ -144,7 +157,7 @@ impl Processus {
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
         // I think it must be done with the signature
-        let assert1 = true;
+        let assert1 = verif_sig(&message.transaction,&message.signature,&self.public_keys[message.transaction.sender_id as usize] );
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 ;
         // 3) the balance of account q must not drop below zero
