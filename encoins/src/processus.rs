@@ -7,6 +7,7 @@ use crate::communication::{Communication,IOComm};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use crate::log;
+use crate::crypto::{sign,verif_sig};
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
@@ -61,17 +62,21 @@ impl Processus {
             return false
         }
 
+        let transaction = Transaction {
+            seq_id: self.seq[user_id as usize] + 1,
+            sender_id: user_id,
+            receiver_id,
+            amount,
+        };
+
+        let signature = sign(&self.secret_key,&transaction);
+
         let message  = Message {
-                transaction: Transaction {
-                    seq_id: self.seq[user_id as usize] + 1,
-                    sender_id: user_id,
-                    receiver_id,
-                    amount,
-                },
+                transaction,
                 dependencies: self.deps.clone(),
                 message_type: MessageType::Init,
                 sender_id: self.id_proc,
-                signature: 0 // we all count on Milan
+                signature,
             };
         // message.sign() : Waiting for Milan
         broadcast(&self.senders, Communication::Transfer { message: message });

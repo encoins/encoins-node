@@ -1,7 +1,8 @@
 //! Definition of a message type
 use std::fmt::{Display, Formatter};
-use crate::base_types::{Signature, UserId};
+use crate::base_types::UserId;
 use crate::transaction::Transaction;
+use ed25519_dalek::Signature;
 
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction, a message type and the signature of the process sending the message

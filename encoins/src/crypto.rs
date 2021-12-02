@@ -11,8 +11,8 @@ use crate::message::Message;
 
 
 
-pub fn sign(keypair : Keypair, message : Message) -> Signature {
-    let message: &[u8] = &convert_tranfer_to_u8(message.transaction);
+pub fn sign(keypair : &Keypair, transaction : &Transaction) -> Signature {
+    let message: &[u8] = &convert_tranfer_to_u8(transaction);
     let signature: Signature = keypair.sign(message); // impossible to sign with secret key
     signature
 }
@@ -31,7 +31,7 @@ pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
 
 }
 
-fn convert_tranfer_to_u8(transaction : Transaction) -> [u8;16]{
+fn convert_tranfer_to_u8(transaction : &Transaction) -> [u8;16]{
     let (s1,s2,s3,s4) = convert_u32_to_tuple_of_u8(transaction.sender_id);
     let (r1,r2,r3,r4) = convert_u32_to_tuple_of_u8(transaction.receiver_id);
     let (a1,a2,a3,a4) = convert_u32_to_tuple_of_u8(transaction.amount);
@@ -50,6 +50,6 @@ fn convert_u32_to_tuple_of_u8(x:u32) -> (u8,u8,u8,u8) {
 
 
 
-pub fn verif_sig(transaction : Transaction, signature : Signature, public_key: &PublicKey) -> bool{
+pub fn verif_sig(transaction : &Transaction, signature : &Signature, public_key: &PublicKey) -> bool{
     public_key.verify(&convert_tranfer_to_u8(transaction), &signature).is_ok()
 }
