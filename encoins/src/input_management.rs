@@ -110,7 +110,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 }
             }
 
-        Input::Read { account } =>
+        Input::HistoryFor {account, according_to} =>
             {
                 if account > *process_number as UserId
                 {
@@ -118,7 +118,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 }
                 else
                 {
-                    let comm = IOComm::ReadAccount {account };
+                    let comm = IOComm::HistoryOf {account, according_to };
                     (Some(comm), None)
                 }
             }
@@ -128,18 +128,48 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 show_help();
                 (None,None)
             }
+
         Input::Clear =>
             {
                 strings_to_show.clear();
                 (None,None)
             }
+
         Input::Quit =>
             {
                 println!("Goodbye!");
                 std::process::exit(0);
             }
-        Input::BalanceFor { .. } => {  (None,None) }
-        Input::Balances { .. } => { (None, None) }
+
+        Input::BalanceFor { account, according_to } =>
+            {
+                if account > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",account, process_number))))
+                }
+                else if according_to > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",according_to, process_number))))
+                }
+                else
+                {
+                    let comm = IOComm::BalanceOf {account, according_to };
+                    (Some(comm), None)
+                }
+            }
+
+        Input::Balances { according_to } =>
+            {
+                if according_to > *process_number as UserId
+                {
+                    (None, Some(String::from(format!("Account {} does not exist! (Account ids range from 0 to {})",according_to, process_number))))
+                }
+                else
+                {
+                    let comm = IOComm::Balances { according_to };
+                    (Some(comm), None)
+                }
+            }
     }
 }
 
@@ -170,7 +200,7 @@ fn show_help()
         \t• add <account> <amount>                  : Adds <amount> of coins to the account <account>\n\
         \t• remove <account> <amount>               : Removes <amount> of coins from the account <account>\n\
         \t• transfer <account1> <account2> <amount> : Transfers <amount> of coins from account <account1> to account <account2> \n\
-        \t• read <account>                          : Displays transactions involving the account <account>\n\
+        \t• historyfor <account> <according-to>     : Displays transactions involving the account <account> according to account <according-to>\n\
         \t• balancefor <account> <according-to>     : Displays the current balance for account <account> according to account <according-to>\n\
         \t• balances <according-to>                 : Displays all current balances according to account <according-to>\n\
         \t• clear                                   : Clears terminal from previous entered instructions \n\

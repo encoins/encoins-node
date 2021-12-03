@@ -1,5 +1,5 @@
 //! Definition of the processus type
-
+#[allow(unused_must_use)]
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
@@ -16,7 +16,6 @@ use ed25519_dalek::{PublicKey, Keypair};
 
 
 #[derive(Debug)]
-
 pub struct Processus
 {
     id_proc : UserId,
@@ -91,11 +90,9 @@ impl Processus {
         true
     }
 
-    pub fn read(&self) -> Currency {
-        let a = self.id_proc;
-        let mut dep = self.deps.clone();
-        dep.append(&mut self.hist[a as usize].clone());
-        return Processus::balance(a, &dep)
+    pub fn read(&self) -> Currency
+    {
+        return Processus::balance(self.id_proc, &self.history_for(self.id_proc))
     }
 
     fn balance( a: UserId, h: &TransferSet) -> Currency {
@@ -185,11 +182,13 @@ impl Processus {
         self.id_proc
     }
 
+    #[allow(dead_code)]
     pub fn get_seq_at(&self, id: usize) -> SeqId
     {
         self.seq[id]
     }
 
+    #[allow(dead_code)]
     pub fn incr_rec(&mut self, id:usize)
     {
         self.rec[id] +=1;
@@ -215,12 +214,68 @@ impl Processus {
         &(self.output_to_main)
     }
 
-
     pub fn in_to_validate(&mut self, message : Message)
     {
         self.to_validate.push(message);
     }
 
+    fn history_for(&self, account: UserId) -> Vec<Transaction>
+    {
+        let mut hist : Vec<Transaction> = vec![];
+        if self.id_proc == account
+        {
+            hist.append(&mut self.deps.clone());
+        }
+        hist.append(&mut self.hist[account as usize].clone());
+        return hist
+    }
+    pub fn output_history_for(&self, account : UserId)
+    {
+        let mut final_string = String::from(format!("[Process {}] History for process {} :", self.id_proc, account));
+        for tr in self.history_for(account)
+        {
+            final_string = format!("{} \n \t - {}", final_string, tr);
+        }
+        self.output_to_main.send(IOComm::Output { message : final_string });
+    }
 
+    pub fn output_balance_for(&self, account : UserId)
+    {
+        let mut balance = 0;
+        for tr in self.history_for(account)
+        {
+            if account == tr.receiver_id
+            {
+                balance += tr.amount;
+            }
+            else if account == tr.sender_id
+            {
+                balance -= tr.amount;
+            }
+        }
+        self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) });
+    }
+
+    pub fn output_balances(&self)
+    {
+        let mut final_string = String::from(format!("[Process {}] Balances are :", self.id_proc));
+        for i in 1..self.seq.len()
+        {
+            let mut balance = 0;
+            for tr in self.history_for(i as UserId)
+            {
+                if i == tr.receiver_id as usize
+                {
+                    balance += tr.amount;
+                }
+                else if i == tr.sender_id as usize
+                {
+                    balance -= tr.amount;
+                }
+            }
+            final_string = format!("{} \n \t - Proceess {}'s balance : {}", final_string, i, balance);
+        }
+        self.output_to_main.send(IOComm::Output { message: final_string });
+    }
 
 }

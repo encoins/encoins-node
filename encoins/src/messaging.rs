@@ -33,16 +33,24 @@ pub(crate) fn deal_with_message(process: &mut Processus, message: Message)
 /// Used by all [`Processus`] to execute a [`IOComm`]
 pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 {
-    let transmitter = process.get_mainsender();
     let proc_id = process.get_id();
     match comm
     {
-        IOComm::ReadAccount { .. } =>
+        IOComm::BalanceOf { account, .. } =>
             {
-                log!(proc_id, "Received a read account request. Transmitting information to main thread.");
-                let msg = format!("Account {} balance is {} encoins", proc_id, process.read());
-                let comm = IOComm::Output {message: msg};
-                transmitter.send(comm);
+                log!(proc_id, "Received a request to output balance for account {}. Transmitting information to main thread.", account);
+                process.output_balance_for(account);
+            }
+        IOComm::Balances {..} =>
+            {
+                log!(proc_id, "Received a request to output all account balances. Transmitting information to main thread");
+                process.output_balances();
+            }
+
+        IOComm::HistoryOf {account, ..} =>
+            {
+                log!(proc_id, "Received a request to output history of transactions involving {}. Transmitting information to main thread.", account);
+                process.output_history_for(account);
             }
 
         IOComm::Add { amount,account} =>

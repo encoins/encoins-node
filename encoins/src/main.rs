@@ -55,16 +55,20 @@ fn main()
     loop
     {
         let input_comm: Option<IOComm> = input_management::read_input(&mut additional_strings, &number_of_processes);
+        let mut do_read_proc_comm = false;
         match input_comm
         {
             None => {}
             Some(iocommunication) =>
                 {
+                    do_read_proc_comm = true;
                     let transmit_to;
                     let final_io = iocommunication.clone();
                     match iocommunication
                     {
-                        IOComm::ReadAccount { account } => { transmit_to = account as usize }
+                        IOComm::HistoryOf { account:_ , according_to} => { transmit_to = according_to as usize }
+                        IOComm::Balances {according_to} => { transmit_to = according_to as usize }
+                        IOComm::BalanceOf { account:_, according_to } => { transmit_to = according_to as usize }
                         IOComm::TransferRequest { sender, .. } => { transmit_to = sender as usize }
                         IOComm::Add { .. } => { transmit_to = 0 }
                         IOComm::Remove { .. } => { transmit_to = 0 }
@@ -78,12 +82,15 @@ fn main()
                 }
         }
 
-        let comm_from_proc = main_receiver.recv().unwrap();
-
-        match comm_from_proc
+        if do_read_proc_comm
         {
-            IOComm::Output { message } => { additional_strings.push(message) }
-            _ => {  }
+            let comm_from_proc = main_receiver.recv().unwrap();
+
+            match comm_from_proc
+            {
+                IOComm::Output { message } => { additional_strings.push(message) }
+                _ => {  }
+            }
         }
 
 

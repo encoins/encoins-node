@@ -1,4 +1,5 @@
 //! A simple logging system to log infos about processes
+
 use std::env::current_exe;
 use std::fs;
 use std::fs::{File, OpenOptions};
