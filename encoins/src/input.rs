@@ -11,8 +11,8 @@ pub enum Input
     Remove{ account: UserId, amount : Currency },
     /// Input to ask a transfer between two accounts
     Transfer{ sender : UserId, recipient: UserId, amount : Currency },
-    /// Input to read transactions history from an account
-    Read{ account : UserId },
+    /// Input to get transactions history of an account according to a given account
+    HistoryFor{ account : UserId, according_to : UserId },
     /// Input to get all possible inputs
     Help,
     /// Input to clear terminal from previous inputs
@@ -87,13 +87,13 @@ impl Input
                         }
                     }
 
-                "read" =>
+                "historyfor" =>
                     {
-                        if args.len() != 1
+                        if args.len() != 2
                         {
                             Err(String::from(Input::WRONG_AMOUNT_OF_ARGS))
                         } else {
-                            Ok(Input::Read { account: args[0] })
+                            Ok(Input::HistoryFor { account: args[0], according_to: args[1] })
                         }
                     }
                 "help" =>
