@@ -1,4 +1,4 @@
-//! Definition of the processus type
+//! Definition of a processus
 #[allow(unused_must_use)]
 use crate::transaction::Transaction;
 use crate::base_types::*;

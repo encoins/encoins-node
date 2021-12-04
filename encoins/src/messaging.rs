@@ -1,4 +1,4 @@
-//! Basic functions to send message to others processes
+//! A simple module to manage communications between processes
 
 use std::sync::mpsc::{Sender};
 use crate::message::{Message, MessageType};
@@ -94,12 +94,15 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 }
 
 
-/// An advanced broadcast function that is entered by any process when receiving an [`Init`] message.
+/// An advanced broadcast function that is entered by any process when receiving an [`MessageType::Init`] message.
 ///
 /// # Warning
+///
 /// This function works only if there are less than 1/3 of the whole process which are byzantine.
 /// If there are more than 1/3 of byzantine process amongst all the process, then the function has
 /// undefined behavior : it can not terminate or can deliver a wrong message.
+///
+/// # Properties
 ///
 /// This function implement the Byzantine Reliable Broadcast protocol that has the following properties when less than 1/3 of all process are byzantine:
 /// - Validity       : If a correct process `p` broadcast a message `m`, then every correct process eventually delivers `m` ;

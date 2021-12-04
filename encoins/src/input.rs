@@ -2,7 +2,7 @@
 
 use crate::base_types::{Currency, UserId};
 
-/// An input can be either a request to make two [`Processus`] interact or to interact with the GUI
+/// An input can be either a request to make two Processus interact or to interact with the GUI
 pub enum Input
 {
     /// Input to ask to add a specific amount of money to an account

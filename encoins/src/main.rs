@@ -109,7 +109,7 @@ fn main()
 
 }
 
-/// Function that initializes threads. Each thread runs the code for 1 [`Processus`].
+/// Function that initializes threads. Each thread runs the code for one Processus.
 fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
     // Create the sender/receiver pairs used by threads to communicate messages

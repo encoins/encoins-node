@@ -1,4 +1,4 @@
-//! Definition of the communication enum used by process to communicate with each other
+//! Definition of the communication enum used by processes to communicate with each other
 
 use std::fmt::{Display, Formatter};
 use crate::base_types::{Currency, UserId};

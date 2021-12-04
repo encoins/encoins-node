@@ -1,4 +1,4 @@
-//! Definition of a message type
+//! Definition of a message
 use std::fmt::{Display, Formatter};
 use crate::base_types::UserId;
 use crate::transaction::Transaction;
@@ -21,13 +21,16 @@ pub struct Message
     pub signature : Signature
 }
 
-/// A MessageType can be Standard, Echo or Final and is used by the [`messaging`]
+/// A MessageType can be Init, Echo or Ready and is used by the messaging
 /// system to evaluate the state of the broadcast
 #[derive(Clone,Copy,Debug, PartialEq)]
 pub enum MessageType
 {
+    /// States that all process should enter a secure broadcast phase with the message's content
     Init,
+    /// States that the message is an echo of a previous message sent by a process
     Echo,
+    /// States that a process is ready to start processing the given message's content
     Ready
 }
 

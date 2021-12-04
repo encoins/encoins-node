@@ -14,7 +14,7 @@ static mut WRITE_LOGS: bool = true;
 /// Path to the logging directory
 pub static mut LOGS_DIRECTORY_PATH : String = String::new();
 
-/// Creates a directory for logs at the path of the executable and creates a log file for every [`Processus`]
+/// Creates a directory for logs at the path of the executable and creates a log file for every thread
 /// including main thread if logs writing was enabled
 pub fn initialize(number_of_process : u32, write_logs : bool)
 {

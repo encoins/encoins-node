@@ -1,4 +1,4 @@
-//! Definition of a transaction type
+//! Definition of a transaction
 
 use std::fmt::{Display, Formatter};
 use crate::base_types::*;

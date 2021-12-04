@@ -1,4 +1,4 @@
-//! A definition of global variables used in the algorithm
+//! Definition of global types used in the algorithm
 
 /// For the moment, a user id is a 32-bit integer. It should change with implementation of encryption
 pub type UserId = u32;
