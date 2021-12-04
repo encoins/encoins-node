@@ -23,7 +23,7 @@ pub struct Message
 
 /// A MessageType can be Standard, Echo or Final and is used by the [`messaging`]
 /// system to evaluate the state of the broadcast
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug, PartialEq)]
 pub enum MessageType
 {
     Init,
@@ -49,5 +49,15 @@ impl Display for MessageType
         }
     }
 }
+
+impl PartialEq<Self> for Message
+{
+    /// Implementation of equality for [`Message`]
+    /// Two messages are equal iff their transaction and dependencies are equal
+    fn eq(&self, other: &Self) -> bool {
+        return (self.transaction == other.transaction) && (self.dependencies == other.dependencies)
+    }
+}
+
 
 

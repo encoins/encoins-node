@@ -26,6 +26,7 @@ Output{message : String}
 
 impl Display for IOComm
 {
+    /// Returns a formatted String containing all the relevant information for an [`IOComm`]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self
         {

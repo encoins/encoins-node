@@ -9,7 +9,7 @@ use chrono::prelude::*;
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
-/// Sates whether logs should be written
+/// States whether logs should be written
 static mut WRITE_LOGS: bool = true;
 /// Path to the logging directory
 pub static mut LOGS_DIRECTORY_PATH : String = String::new();
@@ -109,7 +109,8 @@ pub fn write_log(proc_nb : u32, to_write : String)
 ///
 /// ```
 /// log!(2, "hello there!"); // Logs the message "hello there" for the process 2
-/// log!("hello world")
+///```
+/// ```
 /// println!(1, "format {} arguments", "some"); // Logs the message "format some arguments" for the process 1
 /// ```
 #[macro_export]

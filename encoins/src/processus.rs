@@ -95,16 +95,24 @@ impl Processus {
         return Processus::balance(self.id_proc, &self.history_for(self.id_proc))
     }
 
-    fn balance( a: UserId, h: &TransferSet) -> Currency {
-        let mut balance : u32 = 0;
-        for transfer in h {
-            if transfer.receiver_id == a {
-                balance += transfer.amount;
-            } else {
-                balance -= transfer.amount;
-            }
+    fn balance( a: UserId, h: &TransferSet) -> Currency
+    {
+        if a == 0
+        {
+            0
         }
-        balance
+        else
+        {
+            let mut balance : u32 = 0;
+            for transfer in h {
+                if transfer.receiver_id == a {
+                    balance += transfer.amount;
+                } else {
+                    balance -= transfer.amount;
+                }
+            }
+            balance
+        }
     }
 
     pub fn valid(&mut self){
@@ -242,15 +250,18 @@ impl Processus {
     pub fn output_balance_for(&self, account : UserId)
     {
         let mut balance = 0;
-        for tr in self.history_for(account)
+        if account !=0
         {
-            if account == tr.receiver_id
+            for tr in self.history_for(account)
             {
-                balance += tr.amount;
-            }
-            else if account == tr.sender_id
-            {
-                balance -= tr.amount;
+                if account == tr.receiver_id
+                {
+                    balance += tr.amount;
+                }
+                else if account == tr.sender_id
+                {
+                    balance -= tr.amount;
+                }
             }
         }
         self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) });

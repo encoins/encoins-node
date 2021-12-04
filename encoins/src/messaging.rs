@@ -6,7 +6,7 @@ use crate::iocommunication::{IOComm};
 use crate::{log};
 use crate::processus::Processus;
 
-/// A simple broadcast function to make a basic broadcast to all processus including main
+/// A simple broadcast function to make a basic broadcast to all [`Processus`]
 pub fn broadcast(transmitters : &Vec<Sender<Message>>, message: Message)
 {
     for transmitter in transmitters
@@ -17,20 +17,20 @@ pub fn broadcast(transmitters : &Vec<Sender<Message>>, message: Message)
 
 }
 
-/// Used by all [`Processus`] to execute a [`Message`]
+/// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
 pub(crate) fn deal_with_message(process: &mut Processus, message: Message)
 {
     let proc_id = process.get_id();
     match message.message_type
     {
-        MessageType::Init => {brb(process, message);}
+        MessageType::Init => { secure_broadcast(process, message);}
         _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
     }
 
 }
 
 
-/// Used by all [`Processus`] to execute a [`IOComm`]
+/// Utility functions used by a [`Processus`] to deal with an incoming [`IOComm`]
 pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 {
     let proc_id = process.get_id();
@@ -94,11 +94,20 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 }
 
 
-
-/// A function that enters a byzantine reliable broadcast with the first message received
-/// If everything goes well, pushes the final message in proc.to_validate
-/// Else does not terminate
-fn brb(process: &mut Processus, init_msg: Message)
+/// An advanced broadcast function that is entered by any process when receiving an [`Init`] message.
+///
+/// # Warning
+/// This function works only if there are less than 1/3 of the whole process which are byzantine.
+/// If there are more than 1/3 of byzantine process amongst all the process, then the function has
+/// undefined behavior : it can not terminate or can deliver a wrong message.
+///
+/// This function implement the Byzantine Reliable Broadcast protocol that has the following properties when less than 1/3 of all process are byzantine:
+/// - Validity       : If a correct process `p` broadcast a message `m`, then every correct process eventually delivers `m` ;
+/// - No duplication : Every correct process delivers at most one message ;
+/// - Integrity      : If some correct process delivers a message `m` with sender `p` and process `p` is correct, then `m` was previously broadcast by `p`;
+/// - Consistency    : If some correct process delivers a message `m` and another correct process delivers a message `m'` , then m = `m'`;
+/// - Totality       : If some message is delivered by any correct process, every correct process eventually delivers a message.
+fn secure_broadcast(process: &mut Processus, init_msg: Message)
 {
     // Initialization
     let nb_process = process.get_senders().len() as usize;
@@ -121,16 +130,19 @@ fn brb(process: &mut Processus, init_msg: Message)
         {
             MessageType::Init => 
                 {
-                    if empty(&echos[proc_id as usize])
+                    match &echos[proc_id as usize]
                     {
-                        my_msg.message_type = MessageType::Echo;
-                        log!(proc_id, "Broadcasting echo message to everyone.");
-                        broadcast(&process.get_senders(), my_msg.clone() );
-                        echos[proc_id as usize] = Some(my_msg.clone());
-                    }
-                    else
-                    {
-                        panic!("Somebody sent an init message into a brb, two brb cannot be executed at the same time yet");
+                        None =>
+                            {
+                                my_msg.message_type = MessageType::Echo;
+                                log!(proc_id, "Broadcasting echo message to everyone.");
+                                broadcast(&process.get_senders(), my_msg.clone() );
+                                echos[proc_id as usize] = Some(my_msg.clone());
+                            }
+                        Some(_) =>
+                            {
+                                panic!("Somebody sent an init message into a brb, two brb cannot be executed at the same time yet");
+                            }
                     }
                 }
             
@@ -148,7 +160,20 @@ fn brb(process: &mut Processus, init_msg: Message)
         }
 
         // Manage ready messages : if no ready msgs were sent yet and enough echos/ready msgs were received
-        if empty(&ready[proc_id as usize]) && ( quorum(&echos, (2*nb_process)/3, &actu_msg) ||   quorum(&ready, nb_process/3, &actu_msg) )
+
+        let send_ready = match &ready[proc_id as usize]
+        {
+            None =>
+                {
+                    quorum(&echos,(2*nb_process)/3, &actu_msg)
+                }
+            Some(_) =>
+                {
+                    quorum(&ready, nb_process/3, &actu_msg)
+                }
+        };
+
+        if send_ready
         {
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
@@ -168,66 +193,29 @@ fn brb(process: &mut Processus, init_msg: Message)
 }
 
 
-/// Returns if the number of occurrences of msg in tab is greater than k
+/// Returns a boolean stating whether a quorum of more than k messages has been found for a given message
 fn quorum(tab: &Vec<Option<Message>>, k: usize, ref_msg: &Message) -> bool 
 {
     nb_occs(tab, ref_msg) > k
 }
 
+/// Returns the number of occurrences of the given [`Message`] in a vector of messages
 fn nb_occs(tab: &Vec<Option<Message>>, ref_msg: &Message) -> usize
 {
-    let nb_process = tab.len();
     let mut nb_occs = 0;
-    for i in 0..nb_process
+    for opt_mes in tab
     {
-        match &tab[i]
+        match opt_mes
         {
             None => {}
-            Some(tab_msg) => {nb_occs += same_msg(&tab_msg, &ref_msg);}
+            Some(message) =>
+                {
+                    if ref_msg == message
+                    {
+                        nb_occs +=1;
+                    }
+                }
         }
     }
     nb_occs
-}
-
-/// Returns 1 if the messages are equal, 0 else
-fn same_msg(msg1: &Message, msg2: &Message) -> usize
-{
-    let mut equal_deps = true;
-    let nb_deps_1 = msg1.dependencies.len();
-    let nb_deps_2 = msg2.dependencies.len();
-
-    if nb_deps_1 != nb_deps_2
-    {
-        equal_deps = false;
-    }
-    else
-    {
-        for i in 0..nb_deps_1
-        {
-            if msg1.dependencies[i] != msg2.dependencies[i]
-            {
-                equal_deps = false;
-                break;
-            }
-        }
-    }
-
-    if equal_deps && msg1.transaction == msg2.transaction
-    {
-        1
-    }
-    else
-    {
-        0
-    }
-}
-
-/// Returns true if the Option passed is None
-fn empty(m: &Option<Message>) -> bool 
-{
-    match &m
-    {
-        None    => {true}
-        Some(_) => {false}
-    }
 }

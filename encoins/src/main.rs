@@ -6,7 +6,6 @@ use crate::iocommunication::{IOComm};
 use crate::message::Message;
 use crate::crypto::init_crypto;
 
-
 mod transaction;
 mod logging;
 mod base_types;
@@ -18,12 +17,14 @@ mod processus;
 mod input;
 mod crypto;
 
+
 fn main()
 {
-    // Gets given arguments at execution
+    // Get given arguments at execution
     let args: Vec<String> = env::args().collect();
     let number_of_processes = args[1].parse::<u32>().unwrap();
 
+    // Check if logs have to be written
     let write_logs = match args.get(2) {
         Some(bool) => match bool.parse::<bool>()
         {
@@ -33,6 +34,7 @@ fn main()
         None => false
     };
 
+    // Check whether some byzantine process have to be created
     let number_of_byzantine_processes = match args.get(3) {
         Some(number) => match number.parse::<u32>() {
             Ok(n) => n,
@@ -45,20 +47,28 @@ fn main()
     // Initialize logging
     logging::initialize(number_of_processes, write_logs);
 
-
     println!("Initializing with {} processes", &args[1]);
+
+    // Initialize threads
     let (main_transmitters,main_receiver) = initialize_processes(number_of_processes,number_of_byzantine_processes);
 
-
+    // Vector containing additional strings to be outputted on screen under the logo
     let mut additional_strings = vec![];
 
+    // Loop for main thread
     loop
     {
+        // First get keyboard input
         let input_comm: Option<IOComm> = input_management::read_input(&mut additional_strings, &number_of_processes);
+
+        // Boolean stating whether to wait later for a message from another thread
         let mut do_read_proc_comm = false;
+
         match input_comm
         {
+
             None => {}
+
             Some(iocommunication) =>
                 {
                     do_read_proc_comm = true;
@@ -82,6 +92,7 @@ fn main()
                 }
         }
 
+        // Then, if a message from another thread is expected, read it.
         if do_read_proc_comm
         {
             let comm_from_proc = main_receiver.recv().unwrap();
@@ -98,24 +109,24 @@ fn main()
 
 }
 
-/// Initializes all process
+/// Function that initializes threads. Each thread runs the code for 1 [`Processus`].
 fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
-    let (senders, mut receivers): (Vec<Sender<Message>>, Vec<Receiver<Message>>) =
-        (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
-
-    let (transmitter_to_main,receiver_of_main) = mpsc::channel();
-
+    // Create the sender/receiver pairs used by threads to communicate messages
+    let (senders, mut receivers): (Vec<Sender<Message>>, Vec<Receiver<Message>>) = (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
     receivers.reverse();
+
+    // Create sender/receiver pair to communicate messages between process threads and main thread
+    let (transmitter_to_main,receiver_of_main) = mpsc::channel();
 
     let mut main_transmitters = vec![];
 
+    // Create public/private key pairs to authenticate messages
     let (list_of_public_keys, mut secret_keys) = init_crypto(nb_process);
-
     secret_keys.reverse();
 
-    for i in 0..nb_process+1 {
 
+    for i in 0..nb_process+1 {
 
         let (transmitter_of_main,receiver_from_main) = mpsc::channel();
         main_transmitters.push(transmitter_of_main);
@@ -138,37 +149,45 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
 
 
         if i <= nb_process - nb_byzantines {
-            thread::spawn(move || {
-                let proc_id = i;
-                let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
-                log!(proc_id, "Thread initialized correctly");
-                loop {
-                    let receiver = proc.get_receiver();
-                    let comm = receiver.try_recv();
-                    match comm {
-                        Ok(message) => {messaging::deal_with_message(&mut proc, message)}
-                        Err(_) => {()}
-                    };
-                    let receiver = proc.get_maireceiver();
-                    let iocomm = receiver.try_recv();
-                    match iocomm {
-                        Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
-                        Err(_) => {()}
-                    };
+            // Create a correct process
+            thread::spawn(move ||
+                {
+                    let proc_id = i;
+                    let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
+                    log!(proc_id, "Thread initialized correctly");
+                    // Main loop for a process
+                    loop
+                    {
+                        // First check messages with other processes
+                        let receiver = proc.get_receiver();
+                        let comm = receiver.try_recv();
+                        match comm {
+                            Ok(message) => {messaging::deal_with_message(&mut proc, message)}
+                            Err(_) => {()}
+                        };
 
-                    proc.valid();
-                    thread::sleep(Duration::from_millis(200));
+                        // Then check IOCommunications with main thread
+                        let receiver = proc.get_maireceiver();
+                        let iocomm = receiver.try_recv();
+                        match iocomm {
+                            Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
+                            Err(_) => {()}
+                        };
+
+                        proc.valid();
+                        thread::sleep(Duration::from_millis(200));
+                    }
                 }
-            });
+            );
 
         } else {
+            // Create a byzantine process. At this point byzantine threads represent crashed process. In the future, they should include malicious processus
             thread::spawn(move || {
                 let proc_id = i;
                 processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
-                log!(proc_id, "Thread initialized correctly as a byzantine");
+                log!(proc_id, "Thread initialized correctly as byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
-                    println!("{}",i);
                 }
             });
         }

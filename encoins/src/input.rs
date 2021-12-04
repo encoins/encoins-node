@@ -1,8 +1,8 @@
-//! Definition of the input enum used to manage inputs
+//! Definition of the input enum defining regular inputs
 
 use crate::base_types::{Currency, UserId};
 
-/// An input can be either a request to make two [`Processus`] interact or to make change on the terminal GUI
+/// An input can be either a request to make two [`Processus`] interact or to interact with the GUI
 pub enum Input
 {
     /// Input to ask to add a specific amount of money to an account
@@ -30,7 +30,17 @@ impl Input
     const WRONG_AMOUNT_OF_ARGS: &'static str = "Wrong amount of arguments! (Type \"help\" to see how to use command)";
 
     /// Converts a Vector of `&str` into an [`Input`]
-    /// Returns a tuple made of an optional input and an optional string containing a possible error message
+    ///
+    /// Returns a [`Result`] entity containing the associated input or an error message explaining why it could not be done.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let result = Input::from(vec!["add", "1", "200"]) ;  // Here result = Ok(Input::Add(account: 1, amount: 200))
+    /// ```
+    /// ```
+    /// let result = Input::from(vec:["add", "1"]); // Here result = Err(String{Wrong amount of arguments! (Type \"help\" to see how to use command});
+    /// ```
     pub fn from(value: &Vec<&str>) -> Result<Input,String>
     {
         let mut args = vec![];

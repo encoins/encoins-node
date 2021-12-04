@@ -7,7 +7,7 @@ use crate::iocommunication::{IOComm};
 use crate::input::Input;
 
 
-/// Reads keyboard inputs from terminal and returns an optional [`IOComm`] between [`Processus`]
+/// Reads keyboard inputs from terminal and returns an optional [`IOComm`] to send to a  [`Processus`]
 pub fn read_input(strings_to_show : &mut Vec<String>, process_number : &u32) -> Option<IOComm>{
 
     show_terminal(&strings_to_show);
