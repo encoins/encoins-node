@@ -3,8 +3,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
-use crate::message::Message;
-use crate::crypto::init_crypto;
+use crate::crypto::{SignedMessage,init_crypto};
 
 mod transaction;
 mod logging;
@@ -113,7 +112,7 @@ fn main()
 fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
     // Create the sender/receiver pairs used by threads to communicate messages
-    let (senders, mut receivers): (Vec<Sender<Message>>, Vec<Receiver<Message>>) = (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
+    let (senders, mut receivers): (Vec<Sender<SignedMessage>>, Vec<Receiver<SignedMessage>>) = (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
     receivers.reverse();
 
     // Create sender/receiver pair to communicate messages between process threads and main thread

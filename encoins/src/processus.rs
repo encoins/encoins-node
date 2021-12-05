@@ -4,14 +4,14 @@ use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
 use crate::iocommunication::IOComm;
-use crate::message::{Message, MessageType};
+use crate::message::{SignedMessage, MessageType};
 use crate::messaging::broadcast;
 use crate::log;
-use crate::crypto::{sign,verif_sig};
+use crate::crypto::{SignedMessage};
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
-type MessageSet = Vec<Message>;
+type MessageSet = Vec<SignedMessage>;
 use ed25519_dalek::{PublicKey, Keypair};
 
 
@@ -24,8 +24,8 @@ pub struct Processus
     hist : Vec<TransferSet>,
     deps : TransferSet,
     to_validate : MessageSet,
-    senders : Vec<Sender<Message>>,
-    receiver : Receiver<Message>,
+    senders : Vec<Sender<SignedMessage>>,
+    receiver : Receiver<SignedMessage>,
     output_to_main : Sender<IOComm>,
     input_from_main : Receiver<IOComm>,
     public_keys : Vec<PublicKey>,
@@ -35,7 +35,7 @@ pub struct Processus
 
 
 impl Processus {
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<Message>>, receiver : Receiver<Message>,output_to_main : Sender<IOComm>,input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair) -> Processus {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<SignedMessage>>, receiver : Receiver<SignedMessage>, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair) -> Processus {
         let mut s : Vec<TransferSet> = vec![];
         for _ in 0..nb_process+1
         {
@@ -59,7 +59,7 @@ impl Processus {
     }
 
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
-        if ( self.read() < amount || self.ongoing_transfer == true ) && ! user_id == 0 {
+        if ( self.read() < amount || self.ongoing_transfer == true ) && ! (user_id == 0) {
             return false
         }
 
@@ -75,7 +75,7 @@ impl Processus {
         if verif_sig(&transaction,&signature,&self.public_keys[user_id as usize]) {
         };
 
-        let message  = Message {
+        let message  = SignedMessage {
                 transaction,
                 dependencies: self.deps.clone(),
                 message_type: MessageType::Init,
@@ -158,7 +158,7 @@ impl Processus {
         }
     }
 
-    fn is_valid(&self,message : &Message) -> bool{
+    fn is_valid(&self, message : &SignedMessage) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
         // I think it must be done with the signature
@@ -202,7 +202,7 @@ impl Processus {
         self.rec[id] +=1;
     }
 
-    pub fn get_receiver(&self) -> &Receiver<Message>
+    pub fn get_receiver(&self) -> &Receiver<SignedMessage>
     {
         &(self.receiver)
     }
@@ -212,7 +212,7 @@ impl Processus {
         &(self.input_from_main)
     }
 
-    pub fn get_senders(&self) -> &Vec<Sender<Message>>
+    pub fn get_senders(&self) -> &Vec<Sender<SignedMessage>>
     {
         &(self.senders)
     }
@@ -222,7 +222,7 @@ impl Processus {
         &(self.output_to_main)
     }
 
-    pub fn in_to_validate(&mut self, message : Message)
+    pub fn in_to_validate(&mut self, message : SignedMessage)
     {
         self.to_validate.push(message);
     }

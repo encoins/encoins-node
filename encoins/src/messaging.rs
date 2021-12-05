@@ -1,13 +1,15 @@
 //! A simple module to manage communications between processes
 
 use std::sync::mpsc::{Sender};
-use crate::message::{Message, MessageType};
+use crate::message::MessageType;
 use crate::iocommunication::{IOComm};
 use crate::{log};
 use crate::processus::Processus;
+use crate::crypto::SignedMessage;
+
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
-pub fn broadcast(transmitters : &Vec<Sender<Message>>, message: Message)
+pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
 {
     for transmitter in transmitters
     {
@@ -18,7 +20,7 @@ pub fn broadcast(transmitters : &Vec<Sender<Message>>, message: Message)
 }
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
-pub(crate) fn deal_with_message(process: &mut Processus, message: Message)
+pub(crate) fn deal_with_message(process: &mut Processus, message: SignedMessage)
 {
     let proc_id = process.get_id();
     match message.message_type
@@ -110,14 +112,14 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 /// - Integrity      : If some correct process delivers a message `m` with sender `p` and process `p` is correct, then `m` was previously broadcast by `p`;
 /// - Consistency    : If some correct process delivers a message `m` and another correct process delivers a message `m'` , then m = `m'`;
 /// - Totality       : If some message is delivered by any correct process, every correct process eventually delivers a message.
-fn secure_broadcast(process: &mut Processus, init_msg: Message)
+fn secure_broadcast(process: &mut Processus, init_msg: SignedMessage)
 {
     // Initialization
     let nb_process = process.get_senders().len() as usize;
     let proc_id = process.get_id();
-    let mut echos: Vec<Option<Message>> = vec![None;nb_process];
-    let mut ready: Vec<Option<Message>> = vec![None;nb_process];
-    let mut actu_msg: Message = init_msg.clone();
+    let mut echos: Vec<Option<SignedMessage>> = vec![None; nb_process];
+    let mut ready: Vec<Option<SignedMessage>> = vec![None; nb_process];
+    let mut actu_msg: SignedMessage = init_msg.clone();
 
     log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
     
@@ -197,13 +199,13 @@ fn secure_broadcast(process: &mut Processus, init_msg: Message)
 
 
 /// Returns a boolean stating whether a quorum of more than k messages has been found for a given message
-fn quorum(tab: &Vec<Option<Message>>, k: usize, ref_msg: &Message) -> bool 
+fn quorum(tab: &Vec<Option<SignedMessage>>, k: usize, ref_msg: &SignedMessage) -> bool
 {
     nb_occs(tab, ref_msg) > k
 }
 
 /// Returns the number of occurrences of the given [`Message`] in a vector of messages
-fn nb_occs(tab: &Vec<Option<Message>>, ref_msg: &Message) -> usize
+fn nb_occs(tab: &Vec<Option<SignedMessage>>, ref_msg: &SignedMessage) -> usize
 {
     let mut nb_occs = 0;
     for opt_mes in tab

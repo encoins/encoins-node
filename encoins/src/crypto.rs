@@ -6,14 +6,43 @@ use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use crate::transaction::Transaction;
+use crate::message::Message;
 
 
-
-pub fn sign(keypair : &Keypair, transaction : &Transaction) -> Signature {
-    let message: &[u8] = &convert_tranfer_to_u8(transaction);
-    let signature: Signature = keypair.sign(message); // impossible to sign with secret key
-    signature
+/// A message is composed of a transaction, the dependencies needed to validate a
+/// transaction, a message type and the signature of the process sending the message
+#[derive(Clone,Debug)]
+pub struct SignedMessage
+{
+    /// The message to be signed
+    pub message : Message,
+    /// The signature of the message
+    pub signature : Signature
 }
+
+
+unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
+    ::std::slice::from_raw_parts(
+        (p as *const T) as *const u8,
+        ::std::mem::size_of::<T>(),
+    )
+}
+
+impl Message {
+
+    pub unsafe fn sign(self,keypair: &Keypair) -> SignedMessage{
+        let msg : &[u8] = any_as_u8_slice(&self);
+        let signature : Signature = keypair.sign();
+        SignedMessage {
+            message : self,
+            signature
+        }
+    }
+
+}
+
+
+
 
 pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
     let mut csprng = OsRng{};
