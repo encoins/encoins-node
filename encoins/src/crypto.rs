@@ -49,7 +49,7 @@ impl Message {
     }
 
 impl SignedMessage {
-    pub fn verif_sig(&self , signature : &Signature, public_key: &PublicKey) -> bool {
+    pub fn verif_sig(&self, public_key: &PublicKey) -> bool {
 
         let message = self.clone();
         let message = Message {
@@ -60,7 +60,8 @@ impl SignedMessage {
         };
 
         let msg = &(bincode::serialize(&message).unwrap()[..]);
-        public_key.verify(msg, &signature).is_ok()
+        println!("{:#?}", msg);
+        public_key.verify(msg, &self.signature).is_ok()
     }
 }
 

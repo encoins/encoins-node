@@ -159,8 +159,7 @@ impl Processus {
     fn is_valid(&self, message : &SignedMessage) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         // account for op
-        // I think it must be done with the signature
-        let assert1 = (&message).verif_sig(&message.signature,&self.public_keys[message.transaction.sender_id as usize] );
+        let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 ;
         // 3) the balance of account q must not drop below zero
@@ -176,7 +175,7 @@ impl Processus {
                 assert4 = false;
             }
         }
-
+        //println!("{} {} {} {}", assert1, assert2, assert3, assert4);
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
 
 

@@ -25,7 +25,12 @@ pub(crate) fn deal_with_message(process: &mut Processus, message: SignedMessage)
     let proc_id = process.get_id();
     match message.message_type
     {
-        MessageType::Init => { secure_broadcast(process, message);}
+        MessageType::Init =>
+            { if message.sender_id != message.transaction.sender_id {
+                log!(proc_id, "Process {} tried to usurp {} by initiating a transfer in its name", message.sender_id, message.transaction.sender_id );
+                return;
+            }
+                secure_broadcast(process, message);}
         _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
     }
 
@@ -122,7 +127,8 @@ fn secure_broadcast(process: &mut Processus, init_msg: SignedMessage)
     let mut actu_msg: SignedMessage = init_msg.clone();
 
     log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
-    
+    log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
+
     // While not enough processes are ready
     while !quorum(&ready, (2*nb_process)/3, &actu_msg)
     {
