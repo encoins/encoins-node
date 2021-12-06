@@ -4,7 +4,7 @@ use std::sync::mpsc::{Sender};
 use crate::message::MessageType;
 use crate::iocommunication::{IOComm};
 use crate::{log};
-use crate::processus::Processus;
+use crate::process::Process;
 use crate::crypto::SignedMessage;
 
 
@@ -20,7 +20,7 @@ pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMess
 }
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
-pub(crate) fn deal_with_message(process: &mut Processus, message: SignedMessage)
+pub(crate) fn deal_with_message(process: &mut Process, message: SignedMessage)
 {
     let proc_id = process.get_id();
     match message.message_type
@@ -38,7 +38,7 @@ pub(crate) fn deal_with_message(process: &mut Processus, message: SignedMessage)
 
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`IOComm`]
-pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
+pub(crate) fn deal_with_iocomm(process: &mut Process, comm: IOComm)
 {
     let proc_id = process.get_id();
     match comm
@@ -117,7 +117,7 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 /// - Integrity      : If some correct process delivers a message `m` with sender `p` and process `p` is correct, then `m` was previously broadcast by `p`;
 /// - Consistency    : If some correct process delivers a message `m` and another correct process delivers a message `m'` , then m = `m'`;
 /// - Totality       : If some message is delivered by any correct process, every correct process eventually delivers a message.
-fn secure_broadcast(process: &mut Processus, init_msg: SignedMessage)
+fn secure_broadcast(process: &mut Process, init_msg: SignedMessage)
 {
     // Initialization
     let nb_process = process.get_senders().len() as usize;

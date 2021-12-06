@@ -34,6 +34,7 @@ pub struct SignedMessage
 
 impl Message {
 
+    /// A method that giving a keypair return the signed version of the message
     pub fn sign(self,keypair: &Keypair) -> SignedMessage{
         let msg : &[u8] =  &(bincode::serialize(&self).unwrap()[..]);
         let signature : Signature = keypair.sign(msg);
@@ -49,6 +50,9 @@ impl Message {
     }
 
 impl SignedMessage {
+
+    /// A method that giving a public_key return true if the message have been signed with
+    /// the corresponding secret key, false otherwise
     pub fn verif_sig(&self, public_key: &PublicKey) -> bool {
 
         let message = self.clone();
@@ -69,7 +73,7 @@ impl SignedMessage {
 
 
 
-
+/// The function that return a list of N public_keys and a list of N keypair_keys to be granted to processes
 pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
     let mut csprng = OsRng{};
 
@@ -80,6 +84,8 @@ pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
         list_of_public_keys.push(keypair.public);
         list_of_keypair_keys.push(keypair);
     };
+
+    // /!\ in real life never use a secret key coming from wild
     (list_of_public_keys,list_of_keypair_keys)
 
 }

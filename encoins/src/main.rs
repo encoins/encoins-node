@@ -12,7 +12,7 @@ mod message;
 mod messaging;
 mod input_management;
 mod iocommunication;
-mod processus;
+mod process;
 mod input;
 mod crypto;
 
@@ -152,7 +152,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
             thread::spawn(move ||
                 {
                     let proc_id = i;
-                    let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
+                    let mut proc = process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
                     log!(proc_id, "Thread initialized correctly");
                     // Main loop for a process
                     loop
@@ -183,7 +183,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
             // Create a byzantine process. At this point byzantine threads represent crashed process. In the future, they should include malicious processus
             thread::spawn(move || {
                 let proc_id = i;
-                processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
+                process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
                 log!(proc_id, "Thread initialized correctly as byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
