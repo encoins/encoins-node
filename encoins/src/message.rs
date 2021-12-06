@@ -4,12 +4,14 @@ use crate::base_types::UserId;
 use crate::transaction::Transaction;
 use ed25519_dalek::Signature;
 use crate::crypto::SignedMessage;
+use serde::{Deserialize, Serialize};
+
 
 
 
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction and a message type
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Serialize)]
 pub struct Message
 {
     /// Transaction to be validated
@@ -26,7 +28,7 @@ pub struct Message
 
 /// A MessageType can be Init, Echo or Ready and is used by the messaging
 /// system to evaluate the state of the broadcast
-#[derive(Clone,Copy,Debug, PartialEq)]
+#[derive(Clone,Copy,Debug, PartialEq,Serialize)]
 pub enum MessageType
 {
     /// States that all process should enter a secure broadcast phase with the message's content

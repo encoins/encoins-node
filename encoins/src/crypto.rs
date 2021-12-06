@@ -8,6 +8,8 @@ use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use crate::transaction::Transaction;
 use crate::message::{Message,MessageType};
 use crate::base_types::UserId;
+use serde::{Deserialize, Serialize};
+
 
 
 
@@ -29,17 +31,11 @@ pub struct SignedMessage
 }
 
 
-unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    ::std::slice::from_raw_parts(
-        (p as *const T) as *const u8,
-        ::std::mem::size_of::<T>(),
-    )
-}
 
 impl Message {
 
-    pub unsafe fn sign(self,keypair: &Keypair) -> SignedMessage{
-        let msg : &[u8] = any_as_u8_slice(&self);
+    pub fn sign(self,keypair: &Keypair) -> SignedMessage{
+        let msg : &[u8] =  &(bincode::serialize(&self).unwrap()[..]);
         let signature : Signature = keypair.sign(msg);
         SignedMessage {
             transaction : self.transaction,
@@ -49,14 +45,26 @@ impl Message {
             signature
         }
     }
-}
 
-impl SignedMessage {
-    pub unsafe fn verif_sig(&self , signature : &Signature, public_key: &PublicKey) -> bool {
-        public_key.verify(&any_as_u8_slice(&self), &signature).is_ok()
     }
 
+impl SignedMessage {
+    pub fn verif_sig(&self , signature : &Signature, public_key: &PublicKey) -> bool {
+
+        let message = self.clone();
+        let message = Message {
+            transaction : message.transaction,
+            message_type : message.message_type,
+            dependencies : message.dependencies,
+            sender_id : message.sender_id,
+        };
+
+        let msg = &(bincode::serialize(&message).unwrap()[..]);
+        public_key.verify(msg, &signature).is_ok()
+    }
 }
+
+
 
 
 

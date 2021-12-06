@@ -2,9 +2,11 @@
 
 use std::fmt::{Display, Formatter};
 use crate::base_types::*;
+use serde::{Deserialize, Serialize};
+
 
 /// A transaction is an exchange of money between two accounts
-#[derive(Clone, PartialEq,Debug)]
+#[derive(Clone, PartialEq,Debug,Serialize)]
 pub struct Transaction
 {
     /// seq_id is the id of the transaction. For a transaction t, seq_id will be the number of validated transfers outgoing form the sender +1.
