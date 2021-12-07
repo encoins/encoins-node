@@ -146,6 +146,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
     let mut echos: Vec<Option<Message>> = vec![None; nb_process];
     let mut ready: Vec<Option<Message>> = vec![None; nb_process];
     let mut actu_msg: Message = init_msg.clone();
+    let mut ready_sent = false;
 
     log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
 
@@ -205,7 +206,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
                 }
         };
 
-        if send_ready
+        if send_ready && !ready_sent
         {
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
@@ -213,6 +214,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
             log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
             broadcast(&process.get_senders(), my_msg.clone().sign(process.get_key_pair()) );
             ready[proc_id as usize] = Some(my_msg.clone());
+            ready_sent = true;
         }
 
         // loop while the signed message is wrong

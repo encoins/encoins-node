@@ -86,7 +86,11 @@ impl Process {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
-        if ( self.read() < amount || ! (user_id == 0) ) && self.ongoing_transfer == true {
+        if ( self.read() < amount || ! (user_id == 0) ) && self.ongoing_transfer == true
+        {
+            let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
+            self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
+            log!(self.id_proc, "I refused to start a broadcast protocol because the given transaction was not valid.");
             return false
         }
 
@@ -136,9 +140,11 @@ impl Process {
         {
             let mut balance : u32 = 0;
             for transfer in h {
-                if transfer.receiver_id == a {
+                if transfer.receiver_id == a
+                {
                     balance += transfer.amount;
-                } else {
+                }
+                if transfer.sender_id == a {
                     balance -= transfer.amount;
                 }
             }
@@ -180,7 +186,7 @@ impl Process {
             else
             {
                 index += 1;
-                log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
+                //log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
             }
         }
     }
@@ -288,7 +294,8 @@ impl Process {
                 {
                     balance += tr.amount;
                 }
-                else if account == tr.sender_id
+
+                if account == tr.sender_id
                 {
                     balance -= tr.amount;
                 }
@@ -310,7 +317,7 @@ impl Process {
                 {
                     balance += tr.amount;
                 }
-                else if i == tr.sender_id as usize
+                if i == tr.sender_id as usize
                 {
                     balance -= tr.amount;
                 }

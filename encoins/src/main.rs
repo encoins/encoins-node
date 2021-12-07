@@ -1,6 +1,6 @@
 use std::{env, thread};
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
 use crate::crypto::{SignedMessage,init_crypto};
@@ -194,7 +194,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         };
 
                         proc.valid();
-                        thread::sleep(Duration::from_millis(200));
+                        //thread::sleep(Duration::from_millis(200));
                     }
                 }
             );
