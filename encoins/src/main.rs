@@ -1,6 +1,6 @@
 use std::{env, thread};
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
 use crate::crypto::{SignedMessage,init_crypto};
