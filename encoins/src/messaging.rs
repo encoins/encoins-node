@@ -14,16 +14,17 @@ pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMess
     for transmitter in transmitters
     {
         let message_copy = message.clone();
-        transmitter.send(message_copy);
+        transmitter.send(message_copy).unwrap();
     }
 
 }
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
-pub(crate) fn deal_with_message(process: &mut Process, message: SignedMessage)
+pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage)
 {
     let proc_id = process.get_id();
-    let unsigned_message = message.verif_sig(process.get_pub_key(message.sender_id));
+    let sender_id = signed_message.message.sender_id;
+    let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
 
     match unsigned_message
     {
@@ -213,7 +214,8 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
         {
             // Actualize the actual message
             let tmp = process.get_receiver().recv().unwrap();
-            match tmp.verif_sig(process.get_pub_key(tmp.sender_id))
+            let sender_id = tmp.message.sender_id;
+            match tmp.verif_sig(process.get_pub_key(sender_id))
             {
                 Ok( msg ) => { actu_msg = msg; break; }
                 Err( error ) => { log!(proc_id, "Error while checking signature : {}", error); }

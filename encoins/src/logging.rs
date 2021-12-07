@@ -55,13 +55,13 @@ pub fn initialize(number_of_process : u32, write_logs : bool)
             }
 
             LOGS_DIRECTORY_PATH = tmp_path.clone();
-            fs::create_dir_all(LOGS_DIRECTORY_PATH.to_string());
+            fs::create_dir_all(LOGS_DIRECTORY_PATH.to_string()).unwrap();
 
             // Creates the log files for all processes
             for i in 0..number_of_process+1
             {
                 let file_path = format!("{}/process{}_logs.txt", &LOGS_DIRECTORY_PATH, i);
-                File::create(file_path);
+                File::create(file_path).unwrap();
             }
 
 
@@ -99,7 +99,7 @@ pub fn write_log(proc_nb : u32, to_write : String)
                 let now = Local::now();
                 let final_string = format!("[{}] : {} \n", now.format("%H:%M"), to_write);
 
-                file.write_all(final_string.as_bytes());
+                file.write_all(final_string.as_bytes()).unwrap();
             }
         }
 }

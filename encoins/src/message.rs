@@ -41,7 +41,7 @@ pub enum MessageType
 impl Display for SignedMessage
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, " (Transaction : {} , sender_id : {}, message type : {} )", self.transaction, self.sender_id, self.message_type)
+        write!(f, " (Transaction : {} , sender_id : {}, message type : {} )", self.message.transaction, self.message.sender_id, self.message.message_type)
     }
 }
 

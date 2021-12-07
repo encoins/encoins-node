@@ -173,7 +173,7 @@ impl Process {
                 log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", message.transaction);
                 if message.transaction.receiver_id == self.id_proc
                 {
-                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I validated the transfer of {} encoins from {}", self.id_proc, message.transaction.amount, message.transaction.sender_id))});
+                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I validated the transfer of {} encoins from {}", self.id_proc, message.transaction.amount, message.transaction.sender_id))}).unwrap();
                 }
                 self.to_validate.remove(index);
             }
@@ -183,7 +183,7 @@ impl Process {
                 log!(self.id_proc, "Transaction {} is not valid and is refused on my part.", message.transaction);
                 if message.transaction.receiver_id == self.id_proc
                 {
-                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I refused the transfer of {} encoins from {}", self.id_proc, message.transaction.amount, message.transaction.sender_id))});
+                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I refused the transfer of {} encoins from {}", self.id_proc, message.transaction.amount, message.transaction.sender_id))}).unwrap();
                 }
 
             }
@@ -277,7 +277,7 @@ impl Process {
         {
             final_string = format!("{} \n \t - {}", final_string, tr);
         }
-        self.output_to_main.send(IOComm::Output { message : final_string });
+        self.output_to_main.send(IOComm::Output { message : final_string }).unwrap();
     }
 
     /// Outputs to the main thread the balance of an account according to the process
@@ -298,7 +298,7 @@ impl Process {
                 }
             }
         }
-        self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) });
+        self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) }).unwrap();
     }
 
     /// Outputs to the main thread the balances of all accounts according to the process
@@ -321,7 +321,7 @@ impl Process {
             }
             final_string = format!("{} \n \t - Proceess {}'s balance : {}", final_string, i, balance);
         }
-        self.output_to_main.send(IOComm::Output { message: final_string });
+        self.output_to_main.send(IOComm::Output { message: final_string }).unwrap();
     }
 
     pub fn get_pub_key(&self, account : UserId) -> &PublicKey

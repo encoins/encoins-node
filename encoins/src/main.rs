@@ -86,7 +86,7 @@ fn main()
 
                     if transmit_to < (number_of_processes +1) as usize
                     {
-                        main_transmitters.get(transmit_to).unwrap().send(final_io);
+                        main_transmitters.get(transmit_to).unwrap().send(final_io).unwrap();
                     }
                 }
         }

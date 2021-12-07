@@ -1,4 +1,3 @@
-//! A simple module to implement cryptographic signature for messages
 
 extern crate rand;
 extern crate ed25519_dalek;
@@ -6,24 +5,16 @@ extern crate ed25519_dalek;
 use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
-use crate::transaction::Transaction;
-use crate::message::{Message,MessageType};
-use crate::base_types::UserId;
+use crate::message::Message;
 
 
-/// A message is composed of a transaction, the dependencies needed to validate a
-/// transaction, a message type and the signature of the process sending the message
+
+/// A SignedMessage is a message and its signature
 #[derive(Clone,Debug)]
 pub struct SignedMessage
 {
-    /// Transaction to be validated
-    pub transaction : Transaction,
-    /// Needed dependencies to validate transaction
-    pub dependencies : Vec<Transaction>,
-    /// Message type
-    pub message_type: MessageType,
-    /// Id of the process sending the message
-    pub sender_id : UserId,
+    /// The message that has to be signed
+    pub message : Message,
     /// The signature of the message
     pub signature : Signature
 }
@@ -37,28 +28,19 @@ impl Message {
         let msg : &[u8] =  &(bincode::serialize(&self).unwrap()[..]);
         let signature : Signature = keypair.sign(msg);
         SignedMessage {
-            transaction : self.transaction,
-            message_type : self.message_type,
-            dependencies : self.dependencies,
-            sender_id : self.sender_id,
+            message : self,
             signature
         }
     }
 
-    }
+}
 
 impl SignedMessage {
 
     /// A method that given a public_key returns the message if the signature is right and returns an error otherwise
-    pub fn verif_sig(&self, public_key: &PublicKey) -> Result<Message, String> {
+    pub fn verif_sig(self, public_key: &PublicKey) -> Result<Message, String> {
 
-        let message = self.clone();
-        let message = Message {
-            transaction : message.transaction,
-            message_type : message.message_type,
-            dependencies : message.dependencies,
-            sender_id : message.sender_id,
-        };
+        let message = self.message;
 
         let msg = &(bincode::serialize(&message).unwrap()[..]);
         match public_key.verify(msg, &self.signature).is_ok()
