@@ -194,7 +194,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         };
 
                         proc.valid();
-                        //thread::sleep(Duration::from_millis(200));
+                        thread::sleep(Duration::from_millis(200));
                     }
                 }
             );
