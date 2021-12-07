@@ -5,16 +5,57 @@ extern crate ed25519_dalek;
 use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
-use crate::transaction::Transaction;
+use crate::message::Message;
 
 
 
-pub fn sign(keypair : &Keypair, transaction : &Transaction) -> Signature {
-    let message: &[u8] = &convert_tranfer_to_u8(transaction);
-    let signature: Signature = keypair.sign(message); // impossible to sign with secret key
-    signature
+/// A SignedMessage is a message and its signature
+#[derive(Clone,Debug)]
+pub struct SignedMessage
+{
+    /// The message that has to be signed
+    pub message : Message,
+    /// The signature of the message
+    pub signature : Signature
 }
 
+
+
+impl Message {
+
+    /// A method that given a keypair returns the signed version of the message
+    pub fn sign(self,keypair: &Keypair) -> SignedMessage{
+        let msg : &[u8] =  &(bincode::serialize(&self).unwrap()[..]);
+        let signature : Signature = keypair.sign(msg);
+        SignedMessage {
+            message : self,
+            signature
+        }
+    }
+
+}
+
+impl SignedMessage {
+
+    /// A method that given a public_key returns the message if the signature is right and returns an error otherwise
+    pub fn verif_sig(self, public_key: &PublicKey) -> Result<Message, String> {
+
+        let message = self.message;
+
+        let msg = &(bincode::serialize(&message).unwrap()[..]);
+        match public_key.verify(msg, &self.signature).is_ok()
+        {
+            true => { Ok(message) }
+            false => { Err(String::from("The signature is not valid!")) }
+        }
+    }
+}
+
+
+
+
+
+/// The function that returns a list of N public_keys and a list of N keypair_keys to be granted to processes
 pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
     let mut csprng = OsRng{};
 
@@ -25,29 +66,8 @@ pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
         list_of_public_keys.push(keypair.public);
         list_of_keypair_keys.push(keypair);
     };
+
+    // /!\ in real life never use a secret key coming from wild
     (list_of_public_keys,list_of_keypair_keys)
 
-}
-
-fn convert_tranfer_to_u8(transaction : &Transaction) -> [u8;16]{
-    let (s1,s2,s3,s4) = convert_u32_to_tuple_of_u8(transaction.sender_id);
-    let (r1,r2,r3,r4) = convert_u32_to_tuple_of_u8(transaction.receiver_id);
-    let (a1,a2,a3,a4) = convert_u32_to_tuple_of_u8(transaction.amount);
-    let (sq1,sq2,sq3,sq4) = convert_u32_to_tuple_of_u8(transaction.seq_id);
-    [s1,s2,s3,s4,r1,r2,r3,r4,a1,a2,a3,a4,sq1,sq2,sq3,sq4]
-
-}
-
-fn convert_u32_to_tuple_of_u8(x:u32) -> (u8,u8,u8,u8) {
-    let b1 : u8 = ((x >> 24) & 0xff) as u8;
-    let b2 : u8 = ((x >> 16) & 0xff) as u8;
-    let b3 : u8 = ((x >> 8) & 0xff) as u8;
-    let b4 : u8 = (x & 0xff) as u8;
-    return (b1, b2, b3, b4)
-}
-
-
-
-pub fn verif_sig(transaction : &Transaction, signature : &Signature, public_key: &PublicKey) -> bool{
-    public_key.verify(&convert_tranfer_to_u8(transaction), &signature).is_ok()
 }

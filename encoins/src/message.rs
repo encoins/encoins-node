@@ -2,11 +2,15 @@
 use std::fmt::{Display, Formatter};
 use crate::base_types::UserId;
 use crate::transaction::Transaction;
-use ed25519_dalek::Signature;
+use crate::crypto::SignedMessage;
+use serde::{Serialize};
+
+
+
 
 /// A message is composed of a transaction, the dependencies needed to validate a
-/// transaction, a message type and the signature of the process sending the message
-#[derive(Clone,Debug)]
+/// transaction and a message type
+#[derive(Clone,Debug,Serialize)]
 pub struct Message
 {
     /// Transaction to be validated
@@ -17,13 +21,13 @@ pub struct Message
     pub message_type: MessageType,
     /// Id of the process sending the message
     pub sender_id : UserId,
-    /// Signature of the process sending the message
-    pub signature : Signature
 }
+
+
 
 /// A MessageType can be Init, Echo or Ready and is used by the messaging
 /// system to evaluate the state of the broadcast
-#[derive(Clone,Copy,Debug, PartialEq)]
+#[derive(Clone,Copy,Debug, PartialEq,Serialize)]
 pub enum MessageType
 {
     /// States that all process should enter a secure broadcast phase with the message's content
@@ -34,10 +38,10 @@ pub enum MessageType
     Ready
 }
 
-impl Display for Message
+impl Display for SignedMessage
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, " (Transaction : {} , sender_id : {}, message type : {} )", self.transaction, self.sender_id, self.message_type)
+        write!(f, " (Transaction : {} , sender_id : {}, message type : {} )", self.message.transaction, self.message.sender_id, self.message.message_type)
     }
 }
 

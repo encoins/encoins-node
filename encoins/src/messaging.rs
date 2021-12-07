@@ -4,37 +4,54 @@ use std::sync::mpsc::{Sender};
 use crate::message::{Message, MessageType};
 use crate::iocommunication::{IOComm};
 use crate::{log};
-use crate::processus::Processus;
+use crate::process::Process;
+use crate::crypto::SignedMessage;
+
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
-pub fn broadcast(transmitters : &Vec<Sender<Message>>, message: Message)
+pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
 {
     for transmitter in transmitters
     {
         let message_copy = message.clone();
-        transmitter.send(message_copy);
+        transmitter.send(message_copy).unwrap();
     }
 
 }
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
-pub(crate) fn deal_with_message(process: &mut Processus, message: Message)
+pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage)
 {
     let proc_id = process.get_id();
-    match message.message_type
+    let sender_id = signed_message.message.sender_id;
+    let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
+
+    match unsigned_message
     {
-        MessageType::Init =>
+        Ok(msg) =>
             {
-                secure_broadcast(process, message);
+                match msg.message_type
+                {
+                    MessageType::Init =>
+                        {
+                            if msg.sender_id != msg.transaction.sender_id
+                            {
+                                log!(proc_id, "Process {} tried to usurp {} by initiating a transfer in its name", msg.sender_id, msg.transaction.sender_id );
+                                return;
+                            }
+                            secure_broadcast(process, msg);}
+                    _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
+                }
             }
-        _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
+
+        Err(error) => { log!(proc_id, "Error while checking signature : {}", error); }
     }
 
 }
 
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`IOComm`]
-pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
+pub(crate) fn deal_with_iocomm(process: &mut Process, comm: IOComm)
 {
     let proc_id = process.get_id();
     match comm
@@ -121,17 +138,17 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 /// - Integrity      : If some correct process delivers a message `m` with sender `p` and process `p` is correct, then `m` was previously broadcast by `p`;
 /// - Consistency    : If some correct process delivers a message `m` and another correct process delivers a message `m'` , then m = `m'`;
 /// - Totality       : If some message is delivered by any correct process, every correct process eventually delivers a message.
-fn secure_broadcast(process: &mut Processus, init_msg: Message)
+fn secure_broadcast(process: &mut Process, init_msg: Message)
 {
     // Initialization
     let nb_process = process.get_senders().len() as usize;
     let proc_id = process.get_id();
-    let mut echos: Vec<Option<Message>> = vec![None;nb_process];
-    let mut ready: Vec<Option<Message>> = vec![None;nb_process];
+    let mut echos: Vec<Option<Message>> = vec![None; nb_process];
+    let mut ready: Vec<Option<Message>> = vec![None; nb_process];
     let mut actu_msg: Message = init_msg.clone();
 
     log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
-    
+
     // While not enough processes are ready
     while !quorum(&ready, (2*nb_process)/3, &actu_msg)
     {
@@ -149,8 +166,9 @@ fn secure_broadcast(process: &mut Processus, init_msg: Message)
                         None =>
                             {
                                 my_msg.message_type = MessageType::Echo;
+                                my_msg.sender_id = proc_id;
                                 log!(proc_id, "Broadcasting echo message to everyone.");
-                                broadcast(&process.get_senders(), my_msg.clone() );
+                                broadcast(&process.get_senders(), my_msg.clone().sign(process.get_key_pair()));
                                 echos[proc_id as usize] = Some(my_msg.clone());
                             }
                         Some(_) =>
@@ -191,13 +209,25 @@ fn secure_broadcast(process: &mut Processus, init_msg: Message)
         {
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
+            my_msg.sender_id = proc_id;
             log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
-            broadcast(&process.get_senders(), my_msg.clone() );
+            broadcast(&process.get_senders(), my_msg.clone().sign(process.get_key_pair()) );
             ready[proc_id as usize] = Some(my_msg.clone());
         }
 
-        // Actualize the actual message
-        actu_msg = process.get_receiver().recv().unwrap();
+        // loop while the signed message is wrong
+        loop
+        {
+            // Actualize the actual message
+            let tmp = process.get_receiver().recv().unwrap();
+            let sender_id = tmp.message.sender_id;
+            match tmp.verif_sig(process.get_pub_key(sender_id))
+            {
+                Ok( msg ) => { actu_msg = msg; break; }
+                Err( error ) => { log!(proc_id, "Error while checking signature : {}", error); }
+            }
+        }
+
 
     }
 
@@ -213,7 +243,7 @@ fn secure_broadcast(process: &mut Processus, init_msg: Message)
 
 
 /// Returns a boolean stating whether a quorum of more than k messages has been found for a given message
-fn quorum(tab: &Vec<Option<Message>>, k: usize, ref_msg: &Message) -> bool 
+fn quorum(tab: &Vec<Option<Message>>, k: usize, ref_msg: &Message) -> bool
 {
     nb_occs(tab, ref_msg) > k
 }

@@ -3,8 +3,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
-use crate::message::Message;
-use crate::crypto::init_crypto;
+use crate::crypto::{SignedMessage,init_crypto};
 
 mod transaction;
 mod logging;
@@ -13,7 +12,7 @@ mod message;
 mod messaging;
 mod input_management;
 mod iocommunication;
-mod processus;
+mod process;
 mod input;
 mod crypto;
 
@@ -87,7 +86,7 @@ fn main()
 
                     if transmit_to < (number_of_processes +1) as usize
                     {
-                        main_transmitters.get(transmit_to).unwrap().send(final_io);
+                        main_transmitters.get(transmit_to).unwrap().send(final_io).unwrap();
                     }
                 }
         }
@@ -133,7 +132,7 @@ fn main()
 fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
     // Create the sender/receiver pairs used by threads to communicate messages
-    let (senders, mut receivers): (Vec<Sender<Message>>, Vec<Receiver<Message>>) = (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
+    let (senders, mut receivers): (Vec<Sender<SignedMessage>>, Vec<Receiver<SignedMessage>>) = (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
     receivers.reverse();
 
     // Create sender/receiver pair to communicate messages between process threads and main thread
@@ -173,7 +172,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
             thread::spawn(move ||
                 {
                     let proc_id = i;
-                    let mut proc = processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
+                    let mut proc = process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
                     log!(proc_id, "Thread initialized correctly");
                     // Main loop for a process
                     loop
@@ -204,7 +203,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
             // Create a byzantine process. At this point byzantine threads represent crashed process. In the future, they should include malicious processus
             thread::spawn(move || {
                 let proc_id = i;
-                processus::Processus::init(proc_id,nb_process, thread_senders, thread_receiver,main_sender,receiver_from_main, public_keys, secret_key);
+                process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
                 log!(proc_id, "Thread initialized correctly as byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
