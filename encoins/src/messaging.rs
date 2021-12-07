@@ -23,7 +23,10 @@ pub(crate) fn deal_with_message(process: &mut Processus, message: Message)
     let proc_id = process.get_id();
     match message.message_type
     {
-        MessageType::Init => { secure_broadcast(process, message);}
+        MessageType::Init =>
+            {
+                secure_broadcast(process, message);
+            }
         _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
     }
 
@@ -81,8 +84,16 @@ pub(crate) fn deal_with_iocomm(process: &mut Processus, comm: IOComm)
 
         IOComm::TransferRequest { sender, recipient, amount } =>
             {
-                log!(proc_id, "Received transfer request from main thread. Dealing with it!");
-                process.transfer(sender, recipient, amount);
+                if sender == proc_id
+                {
+                    log!(proc_id, "Received transfer request from main thread. Dealing with it!");
+                    process.transfer(sender, recipient, amount);
+                }
+                else
+                {
+                    log!(proc_id, "Received a transfer request for another process from main.This is not normal...");
+                }
+
             }
 
 
@@ -191,6 +202,11 @@ fn secure_broadcast(process: &mut Processus, init_msg: Message)
     }
 
     log!(proc_id, "Quorum was achieved. I can add the message to transactions to process.");
+    // Tell main_thread I am ready to process transaction
+    if actu_msg.transaction.receiver_id == proc_id
+    {
+        process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, actu_msg.transaction))});
+    }
     // Save the message
     process.in_to_validate(actu_msg);
 }

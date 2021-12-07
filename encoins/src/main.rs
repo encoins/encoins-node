@@ -1,6 +1,6 @@
 use std::{env, thread};
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
 use crate::message::Message;
@@ -82,7 +82,7 @@ fn main()
                         IOComm::TransferRequest { sender, .. } => { transmit_to = sender as usize }
                         IOComm::Add { .. } => { transmit_to = 0 }
                         IOComm::Remove { .. } => { transmit_to = 0 }
-                        IOComm::Output { message } => { transmit_to = (number_of_processes + 1) as usize; additional_strings.push(message)  }
+                        IOComm::Output { message } => { transmit_to = (number_of_processes + 1) as usize; additional_strings.push(message); do_read_proc_comm = false;  }
                     }
 
                     if transmit_to < (number_of_processes +1) as usize
@@ -92,7 +92,7 @@ fn main()
                 }
         }
 
-        // Then, if a message from another thread is expected, read it.
+        // Then, if a message from another thread is expected, wait its reception and read it.
         if do_read_proc_comm
         {
             let comm_from_proc = main_receiver.recv().unwrap();
@@ -101,6 +101,26 @@ fn main()
             {
                 IOComm::Output { message } => { additional_strings.push(message) }
                 _ => {  }
+            }
+        }
+
+        // Finally, read additional messages that could have been received
+        loop
+        {
+            let poss_comm = main_receiver.recv_timeout(Duration::from_millis(200));
+
+            match poss_comm
+            {
+                Ok(message) =>
+                    {
+                        match message
+                        {
+                            IOComm::Output { message } => { additional_strings.push(message) }
+                            _ => {  }
+                        }
+
+                    }
+                Err(_) => { break; }
             }
         }
 

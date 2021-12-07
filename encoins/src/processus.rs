@@ -148,12 +148,7 @@ impl Processus {
             else
             {
                 index += 1;
-                log!(self.id_proc, "Transaction {} is not valid and is refused on my part.", e.transaction);
-                if e.transaction.receiver_id == self.id_proc
-                {
-                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I refused the transfer of {} encoins from {}", self.id_proc, e.transaction.amount, e.transaction.sender_id))});
-                }
-
+                log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", e.transaction);
             }
         }
     }
@@ -284,7 +279,7 @@ impl Processus {
                     balance -= tr.amount;
                 }
             }
-            final_string = format!("{} \n \t - Proceess {}'s balance : {}", final_string, i, balance);
+            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, i, balance);
         }
         self.output_to_main.send(IOComm::Output { message: final_string });
     }
