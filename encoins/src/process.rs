@@ -21,7 +21,7 @@ type MessageSet = Vec<SignedMessage>;
 /// The structure of a process such as depicted in the white paper and some additions due to the implementation
 pub struct Process
 {
-    /// Every process as a unique ID
+    /// Every process has a unique ID
     /// In our current implementation we consider that there exist an (nb_process + 1) = N th process with ID : 0 ( the well process )
     id_proc : UserId,
     /// List of size N such as seq(q) = number of validated transfers outgoing from q
@@ -52,8 +52,8 @@ pub struct Process
 
 
 impl Process {
-    /// The function which initialise a [Process] giving is ID, N the number of processes, the list of senders, its receiver, a transmitter and receiver to communicate with the main, the list of public keys and its secret_key (Keypair)
-    /// Other field are initialised such as:
+    /// The function which initialise a [Process] given its ID, N the number of processes, the list of senders, its receiver, a transmitter and receiver to communicate with the main, the list of public keys and its secret_key (Keypair)
+    /// Other field are initialised such that:
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
@@ -81,7 +81,7 @@ impl Process {
         }
     }
 
-    /// The function that allows processes to transfer
+    /// The function that allows processes to transfer money
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
@@ -118,13 +118,13 @@ impl Process {
         true
     }
 
-    /// The function that return the balance of money owned by the process
+    /// The function that returns the balance of money owned by the process
     pub fn read(&self) -> Currency
     {
         return Process::balance(self.id_proc, &self.history_for(self.id_proc))
     }
 
-    /// The function that giving a set of transfer and an ID return the balance of money earned by the process a
+    /// The function that given a set of transfer and an ID returns the balance of money earned by the process a
     /// i.e the sum of incoming amount minus the sum of outgoing amount
     fn balance( a: UserId, h: &TransferSet) -> Currency
     {
@@ -146,7 +146,7 @@ impl Process {
         }
     }
 
-    /// The function which test the validity of every messages pending validation ( in to_validate ) according to the white paper
+    /// The function which tests the validity of every messages pending validation ( in to_validate ) according to the white paper
     pub fn valid(&mut self){
         let mut index = 0;
         loop
@@ -190,7 +190,7 @@ impl Process {
         }
     }
 
-    /// The function test if a message is validate by the process
+    /// The function test if a message is validated by the process
     fn is_valid(&self, message : &SignedMessage) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
@@ -258,6 +258,7 @@ impl Process {
         self.to_validate.push(message);
     }
 
+    /// Returns the history of a given account according to the process
     fn history_for(&self, account: UserId) -> Vec<Transaction>
     {
         let mut hist : Vec<Transaction> = vec![];
@@ -268,6 +269,8 @@ impl Process {
         hist.append(&mut self.hist[account as usize].clone());
         return hist
     }
+
+    /// Outputs to the main thread the history of a given account according to the process
     pub fn output_history_for(&self, account : UserId)
     {
         let mut final_string = String::from(format!("[Process {}] History for process {} :", self.id_proc, account));
@@ -278,6 +281,7 @@ impl Process {
         self.output_to_main.send(IOComm::Output { message : final_string });
     }
 
+    /// Outputs to the main thread the balance of an account according to the process
     pub fn output_balance_for(&self, account : UserId)
     {
         let mut balance = 0;
@@ -298,6 +302,7 @@ impl Process {
         self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) });
     }
 
+    /// Outputs to the main thread the balances of all accounts according to the process
     pub fn output_balances(&self)
     {
         let mut final_string = String::from(format!("[Process {}] Balances are :", self.id_proc));

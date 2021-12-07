@@ -11,8 +11,6 @@ use crate::base_types::UserId;
 use serde::{Deserialize, Serialize};
 
 
-
-
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction, a message type and the signature of the process sending the message
 #[derive(Clone,Debug)]
@@ -34,7 +32,7 @@ pub struct SignedMessage
 
 impl Message {
 
-    /// A method that giving a keypair return the signed version of the message
+    /// A method that given a keypair returns the signed version of the message
     pub fn sign(self,keypair: &Keypair) -> SignedMessage{
         let msg : &[u8] =  &(bincode::serialize(&self).unwrap()[..]);
         let signature : Signature = keypair.sign(msg);
@@ -51,7 +49,7 @@ impl Message {
 
 impl SignedMessage {
 
-    /// A method that giving a public_key return true if the message have been signed with
+    /// A method that given a public_key returns true if the message has been signed with
     /// the corresponding secret key, false otherwise
     pub fn verif_sig(&self, public_key: &PublicKey) -> bool {
 
@@ -73,7 +71,7 @@ impl SignedMessage {
 
 
 
-/// The function that return a list of N public_keys and a list of N keypair_keys to be granted to processes
+/// The function that returns a list of N public_keys and a list of N keypair_keys to be granted to processes
 pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
     let mut csprng = OsRng{};
 
