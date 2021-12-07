@@ -1,3 +1,4 @@
+//! A simple module to implement cryptographic signature for messages
 
 extern crate rand;
 extern crate ed25519_dalek;
@@ -8,7 +9,6 @@ use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use crate::transaction::Transaction;
 use crate::message::{Message,MessageType};
 use crate::base_types::UserId;
-use serde::{Deserialize, Serialize};
 
 
 /// A message is composed of a transaction, the dependencies needed to validate a
@@ -49,9 +49,8 @@ impl Message {
 
 impl SignedMessage {
 
-    /// A method that given a public_key returns true if the message has been signed with
-    /// the corresponding secret key, false otherwise
-    pub fn verif_sig(&self, public_key: &PublicKey) -> bool {
+    /// A method that given a public_key returns the message if the signature is right and returns an error otherwise
+    pub fn verif_sig(&self, public_key: &PublicKey) -> Result<Message, String> {
 
         let message = self.clone();
         let message = Message {
@@ -62,8 +61,11 @@ impl SignedMessage {
         };
 
         let msg = &(bincode::serialize(&message).unwrap()[..]);
-        println!("{:#?}", msg);
-        public_key.verify(msg, &self.signature).is_ok()
+        match public_key.verify(msg, &self.signature).is_ok()
+        {
+            true => { Ok(message) }
+            false => { Err(String::from("The signature is not valid!")) }
+        }
     }
 }
 

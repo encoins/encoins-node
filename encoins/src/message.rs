@@ -2,9 +2,8 @@
 use std::fmt::{Display, Formatter};
 use crate::base_types::UserId;
 use crate::transaction::Transaction;
-use ed25519_dalek::Signature;
 use crate::crypto::SignedMessage;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 
 
@@ -58,7 +57,7 @@ impl Display for MessageType
     }
 }
 
-impl PartialEq<Self> for SignedMessage
+impl PartialEq<Self> for Message
 {
     /// Implementation of equality for [`Message`]
     /// Two messages are equal iff their transaction and dependencies are equal

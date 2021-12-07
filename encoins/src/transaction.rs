@@ -2,7 +2,7 @@
 
 use std::fmt::{Display, Formatter};
 use crate::base_types::*;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 
 /// A transaction is an exchange of money between two accounts

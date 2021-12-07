@@ -12,7 +12,7 @@ use ed25519_dalek::{PublicKey, Keypair};
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
-type MessageSet = Vec<SignedMessage>;
+type MessageSet = Vec<Message>;
 
 
 
@@ -191,7 +191,7 @@ impl Process {
     }
 
     /// The function test if a message is validated by the process
-    fn is_valid(&self, message : &SignedMessage) -> bool{
+    fn is_valid(&self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
@@ -209,7 +209,6 @@ impl Process {
                 assert4 = false;
             }
         }
-        //println!("{} {} {} {}", assert1, assert2, assert3, assert4);
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
 
 
@@ -253,7 +252,7 @@ impl Process {
         &(self.output_to_main)
     }
 
-    pub fn in_to_validate(&mut self, message : SignedMessage)
+    pub fn in_to_validate(&mut self, message : Message)
     {
         self.to_validate.push(message);
     }
@@ -323,6 +322,16 @@ impl Process {
             final_string = format!("{} \n \t - Proceess {}'s balance : {}", final_string, i, balance);
         }
         self.output_to_main.send(IOComm::Output { message: final_string });
+    }
+
+    pub fn get_pub_key(&self, account : UserId) -> &PublicKey
+    {
+         self.public_keys.get(account as usize).unwrap()
+    }
+
+    pub fn get_key_pair(&self) -> &Keypair
+    {
+        return &self.secret_key
     }
 
 }
