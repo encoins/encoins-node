@@ -104,7 +104,7 @@ fn deal_with_input(input : Input, strings_to_show: &mut Vec<String>, process_num
                 }
                 else
                 {
-                    let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {})", amount, sender, recipient));
+                    let string_returned = String::from(format!("Requested transfer of {} encoins from account {} to account {}", amount, sender, recipient));
                     let comm = IOComm::TransferRequest {sender, recipient, amount };
                     (Some(comm), Some(string_returned))
                 }

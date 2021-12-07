@@ -86,11 +86,18 @@ impl Process {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
-        if ( self.read() < amount || ! (user_id == 0) ) && self.ongoing_transfer == true
+        if  ! (user_id == 0) && self.read() < amount
         {
             let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
             self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
-            log!(self.id_proc, "I refused to start a broadcast protocol because the given transaction was not valid.");
+            log!(self.id_proc, "I refused to start the transfer because I don't have enough money on my account");
+            return false
+        }
+        if self.ongoing_transfer == true
+        {
+            let returned_string = format!("[Process {}] : I have not validated my previous transfer yet", self.id_proc );
+            self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
+            log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
             return false
         }
 
@@ -171,10 +178,10 @@ impl Process {
                 if self.id_proc == message.transaction.receiver_id {
                     self.deps.push(message.transaction.clone())
                 } else {
-                    if self.id_proc == message.transaction.sender_id {
-                        self.ongoing_transfer = false;
-                    }
                     self.hist[message.transaction.receiver_id as usize].push(message.transaction.clone());
+                }
+                if self.id_proc == message.transaction.sender_id {
+                    self.ongoing_transfer = false;
                 }
                 log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", message.transaction);
                 if message.transaction.receiver_id == self.id_proc
