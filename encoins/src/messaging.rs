@@ -235,7 +235,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
     // Tell main_thread I am ready to process transaction
     if actu_msg.transaction.receiver_id == proc_id
     {
-        process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, actu_msg.transaction))});
+        process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, actu_msg.transaction))}).unwrap();
     }
     // Save the message
     process.in_to_validate(actu_msg);

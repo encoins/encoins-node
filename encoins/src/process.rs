@@ -180,7 +180,7 @@ impl Process {
             else
             {
                 index += 1;
-                log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", e.transaction);
+                log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
                 if message.transaction.receiver_id == self.id_proc
                 {
                     self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I refused the transfer of {} encoins from {}", self.id_proc, message.transaction.amount, message.transaction.sender_id))}).unwrap();
