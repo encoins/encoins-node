@@ -1,0 +1,4 @@
+First setup the server
+`python server.py`
+Then (in another terminal) setup the client
+`python client.py`
