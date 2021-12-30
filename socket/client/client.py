@@ -2,7 +2,7 @@ import socket
 import os 
 
 def main():
-    test_alone = False 
+    test_alone = True 
     if test_alone:
         assert "../amialone.txt" not in os.listdir(".")
         os.system("touch ../amialone.txt")
