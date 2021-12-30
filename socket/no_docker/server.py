@@ -16,12 +16,13 @@ def main():
     c, addr = s.accept()
     while True:
         data = c.recv(1024)
-        print(str(data))
+        print(data.decode())
         if not data:
             break
-        data = str(data).upper()
+        data = (data.decode()).upper()
         c.send(data.encode())
     c.close()
+    os.system("rm -f ../amialone.txt")
     print("stop listening")
 
 if __name__ == '__main__':
