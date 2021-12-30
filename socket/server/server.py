@@ -1,23 +1,28 @@
 import socket
+import os
 
-def Main():
-    host = 'localhost'
-    port = 42424
+def main():
+    test_alone = True 
+    if test_alone:
+        assert "amialone.txt" not in os.listdir("../")
+        os.system("touch ../amialone.txt")
+    host = '0.0.0.0'
+    port = 12345 
     s = socket.socket()
     s.bind((host, port))
 
     s.listen(1)
-    print("before accept")
+    print("start listening")
     c, addr = s.accept()
-    print("before while")
     while True:
         data = c.recv(1024)
+        print(str(data))
         if not data:
             break
         data = str(data).upper()
-        c.send(data)
+        c.send(data.encode())
     c.close()
-    print("after while")
+    print("stop listening")
 
 if __name__ == '__main__':
-    Main()
+    main()

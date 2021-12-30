@@ -7,4 +7,6 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-CMD [ "python", "client.py" ]
+EXPOSE 12345
+
+CMD [ "python", "server.py" ]

@@ -1,19 +1,25 @@
 import socket
+import os 
 
-def Main():
-    host = 'localhost' #The host on your client needs to be the external-facing IP address of your router. Obtain it from here https://www.whatismyip.com/
-    port = 42424 
+def main():
+    test_alone = False 
+    if test_alone:
+        assert "../amialone.txt" not in os.listdir(".")
+        os.system("touch ../amialone.txt")
+    host = 'localhost' 
+    port = 12345 
     s = socket.socket()
     s.connect((host,port))
-    message = raw_input("->") 
-    print("before while")
-    while message != 'q':
-        s.send(message)
+
+    print("start sending")
+    message = input(">>") 
+    while message != 'quit':
+        s.send(message.encode())
         data = s.recv(1024)
-        message = raw_input("->")
-    print("after while")
+        message = input(">>")
+    print("stop sending")
     s.close()
 
 if __name__ == '__main__':
-    Main()
+    main()
 
