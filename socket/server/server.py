@@ -6,7 +6,7 @@ def main():
     if test_alone:
         assert "amialone.txt" not in os.listdir("../")
         os.system("touch ../amialone.txt")
-    host = '0.0.0.0'
+    host = socket.gethostbyname('localhost') 
     port = 12345 
     s = socket.socket()
     s.bind((host, port))
