@@ -9,6 +9,8 @@ use crate::messaging::broadcast;
 use crate::log;
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
+use std::net::{Ipv4Addr, SocketAddrV4};
+
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
@@ -47,7 +49,8 @@ pub struct Process
     /// Keypair of private key required to sign messages and the public key associated with
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
-    ongoing_transfer : bool
+    ongoing_transfer : bool,
+    socket : SocketAddrV4
 }
 
 
@@ -63,6 +66,7 @@ impl Process {
         {
             s.push(TransferSet::new())
         }
+        let socket = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16);
         Process {
             id_proc : id,
             /// In our current situation we consider
@@ -78,6 +82,7 @@ impl Process {
             input_from_main,
             public_keys,
             secret_key,
+            socket
         }
     }
 
@@ -227,6 +232,11 @@ impl Process {
     pub fn get_id(&self) -> UserId
     {
         self.id_proc
+    }
+
+    pub fn get_socket(&self) -> SocketAddrV4
+    {
+        self.socket
     }
 
     #[allow(dead_code)]
