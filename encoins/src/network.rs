@@ -2,12 +2,12 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
 use std::io::{Read, Write};
 use std::thread;
+use crate::instructions::Instruction;
 use crate::IOComm;
 
 pub fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm>) {
-    let mut msg: Vec<u8> = Vec::new();
     loop {
-        let mut buf = &mut [0; 10];
+        let mut buf = &mut [0; 1+4+4+4];
 
         match stream.read(buf) {
             Ok(received) => {
@@ -18,25 +18,17 @@ pub fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm
                 }
                 let mut x = 0;
 
+                let instruction : Instruction = match buf.get(0) {
+                    Some(t) => { if *t == 0  {  Instruction::Balance{user : 0} }
+                        else {  Instruction::Transfer{sender : 0, recipient: 0, amount : 0} } }
+                    None => { Instruction::Transfer{sender : 0, recipient: 0, amount : 0}}
+                };
 
-                for c in buf {
-                    // si on a dépassé le nombre d'octets reçus, inutile de continuer
-                    if x >= received {
-                        break;
-                    }
-                    x += 1;
-                    if *c == '\n' as u8 {
-                        println!("message reçu {} : {}",
-                                 adresse,
-                                 // on convertit maintenant notre buffer en String
-                                 String::from_utf8(msg).unwrap()
-                        );
-                        stream.write(b"ok\n");
-                        msg = Vec::new();
-                    } else {
-                        msg.push(*c);
-                    }
-                }
+                println!("{}", instruction);
+                println!("Réponse du serveur : {:?}", buf);
+
+                stream.write(b"ok\n");
+                msg = Vec::new();
             }
             Err(_) => {
                 println!("Client disconnected {}", adresse);
