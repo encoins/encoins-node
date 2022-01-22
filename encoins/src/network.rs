@@ -5,7 +5,7 @@ use std::thread;
 use crate::instructions::Instruction;
 use crate::IOComm;
 
-fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm>) {
+fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instruction>) {
     loop {
         let mut buf = &mut [0; 1+4+4+4];
 
@@ -26,6 +26,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm>) {
 
                 println!("{}", instruction);
                 println!("Réponse du serveur : {:?}", buf);
+                sender.send(instruction);
 
                 stream.write(b"ok\n");
             }
@@ -37,7 +38,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm>) {
     }
 }
 
-pub fn listener(socket : SocketAddr,iosender : Sender<IOComm>) {
+pub fn listener(socket : SocketAddr,iosender : Sender<Instruction>) {
 
     let listener = TcpListener::bind(socket).unwrap();
 

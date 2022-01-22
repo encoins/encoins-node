@@ -3,6 +3,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::iocommunication::{IOComm};
+use crate::instructions::Instruction;
 use crate::crypto::{SignedMessage,init_crypto};
 use std::net::{TcpListener, TcpStream};
 
@@ -203,6 +204,14 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let iocomm = receiver.try_recv();
                         match iocomm {
                             Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
+                            Err(_) => {()}
+                        };
+
+                        // Then check instruction from client
+
+                        let instructions = ioreceiver.try_recv();
+                        match instructions {
+                            Ok(instructions) => {instructions::deal_with_instruction(&mut proc, instructions)}
                             Err(_) => {()}
                         };
 
