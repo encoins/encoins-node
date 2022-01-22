@@ -5,7 +5,6 @@ use std::time::Duration;
 use crate::iocommunication::{IOComm};
 use crate::crypto::{SignedMessage,init_crypto};
 use std::net::{TcpListener, TcpStream};
-use crate::network::handle_client;
 
 
 mod transaction;
@@ -185,29 +184,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                     //network io
                     let socket = proc.get_socket();
                     thread::spawn( move ||{
-                        let listener = TcpListener::bind(socket).unwrap();
-
-                        println!("En attente d'un client...");
-                        for stream in listener.incoming() {
-                            match stream {
-                                Ok(stream) => {
-                                    let adresse = match stream.peer_addr() {
-                                        Ok(addr) => format!("[adresse : {}]", addr),
-                                        Err(_) => "inconnue".to_owned()
-                                    };
-
-                                    println!("Nouveau client {}", adresse);
-                                    let iosender_copy = iosender.clone();
-                                    thread::spawn( move || {
-                                        handle_client(stream, &*adresse,iosender_copy);
-                                    });
-                                }
-                                Err(e) => {
-                                    println!("La connexion du client a échoué : {}", e);
-                                }
-                            }
-                            println!("En attente d'un autre client...");
-                        }
+                        network::listener(socket,iosender);
                     });
 
 

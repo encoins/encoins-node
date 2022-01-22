@@ -1,11 +1,11 @@
-use std::net::{TcpListener, TcpStream};
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
 use std::io::{Read, Write};
 use std::thread;
 use crate::instructions::Instruction;
 use crate::IOComm;
 
-pub fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm>) {
+fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm>) {
     loop {
         let mut buf = &mut [0; 1+4+4+4];
 
@@ -28,13 +28,39 @@ pub fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<IOComm
                 println!("Réponse du serveur : {:?}", buf);
 
                 stream.write(b"ok\n");
-                msg = Vec::new();
             }
             Err(_) => {
                 println!("Client disconnected {}", adresse);
                 return;
             }
         }
+    }
+}
+
+pub fn listener(socket : SocketAddr,iosender : Sender<IOComm>) {
+
+    let listener = TcpListener::bind(socket).unwrap();
+
+    println!("En attente d'un client...");
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                let adresse = match stream.peer_addr() {
+                    Ok(addr) => format!("[adresse : {}]", addr),
+                    Err(_) => "inconnue".to_owned()
+                };
+
+                println!("Nouveau client {}", adresse);
+                let iosender_copy = iosender.clone();
+                thread::spawn( move || {
+                    handle_client(stream, &*adresse,iosender_copy);
+                });
+            }
+            Err(e) => {
+                println!("La connexion du client a échoué : {}", e);
+            }
+        }
+        println!("En attente d'un autre client...");
     }
 }
 /*
