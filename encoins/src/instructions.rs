@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
 use crate::base_types::{Currency, UserId};
 use crate::process::Process;
+use serde::Deserialize;
 
-#[derive(Clone)]
+#[derive(Clone,Deserialize,Debug)]
 pub enum Instruction {
 
     Transfer{sender : UserId, recipient : UserId, amount : Currency},

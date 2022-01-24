@@ -20,6 +20,7 @@ mod input;
 mod crypto;
 mod network;
 mod instructions;
+mod signed_instructions;
 
 
 fn main()

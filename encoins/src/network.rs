@@ -2,12 +2,16 @@ use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
 use std::io::{Read, Write};
 use std::thread;
+use bincode::deserialize;
+use serde::Deserialize;
 use crate::instructions::Instruction;
 use crate::IOComm;
+use crate::signed_instructions::SignedInstruction;
 
 fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instruction>) {
     loop {
-        let mut buf = &mut [0; 1+4+4+4];
+
+        let mut buf = &mut [0; 200];
 
         match stream.read(buf) {
             Ok(received) => {
@@ -16,17 +20,15 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instructio
                     println!("Client disconnected {}", adresse);
                     return;
                 }
-                let mut x = 0;
 
-                let instruction : Instruction = match buf.get(0) {
-                    Some(t) => { if *t == 0  {  Instruction::Balance{user : 0} }
-                        else {  Instruction::Transfer{sender : 0, recipient: 0, amount : 0} } }
-                    None => { Instruction::Transfer{sender : 0, recipient: 0, amount : 0}}
-                };
+                println!("{:?}",buf);
 
-                println!("{}", instruction);
-                println!("Réponse du serveur : {:?}", buf);
-                sender.send(instruction);
+                let signed_instruction : SignedInstruction = deserialize(&buf[..]).unwrap();
+
+                println!("{:#?}", signed_instruction);
+
+                //sender.send(instruction);
+
 
                 stream.write(b"ok\n");
             }
