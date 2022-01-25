@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use crate::base_types::{Currency, UserId};
 use crate::process::Process;
 use serde::Deserialize;
+use crate::signed_instructions::SignedInstruction;
 
 #[derive(Clone,Deserialize,Debug)]
 pub enum Instruction {
@@ -24,8 +25,10 @@ impl Display for Instruction
     }
 }
 
-pub fn deal_with_instruction(process: &mut Process, instruction : Instruction){
+pub fn deal_with_signed_instruction(process: &mut Process, signed_instruction : SignedInstruction){
     let proc_id = process.get_id();
+    let instruction = signed_instruction.instruction;
+
     match instruction {
         Instruction::Balance { user } => {
             process.output_balance_for(user);

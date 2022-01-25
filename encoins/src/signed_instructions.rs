@@ -3,7 +3,7 @@ use crate::Instruction;
 
 #[derive(Clone,Deserialize,Debug)]
 pub struct SignedInstruction {
-    instruction : Instruction,
-    signature : Vec<u8> // vec of (signature .to_byte (easier to serialize))
+    pub instruction : Instruction,
+    pub signature : Vec<u8> // vec of (signature .to_byte (easier to serialize))
 }
 

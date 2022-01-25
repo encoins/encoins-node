@@ -105,7 +105,6 @@ impl Process {
             log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
             return false
         }
-
         // Then a transaction is created in accordance to the white paper
         let transaction = Transaction {
             seq_id: self.seq[user_id as usize] + 1,
@@ -198,7 +197,7 @@ impl Process {
             else
             {
                 index += 1;
-                //log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
+                log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
             }
         }
     }
