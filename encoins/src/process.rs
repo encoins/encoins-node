@@ -14,7 +14,7 @@ use ed25519_dalek::{PublicKey, Keypair};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 
 
-type List = HashMap<u32,u32>;
+type List = HashMap<UserId,u32>;
 type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
 
@@ -33,7 +33,7 @@ pub struct Process
     /// List of size N such as seq(q) = number of delivered transfers from q
     rec : List,
     /// List of size N such as hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
-    hist : Vec<TransferSet>,
+    hist : HashMap<UserId,TransferSet>,
     /// Set of last incoming transfers of local process
     deps : TransferSet,
     /// Set of delivered (but not validated) transfers
@@ -63,11 +63,16 @@ impl Process {
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
     pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<SignedMessage>>, receiver : Receiver<SignedMessage>, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair) -> Process {
-        let mut s : Vec<TransferSet> = vec![];
-        for _ in 0..nb_process+1
-        {
-            s.push(TransferSet::new())
-        }
+        let mut s : HashMap<UserId,TransferSet> = HashMap::new();
+        let mut origin_historic = TransferSet::new();
+        let first_transaction : Transaction = Transaction {
+            seq_id : 1,
+            sender_id : 0,
+            receiver_id : 1,
+            amount : 10000,
+        };
+        origin_historic.push(first_transaction);
+        s.insert(0,origin_historic);
         let socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
         Process {
             id_proc : id,
@@ -130,7 +135,7 @@ impl Process {
         broadcast(&self.senders,  message);
 
         // The history is updated and transfer are now blocked
-        self.hist[self.id_proc as usize].append(&mut self.deps);
+        self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
         self.ongoing_transfer = true;
         true
     }
@@ -138,7 +143,7 @@ impl Process {
     /// The function that returns the balance of money owned by the process
     pub fn read(&self) -> Currency
     {
-        return Process::balance(self.id_proc, &self.history_for(self.id_proc))
+        return Process::balance(self.id_proc, &self.history_for(&self.id_proc))
     }
 
     /// The function that given a set of transfer and an ID returns the balance of money earned by the process a
@@ -179,12 +184,12 @@ impl Process {
             {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
-                self.hist[message.transaction.sender_id as usize].push(message.transaction.clone());
+                self.hist.entry(message.transaction.sender_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 *self.seq.entry((message.transaction.sender_id as u32)).or_insert(0) = message.transaction.seq_id as u32;
                 if self.id_proc == message.transaction.receiver_id {
                     self.deps.push(message.transaction.clone())
                 } else {
-                    self.hist[message.transaction.receiver_id as usize].push(message.transaction.clone());
+                    self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 }
                 if self.id_proc == message.transaction.sender_id {
                     self.ongoing_transfer = false;
@@ -205,13 +210,13 @@ impl Process {
     }
 
     /// The function test if a message is validated by the process
-    fn is_valid(&self, message : &Message) -> bool{
+    fn is_valid(& self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id as u32)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
-        let assert3 = Process::balance(message.transaction.sender_id, &self.hist[message.transaction.sender_id as usize]) >= message.transaction.amount;
+        let assert3 = Process::balance(message.transaction.sender_id, &self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
 
@@ -281,14 +286,14 @@ impl Process {
     }
 
     /// Returns the history of a given account according to the process
-    fn history_for(&self, account: UserId) -> Vec<Transaction>
+    fn history_for(&self, account: &UserId) -> Vec<Transaction>
     {
         let mut hist : Vec<Transaction> = vec![];
-        if self.id_proc == account
+        if self.id_proc == *account
         {
             hist.append(&mut self.deps.clone());
         }
-        hist.append(&mut self.hist[account as usize].clone());
+        hist.append(&mut self.hist[account].clone());
         return hist
     }
 
@@ -296,7 +301,7 @@ impl Process {
     pub fn output_history_for(&self, account : UserId)
     {
         let mut final_string = String::from(format!("[Process {}] History for process {} :", self.id_proc, account));
-        for tr in self.history_for(account)
+        for tr in self.history_for(&account)
         {
             final_string = format!("{} \n \t - {}", final_string, tr);
         }
@@ -309,7 +314,7 @@ impl Process {
         let mut balance = 0;
         if account !=0
         {
-            for tr in self.history_for(account)
+            for tr in self.history_for(&account)
             {
                 if account == tr.receiver_id
                 {
@@ -332,7 +337,7 @@ impl Process {
         for i in 1..self.seq.len()
         {
             let mut balance = 0;
-            for tr in self.history_for(i as UserId)
+            for tr in self.history_for(&(i as UserId))
             {
                 if i == tr.receiver_id as usize
                 {
