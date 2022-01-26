@@ -1,4 +1,6 @@
 //! Definition of a processus
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 #[allow(unused_must_use)]
 use crate::transaction::Transaction;
 use crate::base_types::*;
@@ -12,7 +14,7 @@ use ed25519_dalek::{PublicKey, Keypair};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 
 
-type List = Vec<u32>;
+type List = HashMap<u32,u32>;
 type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
 
@@ -70,8 +72,8 @@ impl Process {
         Process {
             id_proc : id,
             /// In our current situation we consider
-            seq : vec![0;(nb_process + 1) as usize],
-            rec : vec![0;(nb_process + 1) as usize],
+            seq : List::new(),
+            rec : List::new(),
             hist : s,
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
@@ -107,7 +109,7 @@ impl Process {
         }
         // Then a transaction is created in accordance to the white paper
         let transaction = Transaction {
-            seq_id: self.seq[user_id as usize] + 1,
+            seq_id: self.seq.get(&(user_id as u32)).unwrap() + 1,
             sender_id: user_id,
             receiver_id,
             amount,
@@ -124,7 +126,7 @@ impl Process {
         // Then the message is signed
         let message = message.sign(&self.secret_key);
 
-        // And then broadcasted between all processes
+        // And then broadcast between all processes
         broadcast(&self.senders,  message);
 
         // The history is updated and transfer are now blocked
@@ -178,7 +180,7 @@ impl Process {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
                 self.hist[message.transaction.sender_id as usize].push(message.transaction.clone());
-                self.seq[message.transaction.sender_id as usize] = message.transaction.seq_id;
+                *self.seq.entry((message.transaction.sender_id as u32)).or_insert(0) = message.transaction.seq_id as u32;
                 if self.id_proc == message.transaction.receiver_id {
                     self.deps.push(message.transaction.clone())
                 } else {
@@ -207,7 +209,7 @@ impl Process {
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
-        let assert2 = message.transaction.seq_id == self.seq[message.transaction.sender_id as usize] + 1 ;
+        let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id as u32)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
         let assert3 = Process::balance(message.transaction.sender_id, &self.hist[message.transaction.sender_id as usize]) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
@@ -238,17 +240,20 @@ impl Process {
         self.socket
     }
 
+    /*
     #[allow(dead_code)]
     pub fn get_seq_at(&self, id: usize) -> SeqId
     {
-        self.seq[id]
+        self.seq.get(&(id as u32)) as SeqId
     }
+
 
     #[allow(dead_code)]
     pub fn incr_rec(&mut self, id:usize)
     {
-        self.rec[id] +=1;
+        *self.rec.entry(id as u32) +=1;
     }
+    */
 
     pub fn get_receiver(&self) -> &Receiver<SignedMessage>
     {

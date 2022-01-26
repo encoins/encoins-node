@@ -2,6 +2,8 @@
 
 /// For the moment, a user id is a 32-bit integer. It should change with implementation of encryption
 pub type UserId = u32;
+//pub type UserId = [u8; 32]; // CompressedEdwardsY of the public key
+
 
 /// For the moment, the currency is encoded in a 32-bit integer. Defining how to deal with currency is still to be determined
 pub type Currency = u32;
