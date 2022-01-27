@@ -72,13 +72,15 @@ impl Process {
             amount : 10000,
         };
         origin_historic.push(first_transaction);
-        s.insert(0,origin_historic);
+        s.insert(1,origin_historic);
         let socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
+        let mut list = List::new();
+        list.insert(1,1);
         Process {
             id_proc : id,
             /// In our current situation we consider
-            seq : List::new(),
-            rec : List::new(),
+            seq : list.clone(),
+            rec : list.clone(),
             hist : s,
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
@@ -98,6 +100,8 @@ impl Process {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
+
+        println!("la moula : {:#?}",self);
         if  ! (user_id == 0) && self.read() < amount
         {
             let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
@@ -114,7 +118,10 @@ impl Process {
         }
         // Then a transaction is created in accordance to the white paper
         let transaction = Transaction {
-            seq_id: self.seq.get(&(user_id as u32)).unwrap() + 1,
+            seq_id: match self.seq.get(&(user_id as u32)) {
+                Some(n) => {n+1}
+                None => 0
+            } ,
             sender_id: user_id,
             receiver_id,
             amount,
@@ -185,12 +192,12 @@ impl Process {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
                 self.hist.entry(message.transaction.sender_id).or_insert(TransferSet::new()).push(message.transaction.clone());
-                *self.seq.entry((message.transaction.sender_id as u32)).or_insert(0) = message.transaction.seq_id as u32;
-                if self.id_proc == message.transaction.receiver_id {
-                    self.deps.push(message.transaction.clone())
-                } else {
-                    self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
-                }
+                *self.seq.entry(message.transaction.sender_id).or_insert(0) = message.transaction.seq_id;
+
+                self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
+                self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
+
+                self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 if self.id_proc == message.transaction.sender_id {
                     self.ongoing_transfer = false;
                 }
@@ -220,6 +227,7 @@ impl Process {
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
 
+
         let mut assert4 = true;
 
         for dependence in &message.dependencies {
@@ -228,6 +236,8 @@ impl Process {
                 assert4 = false;
             }
         }
+
+        println!("proc {} a {} {} {} {}",self.id_proc,assert1,assert2,assert3,assert4);
 
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
 
@@ -286,15 +296,17 @@ impl Process {
     }
 
     /// Returns the history of a given account according to the process
-    fn history_for(&self, account: &UserId) -> Vec<Transaction>
+    fn history_for(&self, account: &UserId) -> TransferSet
     {
-        let mut hist : Vec<Transaction> = vec![];
+        /*
         if self.id_proc == *account
         {
             hist.append(&mut self.deps.clone());
+        } */
+        match self.hist.get(account) {
+            Some(history) => { history.clone() }
+            None => {TransferSet::new()}
         }
-        hist.append(&mut self.hist[account].clone());
-        return hist
     }
 
     /// Outputs to the main thread the history of a given account according to the process
@@ -333,22 +345,28 @@ impl Process {
     /// Outputs to the main thread the balances of all accounts according to the process
     pub fn output_balances(&self)
     {
-        let mut final_string = String::from(format!("[Process {}] Balances are :", self.id_proc));
-        for i in 1..self.seq.len()
+        let mut final_string = String::from(format!("[Process {}] Balances are :, len {}", self.id_proc, self.hist.len()));
+
+        println!("{}",self.hist.len());
+        for (id,_) in self.seq.iter()
         {
+            println!("test1 : {:}",id);
             let mut balance = 0;
-            for tr in self.history_for(&(i as UserId))
+            for tr in self.history_for(id)
             {
-                if i == tr.receiver_id as usize
+                println!("{:#?}",self.history_for(id));
+                if id == &tr.receiver_id
                 {
                     balance += tr.amount;
                 }
-                if i == tr.sender_id as usize
+                if id == &tr.sender_id
                 {
                     balance -= tr.amount;
                 }
+                println!("balance {}",balance);
             }
-            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, i, balance);
+            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, id, balance);
+            println!("{}",final_string);
         }
         self.output_to_main.send(IOComm::Output { message: final_string }).unwrap();
     }
