@@ -2,21 +2,16 @@ import socket
 import os 
 
 def main():
-    test_alone = True 
-    if test_alone:
-        assert "../amialone.txt" not in os.listdir(".")
-        os.system("touch ../amialone.txt")
-    host = socket.gethostbyname('localhost') 
+    print("start client")
+    #return None
+    host = socket.gethostbyname('server') 
     port = 12345 
     s = socket.socket()
     s.connect((host,port))
 
     print("start sending")
-    message = input(">>") 
-    while message != 'quit':
-        s.send(message.encode())
-        data = s.recv(1024)
-        message = input(">>")
+    message = "ENcoinS is the best consensus-free cryptocurrency" 
+    s.send(message.encode())
     print("stop sending")
     s.close()
 
