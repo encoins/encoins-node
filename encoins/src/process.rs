@@ -101,8 +101,8 @@ impl Process {
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
 
-        println!("la moula : {:#?}",self);
-        if  ! (user_id == 0) && self.read() < amount
+        //println!("la moula :{:#?}",self);
+        if  ! (user_id == 0) && self.read(user_id) < amount
         {
             let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
             self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
@@ -118,7 +118,7 @@ impl Process {
         }
         // Then a transaction is created in accordance to the white paper
         let transaction = Transaction {
-            seq_id: match self.seq.get(&(user_id as u32)) {
+            seq_id: match self.seq.get(&user_id) {
                 Some(n) => {n+1}
                 None => 0
             } ,
@@ -138,9 +138,10 @@ impl Process {
         // Then the message is signed
         let message = message.sign(&self.secret_key);
 
+        //println!("Message {:#?}",message);
+
         // And then broadcast between all processes
         broadcast(&self.senders,  message);
-
         // The history is updated and transfer are now blocked
         self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
         self.ongoing_transfer = true;
@@ -148,9 +149,9 @@ impl Process {
     }
 
     /// The function that returns the balance of money owned by the process
-    pub fn read(&self) -> Currency
+    pub fn read(&self,user : UserId) -> Currency
     {
-        return Process::balance(self.id_proc, &self.history_for(&self.id_proc))
+        return Process::balance(user, &self.history_for(&user))
     }
 
     /// The function that given a set of transfer and an ID returns the balance of money earned by the process a
@@ -304,7 +305,9 @@ impl Process {
             hist.append(&mut self.deps.clone());
         } */
         match self.hist.get(account) {
-            Some(history) => { history.clone() }
+            Some(history) => {
+                //println!("History {:#?}", history);
+                history.clone() }
             None => {TransferSet::new()}
         }
     }
@@ -347,14 +350,14 @@ impl Process {
     {
         let mut final_string = String::from(format!("[Process {}] Balances are :, len {}", self.id_proc, self.hist.len()));
 
-        println!("{}",self.hist.len());
+        //println!("{}",self.hist.len());
         for (id,_) in self.seq.iter()
         {
-            println!("test1 : {:}",id);
+            //println!("test1 : {:}",id);
             let mut balance = 0;
             for tr in self.history_for(id)
             {
-                println!("{:#?}",self.history_for(id));
+                //println!("{:#?}",self.history_for(id));
                 if id == &tr.receiver_id
                 {
                     balance += tr.amount;
@@ -366,8 +369,9 @@ impl Process {
                 println!("balance {}",balance);
             }
             final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, id, balance);
-            println!("{}",final_string);
+
         }
+        println!("{}",final_string);
         self.output_to_main.send(IOComm::Output { message: final_string }).unwrap();
     }
 

@@ -34,17 +34,12 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                 {
                     MessageType::Init =>
                         {
-                            if msg.sender_id != msg.transaction.sender_id
-                            {
-                                log!(proc_id, "Process {} tried to usurp {} by initiating a transfer in its name", msg.sender_id, msg.transaction.sender_id );
-                                return;
-                            }
                             secure_broadcast(process, msg);}
                     _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
                 }
             }
 
-        Err(error) => { log!(proc_id, "Error while checking signature : {}", error); }
+        Err(error) => {log!(proc_id, "Error while checking signature : {}", error); }
     }
 
 }
