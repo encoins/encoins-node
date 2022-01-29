@@ -6,9 +6,8 @@ use bincode::deserialize;
 use serde::Deserialize;
 use crate::instructions::Instruction;
 use crate::IOComm;
-use crate::signed_instructions::SignedInstruction;
 
-fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<SignedInstruction>) {
+fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instruction>) {
     loop {
 
         let mut buf = &mut [0; 200];
@@ -21,13 +20,15 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<SignedInst
                     return;
                 }
 
-                //println!("{:?}",buf);
+                println!("buff {:?}",buf);
 
-                let signed_instruction : SignedInstruction = deserialize(&buf[..]).unwrap();
+                let instruction : Instruction = deserialize(&buf[..]).unwrap();
+
+                println!("Instruction : {}",instruction);
 
                 //println!("{:#?}", signed_instruction);
 
-                sender.send(signed_instruction);
+                sender.send(instruction);
 
 
                 stream.write(b"ok\n");
@@ -40,7 +41,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<SignedInst
     }
 }
 
-pub fn listener(socket : SocketAddr,iosender : Sender<SignedInstruction>) {
+pub fn listener(socket : SocketAddr,iosender : Sender<Instruction>) {
 
     let listener = TcpListener::bind(socket).unwrap();
 

@@ -101,7 +101,7 @@ impl Process {
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
 
-        //println!("la moula :{:#?}",self);
+        println!("la moula");
         if  ! (user_id == 0) && self.read(user_id) < amount
         {
             let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );

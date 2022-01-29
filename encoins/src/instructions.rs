@@ -2,15 +2,26 @@ use std::fmt::{Display, Formatter};
 use crate::base_types::{Currency, UserId};
 use crate::process::Process;
 use serde::Deserialize;
-use crate::signed_instructions::SignedInstruction;
+
+#[derive(Clone,Deserialize,Debug)]
+pub struct Transfer {
+    pub sender : UserId,
+    pub recipient : UserId,
+    pub amount : Currency
+}
+
 
 #[derive(Clone,Deserialize,Debug)]
 pub enum Instruction {
-
-    Transfer{sender : UserId, recipient : UserId, amount : Currency},
+    // redondance avec la def de crypto :(
+    SignedTransfer {
+        transfer : Transfer,
+        signature : Vec<u8> // vec of (signature .to_byte (easier to serialize))
+    },
 
     Balance{user: UserId}
 }
+
 
 
 impl Display for Instruction
@@ -18,23 +29,23 @@ impl Display for Instruction
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self
         {
-            Instruction::Balance {..} => { write!(f, " Balances") }
-            Instruction::Transfer {sender,recipient,amount } => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})", sender, recipient, amount) }
+            Instruction::Balance {user} => { write!(f, " Balances of {}", user) }
+            Instruction::SignedTransfer {transfer, signature} => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",transfer.sender , transfer.recipient, transfer.amount) }
 
         }
     }
 }
 
-pub fn deal_with_signed_instruction(process: &mut Process, signed_instruction : SignedInstruction){
+pub fn deal_with_instruction(process: &mut Process, instruction : Instruction){
     let proc_id = process.get_id();
-    let instruction = signed_instruction.instruction;
-
     match instruction {
-        Instruction::Balance { user } => {
+        Instruction::Balance {user} => {
+            println!("balance incoming");
             process.output_balance_for(user);
         }
-        Instruction::Transfer { sender, recipient, amount } => {
-            process.transfer(sender, recipient, amount);
+        Instruction::SignedTransfer {transfer,signature} => {
+            println!("transfer incoming");
+            process.transfer(transfer.sender, transfer.recipient, transfer.amount);
         }
     }
 }
