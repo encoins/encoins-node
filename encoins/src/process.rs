@@ -5,10 +5,10 @@ use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
 use crate::iocommunication::IOComm;
 use crate::message::{Message, MessageType};
-use crate::messaging::broadcast;
 use crate::log;
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
+use crate::messaging::broadcast;
 
 type List = Vec<u32>;
 type TransferSet = Vec<Transaction>;
@@ -24,17 +24,17 @@ pub struct Process
     /// Every process has a unique ID
     /// In our current implementation we consider that there exist an (nb_process + 1) = N th process with ID : 0 ( the well process )
     id_proc : UserId,
-    /// List of size N such as seq(q) = number of validated transfers outgoing from q
+    /// List of size N such that seq(q) = number of validated transfers outgoing from q
     seq : List,
-    /// List of size N such as seq(q) = number of delivered transfers from q
+    /// List of size N such that seq(q) = number of delivered transfers from q
     rec : List,
-    /// List of size N such as hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
+    /// List of size N such that hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
     hist : Vec<TransferSet>,
     /// Set of last incoming transfers of local process
     deps : TransferSet,
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
-    /// List of N transmitters such as senders(q) is the transmitter that allow to communicate with process q
+    /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
     senders : Vec<Sender<SignedMessage>>,
     /// Receiver that other processes can use to communicate with the process
     receiver : Receiver<SignedMessage>,
@@ -42,7 +42,7 @@ pub struct Process
     output_to_main : Sender<IOComm>,
     /// Receiver to receive instructions from the main process
     input_from_main : Receiver<IOComm>,
-    /// List of size N such as public_key(q) is the public_key of the process q
+    /// List of size N such that public_key(q) is the public_key of the process q
     public_keys : Vec<PublicKey>,
     /// Keypair of private key required to sign messages and the public key associated with
     secret_key : Keypair,
@@ -52,8 +52,8 @@ pub struct Process
 
 
 impl Process {
-    /// The function which initialise a [Process] given its ID, N the number of processes, the list of senders, its receiver, a transmitter and receiver to communicate with the main, the list of public keys and its secret_key (Keypair)
-    /// Other field are initialised such that:
+    /// Function which initialises a [Process] given its ID, N the number of processes, the list of senders, its receiver, a transmitter and receiver to communicate with the main, the list of public keys and its secret_key (Keypair)
+    /// Other fields are initialised such that:
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
@@ -81,7 +81,7 @@ impl Process {
         }
     }
 
-    /// The function that allows processes to transfer money
+    /// Function that allows processes to transfer money
     pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
@@ -129,13 +129,13 @@ impl Process {
         true
     }
 
-    /// The function that returns the balance of money owned by the process
+    /// Function that returns the balance of money owned by the process
     pub fn read(&self) -> Currency
     {
         return Process::balance(self.id_proc, &self.history_for(self.id_proc))
     }
 
-    /// The function that given a set of transfer and an ID returns the balance of money earned by the process a
+    /// Function that given a set of transfer and an ID returns the balance of money earned by the process a
     /// i.e the sum of incoming amount minus the sum of outgoing amount
     fn balance( a: UserId, h: &TransferSet) -> Currency
     {
@@ -198,7 +198,7 @@ impl Process {
         }
     }
 
-    /// The function test if a message is validated by the process
+    /// The function tests if a message is validated by the process
     fn is_valid(&self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
@@ -246,7 +246,7 @@ impl Process {
         &(self.receiver)
     }
 
-    pub fn get_maireceiver(&self) -> &Receiver<IOComm>
+    pub fn get_main_receiver(&self) -> &Receiver<IOComm>
     {
         &(self.input_from_main)
     }
@@ -343,5 +343,4 @@ impl Process {
     {
         return &self.secret_key
     }
-
 }
