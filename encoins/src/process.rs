@@ -51,7 +51,7 @@ pub struct Process
     /// Keypair of private key required to sign messages and the public key associated with
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
-    ongoing_transfer : bool,
+    ongoing_transfer : HashMap<UserId,bool>,
     socket : SocketAddr
 }
 
@@ -76,6 +76,8 @@ impl Process {
         let socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
         let mut list = List::new();
         list.insert(1,1);
+        let mut ongoing_transfer = HashMap::new();
+        ongoing_transfer.insert(1,false);
         Process {
             id_proc : id,
             /// In our current situation we consider
@@ -86,7 +88,7 @@ impl Process {
             to_validate : MessageSet::new(),
             senders,
             receiver,
-            ongoing_transfer : false,
+            ongoing_transfer ,
             output_to_main,
             input_from_main,
             public_keys,
@@ -104,13 +106,15 @@ impl Process {
         println!("la moula");
         if  ! (user_id == 0) && self.read(user_id) < amount
         {
+            println!("t'es mort");
             let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
             self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
             log!(self.id_proc, "I refused to start the transfer because I don't have enough money on my account");
             return false
         }
-        if self.ongoing_transfer == true
+        if *self.ongoing_transfer.get(&user_id).unwrap() == true
         {
+            println!("no");
             let returned_string = format!("[Process {}] : I have not validated my previous transfer yet", self.id_proc );
             self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
             log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
@@ -126,7 +130,7 @@ impl Process {
             receiver_id,
             amount,
         };
-
+        println!("1");
         // Which is encapsulated in an Init Message
         let message  = Message {
                 transaction,
@@ -136,6 +140,7 @@ impl Process {
             };
 
         // Then the message is signed
+        println!("2");
         let message = message.sign(&self.secret_key);
 
         //println!("Message {:#?}",message);
@@ -143,8 +148,9 @@ impl Process {
         // And then broadcast between all processes
         broadcast(&self.senders,  message);
         // The history is updated and transfer are now blocked
+        println!("3");
         self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
-        self.ongoing_transfer = true;
+        *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
         true
     }
 
@@ -195,12 +201,14 @@ impl Process {
                 self.hist.entry(message.transaction.sender_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 *self.seq.entry(message.transaction.sender_id).or_insert(0) = message.transaction.seq_id;
 
+                *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
+
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
 
                 self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 if self.id_proc == message.transaction.sender_id {
-                    self.ongoing_transfer = false;
+                    *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 }
                 log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", message.transaction);
                 if message.transaction.receiver_id == self.id_proc
