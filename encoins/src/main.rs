@@ -1,7 +1,10 @@
 use std::{env, thread};
+use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
+use crate::base_types::UserId;
+use crate::broadcast::Broadcast;
 use crate::iocommunication::{IOComm};
 use crate::crypto::{SignedMessage,init_crypto};
 
@@ -15,6 +18,7 @@ mod iocommunication;
 mod process;
 mod input;
 mod crypto;
+mod broadcast;
 
 
 fn main()
@@ -174,6 +178,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                     let proc_id = i;
                     let mut proc = process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
                     log!(proc_id, "Thread initialized correctly");
+                    let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
                     // Main loop for a process
                     loop
                     {
@@ -181,12 +186,12 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let receiver = proc.get_receiver();
                         let comm = receiver.try_recv();
                         match comm {
-                            Ok(message) => {messaging::deal_with_message(&mut proc, message)}
+                            Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
                             Err(_) => {()}
                         };
 
                         // Then check IOCommunications with main thread
-                        let receiver = proc.get_maireceiver();
+                        let receiver = proc.get_main_receiver();
                         let iocomm = receiver.try_recv();
                         match iocomm {
                             Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
