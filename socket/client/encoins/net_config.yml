@@ -1,0 +1,35 @@
+S: 4
+C: 4
+
+server0:
+ ip: server0
+ port: 12345
+
+server1:
+ ip: server1
+ port: 12345
+
+server2:
+ ip: server2
+ port: 12345
+
+server3:
+ ip: server3
+ port: 12345
+
+client0:
+ ip: client0
+ port: 12345
+
+client1:
+ ip: client1
+ port: 12345
+
+client2:
+ ip: client2
+ port: 12345
+
+client3:
+ ip: client3
+ port: 12345
+
