@@ -76,10 +76,10 @@ impl Process {
         origin_historic.push(first_transaction);
         s.insert(1,origin_historic);
         let client_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
-        let server_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+ (id+nb_process) as u16));
+        let server_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000 + ( 1 + id+nb_process) as u16));
         let mut serv_addr : Vec<SocketAddr> = Vec::new();
         for i in 1..nb_process +1 {
-            serv_addr.push(SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+ (nb_process + i) as u16)))
+            serv_addr.push(SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+ ( 1 + nb_process + i) as u16)))
         }
         let mut list = List::new();
         list.insert(1,1);
@@ -268,10 +268,16 @@ impl Process {
         self.id_proc
     }
 
-    pub fn get_socket(&self) -> SocketAddr
+    pub fn get_client_socket(&self) -> SocketAddr
     {
         self.client_socket
     }
+
+    pub fn get_server_socket(&self) -> SocketAddr
+    {
+        self.server_socket
+    }
+
 
     /*
     #[allow(dead_code)]

@@ -41,7 +41,8 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instructio
     }
 }
 
-pub fn listener(socket : SocketAddr,iosender : Sender<Instruction>) {
+pub fn client_listener(socket : SocketAddr,iosender : Sender<Instruction>) {
+
 
     let listener = TcpListener::bind(socket).unwrap();
 

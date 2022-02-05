@@ -6,6 +6,8 @@ use crate::iocommunication::{IOComm};
 use crate::instructions::Instruction;
 use crate::crypto::{SignedMessage,init_crypto};
 use std::net::{TcpListener, TcpStream};
+use crate::client_network::client_listener;
+use crate::serv_network::server_listener;
 
 
 mod transaction;
@@ -184,10 +186,16 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                     // Main loop for a process
 
                     let (iosender,ioreceiver) = mpsc::channel();
-                    //network io
-                    let socket = proc.get_socket();
+                                       //network io
+                    let client_socket = proc.get_client_socket();
                     thread::spawn( move ||{
-                        client_network::listener(socket, iosender);
+                        client_listener(client_socket, iosender);
+                    });
+
+                    let (msgsender,msgreceiver) = mpsc::channel();
+                    let server_socket = proc.get_server_socket();
+                    thread::spawn( move ||{
+                        server_listener(server_socket, msgsender);
                     });
 
 

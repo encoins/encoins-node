@@ -6,12 +6,12 @@ use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use crate::message::Message;
-use serde::Serialize;
+use serde::{Serialize,Deserialize};
 
 
 
 /// A SignedMessage is a message and its signature
-#[derive(Clone,Debug,Serialize)]
+#[derive(Clone,Debug,Serialize,Deserialize)]
 pub struct SignedMessage
 {
     /// The message that has to be signed
