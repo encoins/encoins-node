@@ -38,6 +38,7 @@ pub struct Process
     deps : TransferSet,
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
+    serv_addr : Vec<SocketAddr>,
     /// List of N transmitters such as senders(q) is the transmitter that allow to communicate with process q
     senders : Vec<Sender<SignedMessage>>,
     /// Receiver that other processes can use to communicate with the process
@@ -52,7 +53,8 @@ pub struct Process
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
     ongoing_transfer : HashMap<UserId,bool>,
-    socket : SocketAddr
+    client_socket : SocketAddr,
+    server_socket : SocketAddr
 }
 
 
@@ -73,7 +75,12 @@ impl Process {
         };
         origin_historic.push(first_transaction);
         s.insert(1,origin_historic);
-        let socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
+        let client_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
+        let server_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+ (id+nb_process) as u16));
+        let mut serv_addr : Vec<SocketAddr> = Vec::new();
+        for i in 1..nb_process +1 {
+            serv_addr.push(SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+ (nb_process + i) as u16)))
+        }
         let mut list = List::new();
         list.insert(1,1);
         let mut ongoing_transfer = HashMap::new();
@@ -92,8 +99,10 @@ impl Process {
             output_to_main,
             input_from_main,
             public_keys,
+            serv_addr,
             secret_key,
-            socket
+            client_socket,
+            server_socket
         }
     }
 
@@ -261,7 +270,7 @@ impl Process {
 
     pub fn get_socket(&self) -> SocketAddr
     {
-        self.socket
+        self.client_socket
     }
 
     /*

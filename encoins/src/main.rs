@@ -18,7 +18,7 @@ mod iocommunication;
 mod process;
 mod input;
 mod crypto;
-mod network;
+mod client_network;
 mod instructions;
 mod response;
 
@@ -186,7 +186,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                     //network io
                     let socket = proc.get_socket();
                     thread::spawn( move ||{
-                        network::listener(socket,iosender);
+                        client_network::listener(socket, iosender);
                     });
 
 
