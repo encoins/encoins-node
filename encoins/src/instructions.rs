@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use crate::base_types::{Currency, UserId};
 use crate::process::Process;
 use serde::Deserialize;
+use crate::response::Response;
 
 #[derive(Clone,Deserialize,Debug)]
 pub struct Transfer {
@@ -36,16 +37,18 @@ impl Display for Instruction
     }
 }
 
-pub fn deal_with_instruction(process: &mut Process, instruction : Instruction){
+pub fn deal_with_instruction(process: &mut Process, instruction : Instruction) -> Response {
     let proc_id = process.get_id();
     match instruction {
         Instruction::Balance {user} => {
             println!("balance incoming");
-            process.output_balance_for(user);
+            let balance = process.output_balance_for(user);
+            Response::Balance(balance)
         }
         Instruction::SignedTransfer {transfer,signature} => {
             println!("transfer incoming");
-            process.transfer(transfer.sender, transfer.recipient, transfer.amount);
+            let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
+            Response::Transfer(suceed)
         }
     }
 }

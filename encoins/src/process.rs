@@ -332,7 +332,7 @@ impl Process {
     }
 
     /// Outputs to the main thread the balance of an account according to the process
-    pub fn output_balance_for(&self, account : UserId)
+    pub fn output_balance_for(&self, account : UserId) -> Currency
     {
         let mut balance = 0;
         if account !=0
@@ -351,6 +351,7 @@ impl Process {
             }
         }
         self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) }).unwrap();
+        balance
     }
 
     /// Outputs to the main thread the balances of all accounts according to the process

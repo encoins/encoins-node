@@ -20,6 +20,7 @@ mod input;
 mod crypto;
 mod network;
 mod instructions;
+mod response;
 
 
 fn main()
@@ -212,7 +213,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let instruction = ioreceiver.try_recv();
                         match instruction {
                             Ok(instruct) => { println!("{}",instruct);
-                                instructions::deal_with_instruction(&mut proc, instruct)}
+                                instructions::deal_with_instruction(&mut proc, instruct);}
                             Err(_) => {()}
                         };
 
