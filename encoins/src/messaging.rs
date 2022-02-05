@@ -1,16 +1,22 @@
 //! A simple module to manage communications between processes
 
+use std::net::SocketAddr;
 use std::sync::mpsc::{Sender};
 use crate::message::{Message, MessageType};
 use crate::iocommunication::{IOComm};
 use crate::{log};
 use crate::process::Process;
 use crate::crypto::SignedMessage;
+use crate::serv_network::send;
 
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
-pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
+pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, server_addr : &Vec<SocketAddr>, message: SignedMessage)
 {
+    for addr in server_addr {
+        let message_copy = message.clone();
+        send(addr,message_copy);
+    }
     for transmitter in transmitters
     {
         let message_copy = message.clone();
@@ -164,7 +170,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
                                 my_msg.message_type = MessageType::Echo;
                                 my_msg.sender_id = proc_id;
                                 log!(proc_id, "Broadcasting echo message to everyone.");
-                                broadcast(&process.get_senders(), my_msg.clone().sign(process.get_key_pair()));
+                                broadcast(&process.get_senders(), process.get_serv_addr() ,my_msg.clone().sign(process.get_key_pair()));
                                 echos[proc_id as usize] = Some(my_msg.clone());
                             }
                         Some(_) =>
@@ -207,7 +213,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
             my_msg.message_type = MessageType::Ready;
             my_msg.sender_id = proc_id;
             log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
-            broadcast(&process.get_senders(), my_msg.clone().sign(process.get_key_pair()) );
+            broadcast(&process.get_senders(),process.get_serv_addr() , my_msg.clone().sign(process.get_key_pair()) );
             ready[proc_id as usize] = Some(my_msg.clone());
             ready_sent = true;
         }

@@ -155,7 +155,7 @@ impl Process {
         //println!("Message {:#?}",message);
 
         // And then broadcast between all processes
-        broadcast(&self.senders,  message);
+        broadcast(&self.senders, &self.serv_addr,  message);
         // The history is updated and transfer are now blocked
         println!("3");
         self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
@@ -301,6 +301,11 @@ impl Process {
     pub fn get_senders(&self) -> &Vec<Sender<SignedMessage>>
     {
         &(self.senders)
+    }
+
+    pub fn get_serv_addr(&self) -> &Vec<SocketAddr>
+    {
+        &(self.serv_addr)
     }
 
     pub fn get_mainsender(&self) -> &Sender<IOComm>
