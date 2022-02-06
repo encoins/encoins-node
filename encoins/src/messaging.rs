@@ -13,15 +13,20 @@ use crate::serv_network::send;
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
 pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, server_addr : &Vec<SocketAddr>, message: SignedMessage)
 {
+
     for addr in server_addr {
         let message_copy = message.clone();
+        //  println!("send {} to {}", message_copy,addr);
         send(addr,message_copy);
     }
+
+/*
     for transmitter in transmitters
     {
         let message_copy = message.clone();
         transmitter.send(message_copy).unwrap();
     }
+*/
 
 }
 
@@ -32,20 +37,22 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
     let sender_id = signed_message.message.sender_id;
     let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
 
-    match unsigned_message
+        match unsigned_message
     {
         Ok(msg) =>
             {
+                println!("{:?}",msg);
                 match msg.message_type
                 {
                     MessageType::Init =>
                         {
                             secure_broadcast(process, msg);}
-                    _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
+                    _ => {  log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
                 }
             }
 
-        Err(error) => {log!(proc_id, "Error while checking signature : {}", error); }
+        Err(error) => { println!("wrong sig");
+            log!(proc_id, "Error while checking signature : {}", error); }
     }
 
 }
@@ -151,6 +158,8 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
 
     log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
 
+    println!("debut secure bdc");
+
     // While not enough processes are ready
     while !quorum(&ready, (2*nb_process)/3, &actu_msg)
     {
@@ -163,6 +172,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
         {
             MessageType::Init => 
                 {
+                    println!("ça part {} ",proc_id);
                     match &echos[proc_id as usize]
                     {
                         None =>
@@ -171,6 +181,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
                                 my_msg.sender_id = proc_id;
                                 log!(proc_id, "Broadcasting echo message to everyone.");
                                 broadcast(&process.get_senders(), process.get_serv_addr() ,my_msg.clone().sign(process.get_key_pair()));
+                                println!("c'est parti {}",proc_id);
                                 echos[proc_id as usize] = Some(my_msg.clone());
                             }
                         Some(_) =>
@@ -182,13 +193,17 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
             
             MessageType::Echo =>
                 {
+
                     log!(proc_id, "Received an echo message from {}", actu_msg.sender_id);
+                    println!(" {} Received an echo message from {}",proc_id, actu_msg.sender_id);
                     echos[actu_msg.sender_id as usize] = Some(actu_msg.clone());
                 }
             
             MessageType::Ready =>
                 {
                     log!(proc_id, "Received a ready message from {}", actu_msg.sender_id);
+                    println!(" {} Received an ready message from {}",proc_id, actu_msg.sender_id);
+
                     ready[actu_msg.sender_id as usize] = Some(actu_msg.clone());
                 }
         }
@@ -212,6 +227,7 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
             // Broadcast a ready msg
             my_msg.message_type = MessageType::Ready;
             my_msg.sender_id = proc_id;
+            println!("{} I am ready to accept a message. Broadcasting it to everyone.",proc_id);
             log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
             broadcast(&process.get_senders(),process.get_serv_addr() , my_msg.clone().sign(process.get_key_pair()) );
             ready[proc_id as usize] = Some(my_msg.clone());
@@ -222,12 +238,12 @@ fn secure_broadcast(process: &mut Process, init_msg: Message)
         loop
         {
             // Actualize the actual message
-            let tmp = process.get_receiver().recv().unwrap();
+            let tmp = process.get_serv_net_receiver().recv().unwrap();
             let sender_id = tmp.message.sender_id;
             match tmp.verif_sig(process.get_pub_key(sender_id))
             {
                 Ok( msg ) => { actu_msg = msg; break; }
-                Err( error ) => { log!(proc_id, "Error while checking signature : {}", error); }
+                Err( error ) => { println!("wrong sig"); log!(proc_id, "Error while checking signature : {}", error); }
             }
         }
 

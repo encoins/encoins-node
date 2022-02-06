@@ -181,7 +181,8 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
             thread::spawn(move ||
                 {
                     let proc_id = i;
-                    let mut proc = process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
+                    let (serv_net_sender,serv_net_receiver) = mpsc::channel();
+                    let mut proc = process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key,serv_net_receiver);
                     log!(proc_id, "Thread initialized correctly");
                     // Main loop for a process
 
@@ -192,10 +193,10 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         client_listener(client_socket, iosender);
                     });
 
-                    let (msgsender,msgreceiver) = mpsc::channel();
+
                     let server_socket = proc.get_server_socket();
                     thread::spawn( move ||{
-                        server_listener(server_socket, msgsender);
+                        server_listener(server_socket, serv_net_sender);
                     });
 
 
@@ -205,7 +206,17 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let receiver = proc.get_receiver();
                         let comm = receiver.try_recv();
                         match comm {
-                            Ok(message) => {messaging::deal_with_message(&mut proc, message)}
+                            Ok(message) => {// println!(" {} received {:?} from receiver", i, message);
+                                messaging::deal_with_message(&mut proc, message)}
+                            Err(_) => {()}
+                        };
+
+                        // Then check messages with other processes from network
+                        let serv_net_receiver = proc.get_serv_net_receiver();
+                        let comm = serv_net_receiver.try_recv();
+                        match comm {
+                            Ok(message) => { println!(" {} received {:?} from msgreceiver", i, message);
+                                messaging::deal_with_message(&mut proc, message)}
                             Err(_) => {()}
                         };
 
@@ -232,16 +243,16 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                 }
             );
 
-        } else {
+        } else { /*
             // Create a byzantine process. At this point byzantine threads represent crashed process. In the future, they should include malicious processus
             thread::spawn(move || {
                 let proc_id = i;
-                process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key);
+                process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key,);
                 log!(proc_id, "Thread initialized correctly as byzantine");
                 loop {
                     thread::sleep(Duration::from_secs(10));
                 }
-            });
+            }); */
         }
     }
 
