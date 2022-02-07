@@ -1,22 +1,19 @@
 //! A simple module to manage communications between processes
 
 use std::net::SocketAddr;
+use std::collections::HashMap;
 use std::sync::mpsc::{Sender};
-use crate::message::{Message, MessageType};
+use crate::message::{MessageType};
 use crate::iocommunication::{IOComm};
-use crate::{log};
+use crate::{Broadcast, log, UserId};
+use crate::broadcast::init_broadcast;
 use crate::process::Process;
 use crate::crypto::SignedMessage;
-use crate::serv_network::send;
 
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
-pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, server_addr : &Vec<SocketAddr>, message: SignedMessage)
+pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
 {
-    for addr in server_addr {
-        let message_copy = message.clone();
-        send(addr,message_copy);
-    }
     for transmitter in transmitters
     {
         let message_copy = message.clone();
@@ -26,7 +23,7 @@ pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, server_addr : &Vec<
 }
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
-pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage)
+pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage, ongoing_broadcasts: &mut HashMap<UserId, Broadcast>)
 {
     let proc_id = process.get_id();
     let sender_id = signed_message.message.sender_id;
@@ -40,8 +37,84 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                 {
                     MessageType::Init =>
                         {
-                            secure_broadcast(process, msg);}
-                    _ => { log!(proc_id, "Received a message with message type different than \"init\". It is either a reminiscence from last broadcast or something is going wrong!"); }
+                            if msg.sender_id != msg.transaction.sender_id
+                            {
+                                log!(proc_id, "Process {} tried to usurp {} by initiating a transfer in its name", msg.sender_id, msg.transaction.sender_id );
+                                return;
+                            }
+                            else
+                            {
+                                match ongoing_broadcasts.contains_key(&msg.sender_id)
+                                {
+
+                                    true =>
+                                        {
+                                            // Only one broadcast per account is allowed at the same time
+                                            log!(proc_id, "There is already an ongoing broadcast from user id {}!", msg.sender_id);
+                                            return;
+                                        }
+                                    false =>
+                                        {
+                                            // Create the broadcast instance
+                                            let nb_process = process.get_senders().len() as usize;
+                                            ongoing_broadcasts.insert(msg.sender_id, init_broadcast(msg.sender_id as usize, nb_process ));
+                                            log!(proc_id,"Started broadcast for process id {}", msg.sender_id);
+
+                                            // Echo the message
+                                            let mut echo_msg = msg.clone();
+                                            echo_msg.sender_id = proc_id;
+                                            echo_msg.message_type = MessageType::Echo;
+                                            let signed_echo_msg = echo_msg.sign(process.get_key_pair());
+                                            log!(proc_id,"Broadcasting echo message to everyone!");
+                                            broadcast(&process.get_senders(), signed_echo_msg);
+                                        }
+                                }
+                            }
+                        }
+                    _ =>
+                        {
+                            match ongoing_broadcasts.get_mut(&msg.transaction.sender_id)
+                            {
+                                None =>
+                                    {
+                                        log!(proc_id, "No ongoing broadcast for proc id {} .", msg.transaction.sender_id);
+                                    }
+                                Some(brb) =>
+                                    {
+                                        log!(proc_id, "{}", brb.add_message(msg.clone()));
+
+                                        if brb.is_ready() && !brb.ready_message_sent()
+                                        {
+                                            log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
+                                            brb.set_ready_message_sent(true);
+                                            let mut ready_msg = msg.clone();
+                                            ready_msg.sender_id = proc_id;
+                                            ready_msg.message_type = MessageType::Ready;
+                                            let signed_rd_msg = ready_msg.sign(process.get_key_pair());
+                                            broadcast(process.get_senders(), signed_rd_msg);
+                                        }
+
+                                        if brb.quorum_found()
+                                        {
+                                            log!(proc_id, "Quorum was achieved. I can add the message to transactions to process.");
+                                            // Tell main_thread I am ready to process transaction
+                                            if msg.transaction.receiver_id == proc_id
+                                            {
+                                                process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, msg.transaction))}).unwrap();
+                                            }
+
+                                            // Remove thr associated broadcast
+                                            log!(proc_id, "Removing current transaction from ongoing broadcasts");
+                                            ongoing_broadcasts.remove(&msg.transaction.sender_id);
+
+                                            // Save the message
+                                            process.in_to_validate(msg);
+
+
+                                        }
+                                    }
+                            }
+                        }
                 }
             }
 
@@ -120,154 +193,4 @@ pub(crate) fn deal_with_iocomm(process: &mut Process, comm: IOComm)
                 log!(proc_id,"Received an output message when I should not be receiving any.. Something is going wrong!");
             }
     }
-}
-
-
-/// An advanced broadcast function that is entered by any process when receiving an [`MessageType::Init`] message.
-///
-/// # Warning
-///
-/// This function works only if there are less than 1/3 of the whole process which are byzantine.
-/// If there are more than 1/3 of byzantine process amongst all the process, then the function has
-/// undefined behavior : it can not terminate or can deliver a wrong message.
-///
-/// # Properties
-///
-/// This function implement the Byzantine Reliable Broadcast protocol that has the following properties when less than 1/3 of all process are byzantine:
-/// - Validity       : If a correct process `p` broadcast a message `m`, then every correct process eventually delivers `m` ;
-/// - No duplication : Every correct process delivers at most one message ;
-/// - Integrity      : If some correct process delivers a message `m` with sender `p` and process `p` is correct, then `m` was previously broadcast by `p`;
-/// - Consistency    : If some correct process delivers a message `m` and another correct process delivers a message `m'` , then m = `m'`;
-/// - Totality       : If some message is delivered by any correct process, every correct process eventually delivers a message.
-fn secure_broadcast(process: &mut Process, init_msg: Message)
-{
-    // Initialization
-    let nb_process = process.get_senders().len() as usize;
-    let proc_id = process.get_id();
-    let mut echos: Vec<Option<Message>> = vec![None; nb_process];
-    let mut ready: Vec<Option<Message>> = vec![None; nb_process];
-    let mut actu_msg: Message = init_msg.clone();
-    let mut ready_sent = false;
-
-    log!(proc_id, "Entered the Byzantine Broadcast. Processing it...");
-
-    // While not enough processes are ready
-    while !quorum(&ready, (2*nb_process)/3, &actu_msg)
-    {
-        // Create a new message ready to be sent/saved
-        let mut my_msg = actu_msg.clone();
-        my_msg.sender_id = proc_id;
-
-        // Treat the actual message
-        match actu_msg.message_type
-        {
-            MessageType::Init => 
-                {
-                    match &echos[proc_id as usize]
-                    {
-                        None =>
-                            {
-                                my_msg.message_type = MessageType::Echo;
-                                my_msg.sender_id = proc_id;
-                                log!(proc_id, "Broadcasting echo message to everyone.");
-                                broadcast(&process.get_senders(), process.get_serv_addr() ,my_msg.clone().sign(process.get_key_pair()));
-                                echos[proc_id as usize] = Some(my_msg.clone());
-                            }
-                        Some(_) =>
-                            {
-                                panic!("Somebody sent an init message into a brb, two brb cannot be executed at the same time yet");
-                            }
-                    }
-                }
-            
-            MessageType::Echo =>
-                {
-                    log!(proc_id, "Received an echo message from {}", actu_msg.sender_id);
-                    echos[actu_msg.sender_id as usize] = Some(actu_msg.clone());
-                }
-            
-            MessageType::Ready =>
-                {
-                    log!(proc_id, "Received a ready message from {}", actu_msg.sender_id);
-                    ready[actu_msg.sender_id as usize] = Some(actu_msg.clone());
-                }
-        }
-
-        // Manage ready messages : if no ready msgs were sent yet and enough echos/ready msgs were received
-
-        let send_ready = match &ready[proc_id as usize]
-        {
-            None =>
-                {
-                    quorum(&echos,(2*nb_process)/3, &actu_msg)
-                }
-            Some(_) =>
-                {
-                    quorum(&ready, nb_process/3, &actu_msg)
-                }
-        };
-
-        if send_ready && !ready_sent
-        {
-            // Broadcast a ready msg
-            my_msg.message_type = MessageType::Ready;
-            my_msg.sender_id = proc_id;
-            log!(proc_id, "I am ready to accept a message. Broadcasting it to everyone.");
-            broadcast(&process.get_senders(),process.get_serv_addr() , my_msg.clone().sign(process.get_key_pair()) );
-            ready[proc_id as usize] = Some(my_msg.clone());
-            ready_sent = true;
-        }
-
-        // loop while the signed message is wrong
-        loop
-        {
-            // Actualize the actual message
-            let tmp = process.get_receiver().recv().unwrap();
-            let sender_id = tmp.message.sender_id;
-            match tmp.verif_sig(process.get_pub_key(sender_id))
-            {
-                Ok( msg ) => { actu_msg = msg; break; }
-                Err( error ) => { log!(proc_id, "Error while checking signature : {}", error); }
-            }
-        }
-
-
-    }
-
-    log!(proc_id, "Quorum was achieved. I can add the message to transactions to process.");
-    // Tell main_thread I am ready to process transaction
-    if actu_msg.transaction.receiver_id == proc_id
-    {
-        process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, actu_msg.transaction))}).unwrap();
-    }
-    // Save the message
-    process.in_to_validate(actu_msg);
-}
-
-
-/// Returns a boolean stating whether a quorum of more than k messages has been found for a given message
-fn quorum(tab: &Vec<Option<Message>>, k: usize, ref_msg: &Message) -> bool
-{
-    nb_occs(tab, ref_msg) > k
-}
-
-/// Returns the number of occurrences of the given [`Message`] in a vector of messages
-fn nb_occs(tab: &Vec<Option<Message>>, ref_msg: &Message) -> usize
-{
-    let mut nb_occs = 0;
-    for opt_mes in tab
-    {
-        match opt_mes
-        {
-            None => {}
-            Some(message) =>
-                {
-                    if ref_msg == message
-                    {
-                        nb_occs +=1;
-                    }
-                }
-        }
-    }
-    nb_occs
 }

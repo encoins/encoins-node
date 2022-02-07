@@ -11,6 +11,7 @@ use crate::messaging::broadcast;
 use crate::log;
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
+use crate::messaging::broadcast;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 
 
@@ -28,16 +29,17 @@ pub struct Process
     /// Every process has a unique ID
     /// In our current implementation we consider that there exist an (nb_process + 1) = N th process with ID : 0 ( the well process )
     id_proc : UserId,
-    /// List of size N such as seq(q) = number of validated transfers outgoing from q
+    /// List of size N such that seq(q) = number of validated transfers outgoing from q
     seq : List,
-    /// List of size N such as seq(q) = number of delivered transfers from q
+    /// List of size N such that seq(q) = number of delivered transfers from q
     rec : List,
-    /// List of size N such as hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
+    /// List of size N such that hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
     hist : HashMap<UserId,TransferSet>,
     /// Set of last incoming transfers of local process
     deps : TransferSet,
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
+    /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
     serv_addr : Vec<SocketAddr>,
     /// List of N transmitters such as senders(q) is the transmitter that allow to communicate with process q
     senders : Vec<Sender<SignedMessage>>,
@@ -47,7 +49,7 @@ pub struct Process
     output_to_main : Sender<IOComm>,
     /// Receiver to receive instructions from the main process
     input_from_main : Receiver<IOComm>,
-    /// List of size N such as public_key(q) is the public_key of the process q
+    /// List of size N such that public_key(q) is the public_key of the process q
     public_keys : Vec<PublicKey>,
     /// Keypair of private key required to sign messages and the public key associated with
     secret_key : Keypair,
@@ -59,8 +61,8 @@ pub struct Process
 
 
 impl Process {
-    /// The function which initialise a [Process] given its ID, N the number of processes, the list of senders, its receiver, a transmitter and receiver to communicate with the main, the list of public keys and its secret_key (Keypair)
-    /// Other field are initialised such that:
+    /// Function which initialises a [Process] given its ID, N the number of processes, the list of senders, its receiver, a transmitter and receiver to communicate with the main, the list of public keys and its secret_key (Keypair)
+    /// Other fields are initialised such that:
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
@@ -129,6 +131,7 @@ impl Process {
             log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
             return false
         }
+
         // Then a transaction is created in accordance to the white paper
         let transaction = Transaction {
             seq_id: match self.seq.get(&user_id) {
@@ -163,13 +166,15 @@ impl Process {
         true
     }
 
+    /// Function that returns the balance of money owned by the process
+    pub fn read(&self) -> Currency
     /// The function that returns the balance of money owned by the process
     pub fn read(&self,user : UserId) -> Currency
     {
         return Process::balance(user, &self.history_for(&user))
     }
 
-    /// The function that given a set of transfer and an ID returns the balance of money earned by the process a
+    /// Function that given a set of transfer and an ID returns the balance of money earned by the process a
     /// i.e the sum of incoming amount minus the sum of outgoing amount
     fn balance( a: UserId, h: &TransferSet) -> Currency
     {
@@ -234,6 +239,8 @@ impl Process {
         }
     }
 
+    /// The function tests if a message is validated by the process
+    fn is_valid(&self, message : &Message) -> bool{
     /// The function test if a message is validated by the process
     fn is_valid(& self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
@@ -244,7 +251,6 @@ impl Process {
         let assert3 = Process::balance(message.transaction.sender_id, &self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
-
 
         let mut assert4 = true;
 
@@ -286,11 +292,10 @@ impl Process {
         self.seq.get(&(id as u32)) as SeqId
     }
 
-
     #[allow(dead_code)]
     pub fn incr_rec(&mut self, id:usize)
     {
-        *self.rec.entry(id as u32) +=1;
+        self.rec[id] +=1;
     }
     */
 
@@ -299,7 +304,7 @@ impl Process {
         &(self.receiver)
     }
 
-    pub fn get_maireceiver(&self) -> &Receiver<IOComm>
+    pub fn get_main_receiver(&self) -> &Receiver<IOComm>
     {
         &(self.input_from_main)
     }
