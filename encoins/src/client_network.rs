@@ -8,7 +8,8 @@ use crate::instructions::Instruction;
 use crate::IOComm;
 
 fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instruction>) {
-    loop {
+    loop
+    {
 
         let mut buf = &mut [0; 200];
 

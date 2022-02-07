@@ -3,6 +3,7 @@ use crate::base_types::{Currency, UserId};
 use crate::process::Process;
 use serde::Deserialize;
 use crate::response::Response;
+use crate::log;
 
 #[derive(Clone,Deserialize,Debug)]
 pub struct Transfer {
@@ -41,12 +42,12 @@ pub fn deal_with_instruction(process: &mut Process, instruction : Instruction) -
     let proc_id = process.get_id();
     match instruction {
         Instruction::Balance {user} => {
-            println!("balance incoming");
+            log!(process, "balance incoming");
             let balance = process.output_balance_for(user);
             Response::Balance(balance)
         }
         Instruction::SignedTransfer {transfer,signature} => {
-            println!("transfer incoming");
+            log!(process,"transfer incoming");
             let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
             Response::Transfer(suceed)
         }

@@ -7,7 +7,6 @@ use serde::{Serialize,Deserialize};
 
 
 
-
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction and a message type
 #[derive(Clone,Debug,Serialize,Deserialize)]

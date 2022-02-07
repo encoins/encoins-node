@@ -1,5 +1,4 @@
 //! A simple module to manage communications between processes
-
 use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender};
@@ -12,7 +11,7 @@ use crate::crypto::SignedMessage;
 
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
-pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
+/*pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
 {
     for transmitter in transmitters
     {
@@ -20,6 +19,16 @@ pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMess
         transmitter.send(message_copy).unwrap();
     }
 
+}*/
+
+pub fn broadcast( server_addr : &Vec<SocketAddr> , message : SignedMessage)
+{
+
+    for addr in server_addr {
+        let message_copy = message.clone();
+        //  println!("send {} to {}", message_copy,addr);
+        crate::serv_network::send(addr, message_copy);
+    }
 }
 
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
@@ -66,7 +75,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                             echo_msg.message_type = MessageType::Echo;
                                             let signed_echo_msg = echo_msg.sign(process.get_key_pair());
                                             log!(proc_id,"Broadcasting echo message to everyone!");
-                                            broadcast(&process.get_senders(), signed_echo_msg);
+                                            broadcast(&process.get_serv_addr(), signed_echo_msg);
                                         }
                                 }
                             }
@@ -91,7 +100,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                             ready_msg.sender_id = proc_id;
                                             ready_msg.message_type = MessageType::Ready;
                                             let signed_rd_msg = ready_msg.sign(process.get_key_pair());
-                                            broadcast(process.get_senders(), signed_rd_msg);
+                                            broadcast(process.get_serv_addr(), signed_rd_msg);
                                         }
 
                                         if brb.quorum_found()

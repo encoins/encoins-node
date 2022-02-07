@@ -226,7 +226,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
 
                         let instruction = ioreceiver.try_recv();
                         match instruction {
-                            Ok(instruct) => { println!("{}",instruct);
+                            Ok(instruct) => { log!(proc_id,"Received instruction : {}",instruct);
                                 instructions::deal_with_instruction(&mut proc, instruct);}
                             Err(_) => {()}
                         };

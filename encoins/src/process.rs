@@ -11,7 +11,6 @@ use crate::messaging::broadcast;
 use crate::log;
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
-use crate::messaging::broadcast;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 
 
@@ -158,7 +157,8 @@ impl Process {
         //println!("Message {:#?}",message);
 
         // And then broadcast between all processes
-        broadcast(&self.senders, &self.serv_addr,  message);
+        broadcast(/*&self.senders,*/ &self.serv_addr,  message);
+
         // The history is updated and transfer are now blocked
         println!("3");
         self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
@@ -166,8 +166,6 @@ impl Process {
         true
     }
 
-    /// Function that returns the balance of money owned by the process
-    pub fn read(&self) -> Currency
     /// The function that returns the balance of money owned by the process
     pub fn read(&self,user : UserId) -> Currency
     {
@@ -239,9 +237,7 @@ impl Process {
         }
     }
 
-    /// The function tests if a message is validated by the process
-    fn is_valid(&self, message : &Message) -> bool{
-    /// The function test if a message is validated by the process
+    /// Function that tests if a message is validated by the process
     fn is_valid(& self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
