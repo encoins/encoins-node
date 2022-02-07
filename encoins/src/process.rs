@@ -55,7 +55,8 @@ pub struct Process
     /// Flag to know if the process has already send a transfer that it has not yet validate
     ongoing_transfer : HashMap<UserId,bool>,
     client_socket : SocketAddr,
-    server_socket : SocketAddr
+    server_socket : SocketAddr,
+    serv_net_receiver : Receiver<SignedMessage>
 }
 
 
@@ -65,7 +66,7 @@ impl Process {
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<SignedMessage>>, receiver : Receiver<SignedMessage>, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair) -> Process {
+    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<SignedMessage>>, receiver : Receiver<SignedMessage>, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair, serv_net_receiver : Receiver<SignedMessage>) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
         let first_transaction : Transaction = Transaction {
@@ -103,7 +104,8 @@ impl Process {
             serv_addr,
             secret_key,
             client_socket,
-            server_socket
+            server_socket,
+            serv_net_receiver
         }
     }
 
@@ -248,6 +250,7 @@ impl Process {
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
 
+
         let mut assert4 = true;
 
         for dependence in &message.dependencies {
@@ -288,6 +291,7 @@ impl Process {
         self.seq.get(&(id as u32)) as SeqId
     }
 
+
     #[allow(dead_code)]
     pub fn incr_rec(&mut self, id:usize)
     {
@@ -301,6 +305,12 @@ impl Process {
     }
 
     pub fn get_main_receiver(&self) -> &Receiver<IOComm>
+    pub fn get_serv_net_receiver(&self) -> &Receiver<SignedMessage>
+    {
+        &(self.serv_net_receiver)
+    }
+
+    pub fn get_maireceiver(&self) -> &Receiver<IOComm>
     {
         &(self.input_from_main)
     }

@@ -1,4 +1,5 @@
 //! A simple module to manage communications between processes
+
 use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender};
@@ -13,6 +14,10 @@ use crate::crypto::SignedMessage;
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
 /*pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
 {
+    for addr in server_addr {
+        let message_copy = message.clone();
+        send(addr,message_copy);
+    }
     for transmitter in transmitters
     {
         let message_copy = message.clone();
@@ -38,7 +43,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
     let sender_id = signed_message.message.sender_id;
     let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
 
-    match unsigned_message
+        match unsigned_message
     {
         Ok(msg) =>
             {
@@ -127,7 +132,8 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                 }
             }
 
-        Err(error) => {log!(proc_id, "Error while checking signature : {}", error); }
+        Err(error) => { println!("wrong sig");
+            log!(proc_id, "Error while checking signature : {}", error); }
     }
 
 }
