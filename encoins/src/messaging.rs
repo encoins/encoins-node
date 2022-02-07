@@ -51,7 +51,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                 {
                     MessageType::Init =>
                         {
-                            if msg.sender_id != msg.transaction.sender_id
+                            if false //msg.sender_id != msg.transaction.sender_id
                             {
                                 log!(proc_id, "Process {} tried to usurp {} by initiating a transfer in its name", msg.sender_id, msg.transaction.sender_id );
                                 return;
@@ -71,8 +71,8 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                         {
                                             // Create the broadcast instance
                                             let nb_process = process.get_senders().len() as usize;
-                                            ongoing_broadcasts.insert(msg.sender_id, init_broadcast(msg.sender_id as usize, nb_process ));
-                                            log!(proc_id,"Started broadcast for process id {}", msg.sender_id);
+                                            ongoing_broadcasts.insert(msg.transaction.sender_id, init_broadcast(msg.sender_id as usize, nb_process ));
+                                            log!(proc_id,"Started broadcast for account id {}", msg.sender_id);
 
                                             // Echo the message
                                             let mut echo_msg = msg.clone();

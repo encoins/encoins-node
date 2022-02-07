@@ -305,12 +305,6 @@ impl Process {
     }
 
     pub fn get_main_receiver(&self) -> &Receiver<IOComm>
-    pub fn get_serv_net_receiver(&self) -> &Receiver<SignedMessage>
-    {
-        &(self.serv_net_receiver)
-    }
-
-    pub fn get_maireceiver(&self) -> &Receiver<IOComm>
     {
         &(self.input_from_main)
     }
@@ -423,6 +417,11 @@ impl Process {
     pub fn get_key_pair(&self) -> &Keypair
     {
         return &self.secret_key
+    }
+
+    pub fn get_serv_net_receiver(&self) -> &Receiver<SignedMessage>
+    {
+        &(self.serv_net_receiver)
     }
 
 }

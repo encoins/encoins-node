@@ -211,9 +211,9 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let receiver = proc.get_receiver();
                         let comm = receiver.try_recv();
                         match comm {
-                            Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
+                            //Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
                             Ok(message) => {// println!(" {} received {:?} from receiver", i, message);
-                                messaging::deal_with_message(&mut proc, message)}
+                                messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
                             Err(_) => {()}
                         };
 
@@ -222,7 +222,16 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let comm = serv_net_receiver.try_recv();
                         match comm {
                             Ok(message) => { println!(" {} received {:?} from msgreceiver", i, message);
-                                messaging::deal_with_message(&mut proc, message)}
+                                messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
+                            Err(_) => {()}
+                        };
+
+                        // Then check messages with other processes from network
+                        let serv_net_receiver = proc.get_serv_net_receiver();
+                        let comm = serv_net_receiver.try_recv();
+                        match comm {
+                            Ok(message) => { println!(" {} received {:?} from msg receiver", i, message);
+                                messaging::deal_with_message(&mut proc, message,&mut ongoing_broadcasts)}
                             Err(_) => {()}
                         };
 

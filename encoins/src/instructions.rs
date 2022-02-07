@@ -42,12 +42,12 @@ pub fn deal_with_instruction(process: &mut Process, instruction : Instruction) -
     let proc_id = process.get_id();
     match instruction {
         Instruction::Balance {user} => {
-            log!(process, "balance incoming");
+            log!(process.get_id(), "balance incoming");
             let balance = process.output_balance_for(user);
             Response::Balance(balance)
         }
         Instruction::SignedTransfer {transfer,signature} => {
-            log!(process,"transfer incoming");
+            log!(process.get_id(),"transfer incoming");
             let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
             Response::Transfer(suceed)
         }
