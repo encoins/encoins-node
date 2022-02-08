@@ -70,7 +70,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                     false =>
                                         {
                                             // Create the broadcast instance
-                                            let nb_process = process.get_senders().len() as usize;
+                                            let nb_process = (process.nb_process + 1 )as usize; // +1 for the well process (to be changed)
                                             ongoing_broadcasts.insert(msg.transaction.sender_id, init_broadcast(msg.sender_id as usize, nb_process ));
                                             log!(proc_id,"Started broadcast for account id {}", msg.sender_id);
 

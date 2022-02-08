@@ -40,10 +40,6 @@ pub struct Process
     to_validate : MessageSet,
     /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
     serv_addr : Vec<SocketAddr>,
-    /// List of N transmitters such as senders(q) is the transmitter that allow to communicate with process q
-    senders : Vec<Sender<SignedMessage>>,
-    /// Receiver that other processes can use to communicate with the process
-    receiver : Receiver<SignedMessage>,
     /// Sender to communicate with the main process ( which is used for input/output )
     output_to_main : Sender<IOComm>,
     /// Receiver to receive instructions from the main process
@@ -56,7 +52,8 @@ pub struct Process
     ongoing_transfer : HashMap<UserId,bool>,
     client_socket : SocketAddr,
     server_socket : SocketAddr,
-    serv_net_receiver : Receiver<SignedMessage>
+    serv_net_receiver : Receiver<SignedMessage>,
+    pub nb_process : u32
 }
 
 
@@ -66,7 +63,7 @@ impl Process {
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
-    pub fn init(id : UserId, nb_process : u32, senders : Vec<Sender<SignedMessage>>, receiver : Receiver<SignedMessage>, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair, serv_net_receiver : Receiver<SignedMessage>) -> Process {
+    pub fn init(id : UserId, nb_process : u32, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair, serv_net_receiver : Receiver<SignedMessage>) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
         let first_transaction : Transaction = Transaction {
@@ -95,8 +92,6 @@ impl Process {
             hist : s,
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
-            senders,
-            receiver,
             ongoing_transfer ,
             output_to_main,
             input_from_main,
@@ -105,7 +100,8 @@ impl Process {
             secret_key,
             client_socket,
             server_socket,
-            serv_net_receiver
+            serv_net_receiver,
+            nb_process
         }
     }
 
@@ -115,10 +111,8 @@ impl Process {
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
 
-        println!("la moula");
         if  ! (user_id == 0) && self.read(user_id) < amount
         {
-            println!("t'es mort");
             let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
             self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
             log!(self.id_proc, "I refused to start the transfer because I don't have enough money on my account");
@@ -126,7 +120,6 @@ impl Process {
         }
         if *self.ongoing_transfer.get(&user_id).unwrap() == true
         {
-            println!("no");
             let returned_string = format!("[Process {}] : I have not validated my previous transfer yet", self.id_proc );
             self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
             log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
@@ -143,7 +136,7 @@ impl Process {
             receiver_id,
             amount,
         };
-        println!("1");
+
         // Which is encapsulated in an Init Message
         let message  = Message {
                 transaction,
@@ -153,7 +146,7 @@ impl Process {
             };
 
         // Then the message is signed
-        println!("2");
+
         let message = message.sign(&self.secret_key);
 
         //println!("Message {:#?}",message);
@@ -162,7 +155,7 @@ impl Process {
         broadcast(/*&self.senders,*/ &self.serv_addr,  message);
 
         // The history is updated and transfer are now blocked
-        println!("3");
+
         self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
         *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
         true
@@ -299,20 +292,11 @@ impl Process {
     }
     */
 
-    pub fn get_receiver(&self) -> &Receiver<SignedMessage>
-    {
-        &(self.receiver)
-    }
-
     pub fn get_main_receiver(&self) -> &Receiver<IOComm>
     {
         &(self.input_from_main)
     }
 
-    pub fn get_senders(&self) -> &Vec<Sender<SignedMessage>>
-    {
-        &(self.senders)
-    }
 
     pub fn get_serv_addr(&self) -> &Vec<SocketAddr>
     {

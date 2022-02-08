@@ -144,9 +144,6 @@ fn main()
 /// Function that initializes threads. Each thread runs the code for one Processus.
 fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
 
-    // Create the sender/receiver pairs used by threads to communicate messages
-    let (senders, mut receivers): (Vec<Sender<SignedMessage>>, Vec<Receiver<SignedMessage>>) = (0..nb_process+1).into_iter().map(|_| mpsc::channel()).unzip();
-    receivers.reverse();
 
     // Create sender/receiver pair to communicate messages between process threads and main thread
     let (transmitter_to_main,receiver_of_main) = mpsc::channel();
@@ -163,13 +160,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
         let (transmitter_of_main,receiver_from_main) = mpsc::channel();
         main_transmitters.push(transmitter_of_main);
 
-        // The list of all transmitters with the convention :
-        // thread_senders[0] = main and thread_senders[i] = transmitter to i for i > 0
-        let thread_receiver = match receivers.pop() {
-            None => {  panic!("Receiver initialisation went wrong during initialization of thread {}",i) }
-            Some(x) => {x}
-        };
-        let thread_senders= senders.clone();
+
         let main_sender = transmitter_to_main.clone();
 
         let secret_key = match secret_keys.pop() {
@@ -186,7 +177,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                 {
                     let proc_id = i;
                     let (serv_net_sender,serv_net_receiver) = mpsc::channel();
-                    let mut proc = process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key,serv_net_receiver);
+                    let mut proc = process::Process::init(proc_id, nb_process, main_sender, receiver_from_main, public_keys, secret_key,serv_net_receiver);
                     log!(proc_id, "Thread initialized correctly");
                     let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
                     // Main loop for a process
@@ -207,17 +198,8 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
 
                     loop
                     {
-                        // First check messages with other processes
-                        let receiver = proc.get_receiver();
-                        let comm = receiver.try_recv();
-                        match comm {
-                            //Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
-                            Ok(message) => {// println!(" {} received {:?} from receiver", i, message);
-                                messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
-                            Err(_) => {()}
-                        };
 
-                        // Then check messages with other processes from network
+                        // First check messages with other processes from network
                         let serv_net_receiver = proc.get_serv_net_receiver();
                         let comm = serv_net_receiver.try_recv();
                         match comm {
