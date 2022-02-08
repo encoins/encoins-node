@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::sync::mpsc::Sender;
 use crate::base_types::{Currency, UserId};
 use crate::process::Process;
 use serde::Deserialize;
@@ -25,6 +26,21 @@ pub enum Instruction {
 }
 
 
+pub struct RespInstruction {
+    pub instruction : Instruction,
+    pub resp_sender : Sender<Response>
+}
+
+impl RespInstruction {
+    pub fn from(instruction : Instruction, resp_sender : Sender<Response>) -> RespInstruction {
+        RespInstruction {
+            instruction,
+            resp_sender
+        }
+    }
+}
+
+
 
 impl Display for Instruction
 {
@@ -38,18 +54,22 @@ impl Display for Instruction
     }
 }
 
-pub fn deal_with_instruction(process: &mut Process, instruction : Instruction) -> Response {
+pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstruction) {
     let proc_id = process.get_id();
+    let instruction = resp_instruction.instruction;
+    let resp_sender = resp_instruction.resp_sender;
     match instruction {
         Instruction::Balance {user} => {
             log!(process.get_id(), "balance incoming");
             let balance = process.output_balance_for(user);
-            Response::Balance(balance)
+            resp_sender.send(Response::Balance(balance));
+
         }
         Instruction::SignedTransfer {transfer,signature} => {
             log!(process.get_id(),"transfer incoming");
             let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
-            Response::Transfer(suceed)
+            resp_sender.send(Response::Transfer(suceed));
+
         }
     }
 }

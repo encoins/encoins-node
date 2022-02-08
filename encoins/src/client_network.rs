@@ -1,13 +1,17 @@
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
 use std::io::{Read, Write};
+use std::sync::mpsc;
 use std::thread;
 use bincode::deserialize;
 use serde::Deserialize;
-use crate::instructions::Instruction;
+use crate::instructions::{Instruction, RespInstruction};
 use crate::IOComm;
 
-fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instruction>) {
+fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstruction>) {
+
+    let (resp_sender,resp_receiver) = mpsc::channel();
+
     loop
     {
 
@@ -27,12 +31,20 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instructio
 
                 println!("Instruction : {}",instruction);
 
-                //println!("{:#?}", signed_instruction);
+                let resp_sender_copy = resp_sender.clone();
+                let resp_instruction = RespInstruction::from(instruction,resp_sender_copy);
 
-                sender.send(instruction);
+                sender.send(resp_instruction);
+
+                //stream.write(b"ok\n");
+
+                let response = resp_receiver.recv().unwrap();
+
+                let serialized_response = &(bincode::serialize(&response).unwrap()[..]);
+
+                stream.write(serialized_response);
 
 
-                stream.write(b"ok\n");
             }
             Err(_) => {
                 println!("Client disconnected {}", adresse);
@@ -42,7 +54,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<Instructio
     }
 }
 
-pub fn client_listener(socket : SocketAddr,iosender : Sender<Instruction>) {
+pub fn client_listener(socket : SocketAddr,iosender : Sender<RespInstruction>) {
 
 
     let listener = TcpListener::bind(socket).unwrap();

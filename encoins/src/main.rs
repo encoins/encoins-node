@@ -203,19 +203,10 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                         let serv_net_receiver = proc.get_serv_net_receiver();
                         let comm = serv_net_receiver.try_recv();
                         match comm {
-                            Ok(message) => { println!(" {} received {:?} from msgreceiver", i, message);
-                                messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
+                            Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
                             Err(_) => {()}
                         };
 
-                        // Then check messages with other processes from network
-                        let serv_net_receiver = proc.get_serv_net_receiver();
-                        let comm = serv_net_receiver.try_recv();
-                        match comm {
-                            Ok(message) => { println!(" {} received {:?} from msg receiver", i, message);
-                                messaging::deal_with_message(&mut proc, message,&mut ongoing_broadcasts)}
-                            Err(_) => {()}
-                        };
 
                         // Then check IOCommunications with main thread
                         let receiver = proc.get_main_receiver();
@@ -227,10 +218,10 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
 
                         // Then check instruction from client
 
-                        let instruction = ioreceiver.try_recv();
-                        match instruction {
-                            Ok(instruct) => { log!(proc_id,"Received instruction : {}",instruct);
-                                instructions::deal_with_instruction(&mut proc, instruct);}
+                        let resp_instruction = ioreceiver.try_recv();
+                        match resp_instruction {
+                            Ok(resp_instruc) => { log!(proc_id,"Received instruction : {}",resp_instruc.instruction);
+                                instructions::deal_with_instruction(&mut proc, resp_instruc);}
                             Err(_) => {()}
                         };
 
