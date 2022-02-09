@@ -70,6 +70,7 @@ fn main()
     // Loop for main thread
     loop
     {
+        /*
         // First get keyboard input
         let input_comm: Option<IOComm> = input_management::read_input(&mut additional_strings, &number_of_processes);
 
@@ -88,19 +89,11 @@ fn main()
                     let final_io = iocommunication.clone();
                     match iocommunication
                     {
-                        IOComm::HistoryOf { account:_ , according_to} => { transmit_to = according_to as usize }
-                        IOComm::Balances {according_to} => { transmit_to = according_to as usize }
-                        IOComm::BalanceOf { account:_, according_to } => { transmit_to = according_to as usize }
-                        IOComm::TransferRequest { sender, .. } => { transmit_to = sender as usize }
-                        IOComm::Add { .. } => { transmit_to = 0 }
-                        IOComm::Remove { .. } => { transmit_to = 0 }
+                        IOComm::HistoryOf { account:} => { transmit_to = according_to as usize }
+                        IOComm::Balances => { }
                         IOComm::Output { message } => { transmit_to = (number_of_processes + 1) as usize; additional_strings.push(message); do_read_proc_comm = false;  }
                     }
 
-                    if transmit_to < (number_of_processes +1) as usize
-                    {
-                        main_transmitters.get(transmit_to).unwrap().send(final_io).unwrap();
-                    }
                 }
         }
 
@@ -138,6 +131,8 @@ fn main()
 
 
     }
+
+         */
 
 }
 
@@ -177,7 +172,7 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                 {
                     let proc_id = i;
                     let (serv_net_sender,serv_net_receiver) = mpsc::channel();
-                    let mut proc = process::Process::init(proc_id, nb_process, main_sender, receiver_from_main, public_keys, secret_key,serv_net_receiver);
+                    let mut proc = process::Process::init(proc_id, nb_process, public_keys, secret_key,serv_net_receiver);
                     log!(proc_id, "Thread initialized correctly");
                     let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
                     // Main loop for a process
@@ -207,14 +202,6 @@ fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOC
                             Err(_) => {()}
                         };
 
-
-                        // Then check IOCommunications with main thread
-                        let receiver = proc.get_main_receiver();
-                        let iocomm = receiver.try_recv();
-                        match iocomm {
-                            Ok(communication) => {messaging::deal_with_iocomm(&mut proc, communication)}
-                            Err(_) => {()}
-                        };
 
                         // Then check instruction from client
 

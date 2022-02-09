@@ -114,7 +114,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                             // Tell main_thread I am ready to process transaction
                                             if msg.transaction.receiver_id == proc_id
                                             {
-                                                process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, msg.transaction))}).unwrap();
+                                                // process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, msg.transaction))}).unwrap();
                                             }
 
                                             // Remove thr associated broadcast

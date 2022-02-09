@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use crate::transaction::Transaction;
 use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::iocommunication::IOComm;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use crate::log;
@@ -41,9 +40,6 @@ pub struct Process
     /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
     serv_addr : Vec<SocketAddr>,
     /// Sender to communicate with the main process ( which is used for input/output )
-    output_to_main : Sender<IOComm>,
-    /// Receiver to receive instructions from the main process
-    input_from_main : Receiver<IOComm>,
     /// List of size N such that public_key(q) is the public_key of the process q
     public_keys : Vec<PublicKey>,
     /// Keypair of private key required to sign messages and the public key associated with
@@ -63,7 +59,7 @@ impl Process {
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
-    pub fn init(id : UserId, nb_process : u32, output_to_main : Sender<IOComm>, input_from_main : Receiver<IOComm>, public_keys : Vec<PublicKey>, secret_key : Keypair, serv_net_receiver : Receiver<SignedMessage>) -> Process {
+    pub fn init(id : UserId, nb_process : u32, public_keys : Vec<PublicKey>, secret_key : Keypair, serv_net_receiver : Receiver<SignedMessage>) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
         let first_transaction : Transaction = Transaction {
@@ -93,8 +89,6 @@ impl Process {
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
             ongoing_transfer ,
-            output_to_main,
-            input_from_main,
             public_keys,
             serv_addr,
             secret_key,
@@ -106,24 +100,19 @@ impl Process {
     }
 
     /// The function that allows processes to transfer money
-    pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> bool {
+    pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> (bool,u8) {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
-
         if  ! (user_id == 0) && self.read(user_id) < amount
         {
-            let returned_string = format!("[Process {}] : I don't have enough money to make this transfer! I won't even try to broadcast anything...", self.id_proc );
-            self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
             log!(self.id_proc, "I refused to start the transfer because I don't have enough money on my account");
-            return false
+            return (false,1)
         }
         if *self.ongoing_transfer.get(&user_id).unwrap() == true
         {
-            let returned_string = format!("[Process {}] : I have not validated my previous transfer yet", self.id_proc );
-            self.output_to_main.send(IOComm::Output {message :returned_string }).unwrap();
             log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
-            return false
+            return (false,2)
         }
 
         // Then a transaction is created in accordance to the white paper
@@ -158,7 +147,7 @@ impl Process {
 
         self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
         *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
-        true
+        (true,0)
     }
 
     /// The function that returns the balance of money owned by the process
@@ -218,10 +207,6 @@ impl Process {
                     *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 }
                 log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", message.transaction);
-                if message.transaction.receiver_id == self.id_proc
-                {
-                    self.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I validated the transfer of {} encoins from {}", self.id_proc, message.transaction.amount, message.transaction.sender_id))}).unwrap();
-                }
                 self.to_validate.remove(index);
             }
             else
@@ -292,10 +277,6 @@ impl Process {
     }
     */
 
-    pub fn get_main_receiver(&self) -> &Receiver<IOComm>
-    {
-        &(self.input_from_main)
-    }
 
 
     pub fn get_serv_addr(&self) -> &Vec<SocketAddr>
@@ -303,10 +284,6 @@ impl Process {
         &(self.serv_addr)
     }
 
-    pub fn get_mainsender(&self) -> &Sender<IOComm>
-    {
-        &(self.output_to_main)
-    }
 
     pub fn in_to_validate(&mut self, message : Message)
     {
@@ -329,15 +306,16 @@ impl Process {
         }
     }
 
+
     /// Outputs to the main thread the history of a given account according to the process
-    pub fn output_history_for(&self, account : UserId)
+    pub fn output_history_for(&self, account : UserId) -> String
     {
         let mut final_string = String::from(format!("[Process {}] History for process {} :", self.id_proc, account));
         for tr in self.history_for(&account)
         {
             final_string = format!("{} \n \t - {}", final_string, tr);
         }
-        self.output_to_main.send(IOComm::Output { message : final_string }).unwrap();
+        final_string
     }
 
     /// Outputs to the main thread the balance of an account according to the process
@@ -359,7 +337,6 @@ impl Process {
                 }
             }
         }
-        self.output_to_main.send(IOComm::Output { message : String::from(format!("[Process {}] Balance of process {} is {}", self.id_proc, account, balance)) }).unwrap();
         balance
     }
 
@@ -390,7 +367,6 @@ impl Process {
 
         }
         println!("{}",final_string);
-        self.output_to_main.send(IOComm::Output { message: final_string }).unwrap();
     }
 
     pub fn get_pub_key(&self, account : UserId) -> &PublicKey

@@ -68,7 +68,7 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
         Instruction::SignedTransfer {transfer,signature} => {
             log!(process.get_id(),"transfer incoming");
             let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
-            resp_sender.send(Response::Transfer(suceed));
+            resp_sender.send(Response::Transfer(suceed.0,suceed.1));
 
         }
     }
