@@ -5,7 +5,7 @@ use std::thread;
 use bincode::deserialize;
 use serde::Deserialize;
 use crate::instructions::Instruction;
-use crate::{IOComm, SignedMessage};
+use crate::{SignedMessage};
 
 
 fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMessage>) {

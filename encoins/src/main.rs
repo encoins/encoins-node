@@ -5,11 +5,11 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::base_types::UserId;
 use crate::broadcast::Broadcast;
-use crate::iocommunication::{IOComm};
-use crate::instructions::Instruction;
-use crate::crypto::{SignedMessage,init_crypto};
+use crate::instructions::{Instruction, RespInstruction};
+use crate::crypto::{SignedMessage, create_keypair};
 use std::net::{TcpListener, TcpStream};
 use crate::client_network::client_listener;
+use crate::process::Process;
 use crate::serv_network::server_listener;
 
 
@@ -18,10 +18,7 @@ mod logging;
 mod base_types;
 mod message;
 mod messaging;
-mod input_management;
-mod iocommunication;
 mod process;
-mod input;
 mod crypto;
 mod client_network;
 mod instructions;
@@ -47,7 +44,7 @@ fn main()
     };
 
     // Check whether some byzantine process have to be created
-    let number_of_byzantine_processes = match args.get(3) {
+    let proc_id = match args.get(3) {
         Some(number) => match number.parse::<u32>() {
             Ok(n) => n,
             Err(_) => 0
@@ -62,174 +59,63 @@ fn main()
     println!("Initializing with {} processes", &args[1]);
 
     // Initialize threads
-    let (main_transmitters,main_receiver) = initialize_processes(number_of_processes,number_of_byzantine_processes);
+    let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id);
+    let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
 
-    // Vector containing additional strings to be outputted on screen under the logo
-    let mut additional_strings = vec![];
 
-    // Loop for main thread
     loop
     {
-        /*
-        // First get keyboard input
-        let input_comm: Option<IOComm> = input_management::read_input(&mut additional_strings, &number_of_processes);
 
-        // Boolean stating whether to wait later for a message from another thread
-        let mut do_read_proc_comm = false;
+        // First check messages with other processes from network
 
-        match input_comm
-        {
-
-            None => {}
-
-            Some(iocommunication) =>
-                {
-                    do_read_proc_comm = true;
-                    let transmit_to;
-                    let final_io = iocommunication.clone();
-                    match iocommunication
-                    {
-                        IOComm::HistoryOf { account:} => { transmit_to = according_to as usize }
-                        IOComm::Balances => { }
-                        IOComm::Output { message } => { transmit_to = (number_of_processes + 1) as usize; additional_strings.push(message); do_read_proc_comm = false;  }
-                    }
-
-                }
-        }
-
-        // Then, if a message from another thread is expected, wait its reception and read it.
-        if do_read_proc_comm
-        {
-            let comm_from_proc = main_receiver.recv().unwrap();
-
-            match comm_from_proc
-            {
-                IOComm::Output { message } => { additional_strings.push(message) }
-                _ => {  }
-            }
-        }
-
-        // Finally, read additional messages that could have been received
-        loop
-        {
-            let poss_comm = main_receiver.recv_timeout(Duration::from_millis(200));
-
-            match poss_comm
-            {
-                Ok(message) =>
-                    {
-                        match message
-                        {
-                            IOComm::Output { message } => { additional_strings.push(message) }
-                            _ => {  }
-                        }
-
-                    }
-                Err(_) => { break; }
-            }
-        }
+        let comm = serv_net_receiver.try_recv();
+        match comm {
+            Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
+            Err(_) => {()}
+        };
 
 
+        // Then check instruction from client
+
+
+        let resp_instruction = instruction_receiver.try_recv();
+        match resp_instruction {
+            Ok(resp_instruc) => { log!(proc_id,"Received instruction : {}",resp_instruc.instruction);
+                instructions::deal_with_instruction(&mut proc, resp_instruc);}
+            Err(_) => {()}
+        };
+
+        proc.valid();
+        thread::sleep(Duration::from_millis(200));
     }
-
-         */
 
 }
 
 /// Function that initializes threads. Each thread runs the code for one Processus.
-fn initialize_processes(nb_process: u32, nb_byzantines : u32) -> (Vec<Sender<IOComm>>,Receiver<IOComm>){
+fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMessage>,Receiver<RespInstruction>){
 
-
-    // Create sender/receiver pair to communicate messages between process threads and main thread
-    let (transmitter_to_main,receiver_of_main) = mpsc::channel();
-
-    let mut main_transmitters = vec![];
 
     // Create public/private key pairs to authenticate messages
-    let (list_of_public_keys, mut secret_keys) = init_crypto(nb_process);
-    secret_keys.reverse();
+    let keypair = create_keypair();
+
+    let (serv_net_sender,serv_net_receiver) = mpsc::channel();
+    let (instruction_sender,instruction_receiver) = mpsc::channel();
+
+    let mut proc = process::Process::init(proc_id, nb_process, keypair);
+    log!(proc_id, "Thread initialized correctly");
 
 
-    for i in 0..nb_process+1 {
 
-        let (transmitter_of_main,receiver_from_main) = mpsc::channel();
-        main_transmitters.push(transmitter_of_main);
+    let client_socket = proc.get_client_socket();
+    thread::spawn( move ||{
+        client_listener(client_socket, instruction_sender);
+    });
 
+    let server_socket = proc.get_server_socket();
+    thread::spawn( move ||{
+        server_listener(server_socket, serv_net_sender);
+    });
 
-        let main_sender = transmitter_to_main.clone();
+    (proc,serv_net_receiver,instruction_receiver)
 
-        let secret_key = match secret_keys.pop() {
-            None => { panic!("Secret key initialisation went wrong during initialization of thread {}",i) }
-            Some(x) => {x}
-        };
-
-        let public_keys = list_of_public_keys.clone();
-
-
-        if i <= nb_process - nb_byzantines {
-            // Create a correct process
-            thread::spawn(move ||
-                {
-                    let proc_id = i;
-                    let (serv_net_sender,serv_net_receiver) = mpsc::channel();
-                    let mut proc = process::Process::init(proc_id, nb_process, public_keys, secret_key,serv_net_receiver);
-                    log!(proc_id, "Thread initialized correctly");
-                    let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
-                    // Main loop for a process
-
-                    let (iosender,ioreceiver) = mpsc::channel();
-                                       //network io
-                    let client_socket = proc.get_client_socket();
-                    thread::spawn( move ||{
-                        client_listener(client_socket, iosender);
-                    });
-
-
-                    let server_socket = proc.get_server_socket();
-                    thread::spawn( move ||{
-                        server_listener(server_socket, serv_net_sender);
-                    });
-
-
-                    loop
-                    {
-
-                        // First check messages with other processes from network
-                        let serv_net_receiver = proc.get_serv_net_receiver();
-                        let comm = serv_net_receiver.try_recv();
-                        match comm {
-                            Ok(message) => {messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)}
-                            Err(_) => {()}
-                        };
-
-
-                        // Then check instruction from client
-
-                        let resp_instruction = ioreceiver.try_recv();
-                        match resp_instruction {
-                            Ok(resp_instruc) => { log!(proc_id,"Received instruction : {}",resp_instruc.instruction);
-                                instructions::deal_with_instruction(&mut proc, resp_instruc);}
-                            Err(_) => {()}
-                        };
-
-                        proc.valid();
-                        thread::sleep(Duration::from_millis(200));
-                    }
-                }
-            );
-
-        } else { /*
-            // Create a byzantine process. At this point byzantine threads represent crashed process. In the future, they should include malicious processus
-            thread::spawn(move || {
-                let proc_id = i;
-                process::Process::init(proc_id, nb_process, thread_senders, thread_receiver, main_sender, receiver_from_main, public_keys, secret_key,);
-                log!(proc_id, "Thread initialized correctly as byzantine");
-                loop {
-                    thread::sleep(Duration::from_secs(10));
-                }
-            }); */
-        }
-    }
-
-    (main_transmitters,receiver_of_main)
 }

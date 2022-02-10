@@ -7,10 +7,11 @@ use crate::base_types::*;
 use std::sync::mpsc::{Receiver, Sender};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use crate::log;
+use crate::{Instruction, log};
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use crate::instructions::RespInstruction;
 
 
 type List = HashMap<UserId,u32>;
@@ -48,8 +49,9 @@ pub struct Process
     ongoing_transfer : HashMap<UserId,bool>,
     client_socket : SocketAddr,
     server_socket : SocketAddr,
-    serv_net_receiver : Receiver<SignedMessage>,
-    pub nb_process : u32
+   // pub serv_net_receiver : Receiver<SignedMessage>,
+    pub nb_process : u32,
+  //  pub instruction_receiver : Receiver<RespInstruction>
 }
 
 
@@ -59,7 +61,7 @@ impl Process {
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
-    pub fn init(id : UserId, nb_process : u32, public_keys : Vec<PublicKey>, secret_key : Keypair, serv_net_receiver : Receiver<SignedMessage>) -> Process {
+    pub fn init(id : UserId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
         let first_transaction : Transaction = Transaction {
@@ -79,6 +81,9 @@ impl Process {
         let mut list = List::new();
         list.insert(1,1);
         let mut ongoing_transfer = HashMap::new();
+
+        // Find a mean to fill it
+        let public_keys : Vec<PublicKey> = Vec::new();
         ongoing_transfer.insert(1,false);
         Process {
             id_proc : id,
@@ -94,8 +99,9 @@ impl Process {
             secret_key,
             client_socket,
             server_socket,
-            serv_net_receiver,
-            nb_process
+            //serv_net_receiver,
+            nb_process,
+            //instruction_receiver
         }
     }
 
@@ -379,9 +385,5 @@ impl Process {
         return &self.secret_key
     }
 
-    pub fn get_serv_net_receiver(&self) -> &Receiver<SignedMessage>
-    {
-        &(self.serv_net_receiver)
-    }
 
 }

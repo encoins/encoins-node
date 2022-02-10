@@ -4,7 +4,6 @@ use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender};
 use crate::message::{MessageType};
-use crate::iocommunication::{IOComm};
 use crate::{Broadcast, log, UserId};
 use crate::broadcast::init_broadcast;
 use crate::process::Process;
@@ -138,74 +137,3 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
 
 }
 
-
-/// Utility functions used by a [`Processus`] to deal with an incoming [`IOComm`]
-pub(crate) fn deal_with_iocomm(process: &mut Process, comm: IOComm)
-{
-    let proc_id = process.get_id();
-    match comm
-    {
-        IOComm::BalanceOf { account, .. } =>
-            {
-                log!(proc_id, "Received a request to output balance for account {}. Transmitting information to main thread.", account);
-                process.output_balance_for(account);
-            }
-        IOComm::Balances {..} =>
-            {
-                log!(proc_id, "Received a request to output all account balances. Transmitting information to main thread");
-                process.output_balances();
-            }
-
-        IOComm::HistoryOf {account, ..} =>
-            {
-                log!(proc_id, "Received a request to output history of transactions involving {}. Transmitting information to main thread.", account);
-                process.output_history_for(account);
-            }
-
-        IOComm::Add { amount,account} =>
-            {
-                if proc_id == 0
-                {
-                    log!(proc_id,"Received an \"add\" request, sending transfer request");
-                    process.transfer(proc_id, account, amount);
-
-                } else {
-                    log!(proc_id, "Received an \"add\" request when I should not be... Something is going wrong!");
-                }
-            }
-
-        IOComm::Remove { account, amount } =>
-            {
-                if account == proc_id
-                {
-                    log!(proc_id,"Received request to remove money from my account. Dealing with it!");
-                    process.transfer(proc_id, 0, amount);
-                }
-                else
-                {
-                    log!(proc_id,"Received a request to remove money from somebody's else account. Something is going wrong!");
-                }
-
-            }
-
-        IOComm::TransferRequest { sender, recipient, amount } =>
-            {
-                if sender == proc_id
-                {
-                    log!(proc_id, "Received transfer request from main thread. Dealing with it!");
-                    process.transfer(sender, recipient, amount);
-                }
-                else
-                {
-                    log!(proc_id, "Received a transfer request for another process from main.This is not normal...");
-                }
-
-            }
-
-
-        IOComm::Output { .. } =>
-            {
-                log!(proc_id,"Received an output message when I should not be receiving any.. Something is going wrong!");
-            }
-    }
-}

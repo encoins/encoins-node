@@ -6,7 +6,6 @@ use std::thread;
 use bincode::deserialize;
 use serde::Deserialize;
 use crate::instructions::{Instruction, RespInstruction};
-use crate::IOComm;
 
 fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstruction>) {
 
