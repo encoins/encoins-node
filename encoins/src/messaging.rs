@@ -40,12 +40,13 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
 {
     let proc_id = process.get_id();
     let sender_id = signed_message.message.sender_id;
-    let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
-
+    //let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
+    let msg = signed_message.message;
+/*
         match unsigned_message
     {
         Ok(msg) =>
-            {
+            { */
                 match msg.message_type
                 {
                     MessageType::Init =>
@@ -129,11 +130,8 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                             }
                         }
                 }
-            }
-
-        Err(error) => { println!("wrong sig");
-            log!(proc_id, "Error while checking signature : {}", error); }
-    }
+            /*}
+    } */
 
 }
 

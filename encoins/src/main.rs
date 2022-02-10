@@ -31,10 +31,11 @@ fn main()
 {
     // Get given arguments at execution
     let args: Vec<String> = env::args().collect();
-    let number_of_processes = args[1].parse::<u32>().unwrap();
+    let proc_id = args[1].parse::<u32>().unwrap();
+    let number_of_processes = args[2].parse::<u32>().unwrap();
 
     // Check if logs have to be written
-    let write_logs = match args.get(2) {
+    let write_logs = match args.get(3) {
         Some(bool) => match bool.parse::<bool>()
         {
             Ok(b) => { b }
@@ -43,14 +44,6 @@ fn main()
         None => false
     };
 
-    // Check whether some byzantine process have to be created
-    let proc_id = match args.get(3) {
-        Some(number) => match number.parse::<u32>() {
-            Ok(n) => n,
-            Err(_) => 0
-        }
-        None => 0
-    };
 
 
     // Initialize logging
