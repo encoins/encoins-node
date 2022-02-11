@@ -98,8 +98,6 @@ fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMe
     let mut proc = process::Process::init(proc_id, nb_process, keypair);
     log!("Server initialized correctly!");
 
-
-
     let client_socket = proc.get_client_socket();
     thread::spawn( move ||{
         client_listener(client_socket, instruction_sender);

@@ -93,6 +93,7 @@ pub fn write_log(to_write : String)
         {
             // Adding local time to the logs
             let now = Local::now();
+            let wow = String::from("bg").to_uppercase();
             let final_string = format!("[{}] : {}", now.format("%H:%M"), to_write);
             println!("{}", final_string);
 
@@ -115,14 +116,14 @@ pub fn write_log(to_write : String)
         }
 }
 
-/// Logs to the standard output, with a new line
+/// Formats the given message with its parameters into a log message
 /// # Examples
 ///
 /// ```
-/// log!(2, "hello there!"); // Logs the message "hello there" for the process 2
+/// log!("hello there!"); // Logs the message "hello there"
 ///```
 /// ```
-/// println!(1, "format {} arguments", "some"); // Logs the message "format some arguments" for the process 1
+/// log!("format {} arguments", "some"); // Logs the message "format some arguments"
 /// ```
 #[macro_export]
 macro_rules! log {
@@ -137,5 +138,33 @@ macro_rules! log {
         let mes = format!($mes, $($arg)*);
         $crate::utils::write_log(mes);
     };
+}
+
+/// Formats the given message with its parameters into an uppercase warning message
+/// # Examples
+///
+/// ```
+/// warn!("hello there!"); // Logs the message "/!\ WARNING : HELLO THERE /!\"
+///```
+/// ```
+/// log!("format {} arguments", "some"); // Logs the message "/!\ WARNING : FORMAT SOME ARGUMENTS /!\"
+/// ```
+#[macro_export]
+macro_rules! warn {
+    // The macro formats the given string, puts everything to upper cases, adds a warning and passes it to write_log
+
+    ($message:expr) => {
+        let msg = String::from($message).to_uppercase();
+        let mes = format!("/!\\ WARNING : {} /!\\", msg);
+        $crate::utils::write_log(mes);
+    };
+
+    ($mes:expr, $($arg:tt)*) => {
+        let mes = format!($mes, $($arg)*);
+        let msg = String::from(mes).to_uppercase();
+        let final_mes = format!("/!\\ WARNING : {} /!\\", msg);
+        $crate::utils::write_log(mes);
+    };
+
 }
 
