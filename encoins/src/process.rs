@@ -1,13 +1,11 @@
 //! Definition of a processus
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 #[allow(unused_must_use)]
 use crate::transaction::Transaction;
 use crate::base_types::*;
-use std::sync::mpsc::{Receiver, Sender};
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use crate::{Instruction, log};
+use crate::{log};
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
@@ -112,12 +110,12 @@ impl Process {
         // If the process is the well process it can do a transfer without verifying its balance
         if  ! (user_id == 0) && self.read(user_id) < amount
         {
-            log!(self.id_proc, "I refused to start the transfer because I don't have enough money on my account");
+            log!("I refused to start the transfer because I don't have enough money on my account");
             return (false,1)
         }
         if *self.ongoing_transfer.get(&user_id).unwrap() == true
         {
-            log!(self.id_proc, "I refused to start a new transfer because I have not validated my previous one");
+            log!("I refused to start a new transfer because I have not validated my previous one");
             return (false,2)
         }
 
@@ -144,7 +142,7 @@ impl Process {
 
         let message = message.sign(&self.secret_key);
 
-        //println!("Message {:#?}",message);
+        //log!("Message {:#?}",message);
 
         // And then broadcast between all processes
         broadcast(/*&self.senders,*/ &self.serv_addr,  message);
@@ -212,13 +210,13 @@ impl Process {
                 if self.id_proc == message.transaction.sender_id {
                     *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 }
-                log!(self.id_proc, "Transaction {} is valid and confirmed on my part.", message.transaction);
+                log!("Transaction {} is valid and confirmed on my part.", message.transaction);
                 self.to_validate.remove(index);
             }
             else
             {
                 index += 1;
-                log!(self.id_proc, "Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
+                log!("Transaction {} is not (or still not) valid and is refused on my part.", message.transaction);
             }
         }
     }
@@ -244,7 +242,7 @@ impl Process {
             }
         }
 
-        println!("proc {} a {} {} {} {}",self.id_proc,assert1,assert2,assert3,assert4);
+        log!("proc {} a {} {} {} {}",self.id_proc,assert1,assert2,assert3,assert4);
 
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
 
@@ -306,7 +304,7 @@ impl Process {
         } */
         match self.hist.get(account) {
             Some(history) => {
-                //println!("History {:#?}", history);
+                //log!("History {:#?}", history);
                 history.clone() }
             None => {TransferSet::new()}
         }
@@ -351,14 +349,14 @@ impl Process {
     {
         let mut final_string = String::from(format!("[Process {}] Balances are :, len {}", self.id_proc, self.hist.len()));
 
-        //println!("{}",self.hist.len());
+        //log!("{}",self.hist.len());
         for (id,_) in self.seq.iter()
         {
-            //println!("test1 : {:}",id);
+            //log!("test1 : {:}",id);
             let mut balance = 0;
             for tr in self.history_for(id)
             {
-                //println!("{:#?}",self.history_for(id));
+                //log!("{:#?}",self.history_for(id));
                 if id == &tr.receiver_id
                 {
                     balance += tr.amount;
@@ -367,12 +365,12 @@ impl Process {
                 {
                     balance -= tr.amount;
                 }
-                println!("balance {}",balance);
+                log!("balance {}",balance);
             }
             final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, id, balance);
 
         }
-        println!("{}",final_string);
+        log!("{}",final_string);
     }
 
     pub fn get_pub_key(&self, account : UserId) -> &PublicKey

@@ -5,7 +5,7 @@ use std::thread;
 use bincode::deserialize;
 use serde::Deserialize;
 use crate::instructions::Instruction;
-use crate::{SignedMessage};
+use crate::{log, SignedMessage};
 
 
 fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMessage>) {
@@ -17,15 +17,15 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
             Ok(received) => {
                 // si on a reçu 0 octet, ça veut dire que le client s'est déconnecté
                 if received < 1 {
-                    //println!("Client disconnected {}", adresse);
+                    //log!("Client disconnected {}", adresse);
                     return;
                 }
 
-                //println!("buff {:?}",buf);
+                //log!("buff {:?}",buf);
 
                 let msg : SignedMessage = deserialize(&buf[..]).unwrap();
 
-                //println!("{}",msg);
+                //log!("{}",msg);
 
                 sender.send(msg);
 
@@ -33,7 +33,7 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
                 //stream.write(b"ok\n");
             }
             Err(_) => {
-                //println!("Client disconnected {}", adresse);
+                //log!("Client disconnected {}", adresse);
                 return;
             }
         }
@@ -58,7 +58,7 @@ pub fn server_listener(socket : SocketAddr, msgsender : Sender<SignedMessage>) {
                 });
             }
             Err(e) => {
-                println!("La connexion du server a échoué : {}", e);
+                log!("La connexion du server a échoué : {}", e);
             }
         }
     }
@@ -70,13 +70,13 @@ pub fn server_listener(socket : SocketAddr, msgsender : Sender<SignedMessage>) {
 pub fn send(addr : &SocketAddr, message : SignedMessage ) {
     match TcpStream::connect(addr) {
         Ok(mut stream) => {
-            //println!("Connexion au serveur réussie !");
+            //log!("Connexion au serveur réussie !");
             let serialized_msg = &(bincode::serialize(&message).unwrap()[..]);
             stream.write(serialized_msg);
             //exchange_with_server(client,stream);
         }
         Err(e) => {
-            println!("La connexion au serveur a échoué : {}", e);
+            log!("La connexion au serveur a échoué : {}", e);
         }
     }
 }

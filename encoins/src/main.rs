@@ -1,20 +1,20 @@
 use std::{env, thread};
 use std::collections::HashMap;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 use crate::base_types::UserId;
 use crate::broadcast::Broadcast;
 use crate::instructions::{Instruction, RespInstruction};
 use crate::crypto::{SignedMessage, create_keypair};
 use std::net::{TcpListener, TcpStream};
+use std::sync::mpsc::Receiver;
 use crate::client_network::client_listener;
 use crate::process::Process;
 use crate::serv_network::server_listener;
 
 
 mod transaction;
-mod logging;
+mod utils;
 mod base_types;
 mod message;
 mod messaging;
@@ -48,9 +48,9 @@ fn main()
 
 
     // Initialize logging
-    logging::initialize(number_of_processes, write_logs);
+    utils::initialize(write_logs, None);
 
-    println!("Initializing with {} processes", &args[1]);
+    log!("Initializing with {} processes", number_of_processes);
 
     // Initialize threads
     let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id);
@@ -74,7 +74,7 @@ fn main()
 
         let resp_instruction = instruction_receiver.try_recv();
         match resp_instruction {
-            Ok(resp_instruc) => { log!(proc_id,"Received instruction : {}",resp_instruc.instruction);
+            Ok(resp_instruc) => { log!("Received instruction : {}",resp_instruc.instruction);
                 instructions::deal_with_instruction(&mut proc, resp_instruc);}
             Err(_) => {()}
         };
@@ -96,7 +96,7 @@ fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMe
     let (instruction_sender,instruction_receiver) = mpsc::channel();
 
     let mut proc = process::Process::init(proc_id, nb_process, keypair);
-    log!(proc_id, "Thread initialized correctly");
+    log!("Server initialized correctly!");
 
 
 

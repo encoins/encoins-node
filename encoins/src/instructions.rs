@@ -60,13 +60,13 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
     let resp_sender = resp_instruction.resp_sender;
     match instruction {
         Instruction::Balance {user} => {
-            log!(process.get_id(), "balance incoming");
+            log!("balance incoming");
             let balance = process.output_balance_for(user);
             resp_sender.send(Response::Balance(balance));
 
         }
         Instruction::SignedTransfer {transfer,signature} => {
-            log!(process.get_id(),"transfer incoming");
+            log!("transfer incoming");
             let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
             resp_sender.send(Response::Transfer(suceed.0,suceed.1));
 
