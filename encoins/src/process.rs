@@ -8,7 +8,6 @@ use crate::messaging::broadcast;
 use crate::{log};
 use crate::crypto::{SignedMessage};
 use crate::yaml::*;
-use std::env;
 use ed25519_dalek::{PublicKey, Keypair};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use crate::instructions::RespInstruction;
@@ -49,10 +48,10 @@ pub struct Process
     ongoing_transfer : HashMap<UserId,bool>,
     client_socket : (String, u16),
     server_socket : (String, u16),
-    //serv_net_receiver : Receiver<SignedMessage>,
-   // pub serv_net_receiver : Receiver<SignedMessage>,
+    // serv_net_receiver : Receiver<SignedMessage>,
+    // pub serv_net_receiver : Receiver<SignedMessage>,
     pub nb_process : u32,
-  //  pub instruction_receiver : Receiver<RespInstruction>
+    // pub instruction_receiver : Receiver<RespInstruction>
 
 }
 
@@ -76,14 +75,8 @@ impl Process {
         s.insert(1,origin_historic);
 
         // Network informations
-        let hash_net_config = yaml_to_hash("net_config.yml");
-
-        // Load some entry
-        let k: u32 = env::var("NUM_NODE")
-            .expect("No environment variable NUM_NODE found")
-            .parse::<u32>().unwrap();
-        
-        let (ip, port_server, port_client) = read_server_address(&hash_net_config, k);
+        let hash_net_config = yaml_to_hash("net_config.yml");        
+        let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
         
         // Save the values
         let client_socket: (String, u16) = (ip.clone(), port_server);
@@ -401,6 +394,4 @@ impl Process {
     {
         return &self.secret_key
     }
-
-
 }

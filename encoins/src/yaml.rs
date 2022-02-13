@@ -40,13 +40,23 @@ pub fn read_server_address(hash_net_config: &Hash, i: u32) -> (String, u16, u16)
 
     let port_server: u16 = read_yaml(hash_net_config, &server_i, "port_server")
         .as_i64()
-        .expect("In yaml file, one port adress is not of string type")
+        .expect("In yaml file, one port adress is not of int type")
         as u16;
 
     let port_client: u16 = read_yaml(hash_net_config, &server_i, "port_client")
         .as_i64()
-        .expect("In yaml file, one port adress is not of string type")
+        .expect("In yaml file, one port adress is not of int type")
         as u16;
     
     (ip, port_server, port_client)
+}
+
+pub fn read_network_parameters(hash_net_config: &Hash) -> u32 {
+
+    let ip_yaml: u32 = read_yaml(hash_net_config, "parameters", "nb_servers")
+    .as_i64()
+    .expect("In yaml file, nb_servers is not of int type")
+    as u32;
+
+    ip_yaml
 }
