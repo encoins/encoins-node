@@ -25,7 +25,7 @@ use crate::crypto::SignedMessage;
 
 }*/
 
-pub fn broadcast( server_addr : &Vec<(&'static str, u16)> , message : SignedMessage)
+pub fn broadcast( server_addr : &Vec<(String, u16)> , message : SignedMessage)
 {
 
     for addr in server_addr {

@@ -1,0 +1,14 @@
+server1:
+  ip: localhost
+  port_server: 12345
+  port_client: 12346
+
+server2:
+  ip: localhost
+  port_server: 12347
+  port_client: 12348
+
+server3:
+  ip: localhost
+  port_server: 12349
+  port_client: 12340

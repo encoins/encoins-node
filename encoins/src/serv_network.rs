@@ -40,9 +40,11 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
     }
 }
 
-pub fn server_listener(socket : (&'static str, u16), msgsender : Sender<SignedMessage>) {
+pub fn server_listener(socket : (String, u16), msgsender : Sender<SignedMessage>) {
 
-    let listener = TcpListener::bind(socket).unwrap();
+    let string_socket = (socket.0 + ":" + &socket.1.to_string());
+    println!("{}", string_socket);
+    let listener = TcpListener::bind(string_socket).unwrap();
 
     for stream in listener.incoming() {
         match stream {
@@ -67,7 +69,7 @@ pub fn server_listener(socket : (&'static str, u16), msgsender : Sender<SignedMe
 
 
 
-pub fn send(addr : &(&'static str, u16), message : SignedMessage ) {
+pub fn send(addr : &(String, u16), message : SignedMessage ) {
     match TcpStream::connect(addr) {
         Ok(mut stream) => {
             //println!("Connexion au serveur réussie !");

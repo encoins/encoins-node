@@ -10,6 +10,8 @@ use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use crate::log;
 use crate::crypto::{SignedMessage};
+use crate::yaml::*;
+use std::env;
 use ed25519_dalek::{PublicKey, Keypair};
 
 
@@ -38,7 +40,7 @@ pub struct Process
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
     /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
-    serv_addr : Vec<(&'static str, u16)>,
+    serv_addr : Vec<(String, u16)>,
     /// Sender to communicate with the main process ( which is used for input/output )
     output_to_main : Sender<IOComm>,
     /// Receiver to receive instructions from the main process
@@ -49,8 +51,8 @@ pub struct Process
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
     ongoing_transfer : HashMap<UserId,bool>,
-    client_socket : (&'static str, u16),
-    server_socket : (&'static str, u16),
+    client_socket : (String, u16),
+    server_socket : (String, u16),
     serv_net_receiver : Receiver<SignedMessage>,
     pub nb_process : u32
 }
@@ -74,14 +76,24 @@ impl Process {
         origin_historic.push(first_transaction);
         s.insert(1,origin_historic);
 
+        // Network informations
+        let hash_net_config = yaml_to_hash("net_config.yml");
 
-        let client_socket = ("localhost", 8000+id as u16);
-        let server_socket = ("localhost", 8000 + ( 1 + id+nb_process) as u16);
-        let mut serv_addr : Vec<(&'static str, u16)> = Vec::new();
-        for i in 1..nb_process +1 {
-            serv_addr.push(("localhost", 8000+ ( 1 + nb_process + i) as u16))
+        // Load some entry
+        let k: u32 = env::var("NUM_NODE")
+            .expect("No environment variable NUM_NODE found")
+            .parse::<u32>().unwrap();
+        
+        let (ip, port_server, port_client) = read_server_address(&hash_net_config, k);
+        
+        // Save the values
+        let client_socket: (String, u16) = (ip.clone(), port_server);
+        let server_socket: (String, u16) = (ip.clone(), port_client);
+        let mut serv_addr : Vec<(String, u16)> = Vec::new();
+        for i in 1..nb_process+1 {
+            let (ip, port_server, port_client) = read_server_address(&hash_net_config, i);
+            serv_addr.push((ip, port_server));
         }
-
 
         
         let mut list = List::new();
@@ -270,14 +282,14 @@ impl Process {
         self.id_proc
     }
 
-    pub fn get_client_socket(&self) -> (&'static str, u16)
+    pub fn get_client_socket(&self) -> (String, u16)
     {
-        self.client_socket
+        self.client_socket.clone()
     }
 
-    pub fn get_server_socket(&self) -> (&'static str, u16)
+    pub fn get_server_socket(&self) -> (String, u16)
     {
-        self.server_socket
+        self.server_socket.clone()
     }
 
 
@@ -302,7 +314,7 @@ impl Process {
     }
 
 
-    pub fn get_serv_addr(&self) -> &Vec<(&'static str, u16)>
+    pub fn get_serv_addr(&self) -> &Vec<(String, u16)>
     {
         &(self.serv_addr)
     }

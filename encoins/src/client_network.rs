@@ -54,10 +54,10 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
     }
 }
 
-pub fn client_listener(socket : (&'static str, u16),iosender : Sender<RespInstruction>) {
+pub fn client_listener(socket : (String, u16),iosender : Sender<RespInstruction>) {
 
-
-    let listener = TcpListener::bind(socket).unwrap();
+    let string_socket = (socket.0 + ":" + &socket.1.to_string());
+    let listener = TcpListener::bind(string_socket).unwrap();
 
     println!("En attente d'un client...");
     for stream in listener.incoming() {
