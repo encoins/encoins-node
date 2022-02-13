@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
 use std::io::{Read, Write};
 use std::sync::mpsc;
@@ -54,7 +54,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
     }
 }
 
-pub fn client_listener(socket : SocketAddr,iosender : Sender<RespInstruction>) {
+pub fn client_listener(socket : (&'static str, u16),iosender : Sender<RespInstruction>) {
 
 
     let listener = TcpListener::bind(socket).unwrap();

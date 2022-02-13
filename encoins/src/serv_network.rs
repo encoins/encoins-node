@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender};
 use std::io::{Read, Write};
 use std::thread;
@@ -40,7 +40,7 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
     }
 }
 
-pub fn server_listener(socket : SocketAddr, msgsender : Sender<SignedMessage>) {
+pub fn server_listener(socket : (&'static str, u16), msgsender : Sender<SignedMessage>) {
 
     let listener = TcpListener::bind(socket).unwrap();
 
@@ -67,7 +67,7 @@ pub fn server_listener(socket : SocketAddr, msgsender : Sender<SignedMessage>) {
 
 
 
-pub fn send(addr : &SocketAddr, message : SignedMessage ) {
+pub fn send(addr : &(&'static str, u16), message : SignedMessage ) {
     match TcpStream::connect(addr) {
         Ok(mut stream) => {
             //println!("Connexion au serveur réussie !");

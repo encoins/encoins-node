@@ -11,7 +11,6 @@ use crate::messaging::broadcast;
 use crate::log;
 use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 
 
 type List = HashMap<UserId,u32>;
@@ -39,7 +38,7 @@ pub struct Process
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
     /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
-    serv_addr : Vec<SocketAddr>,
+    serv_addr : Vec<(&'static str, u16)>,
     /// Sender to communicate with the main process ( which is used for input/output )
     output_to_main : Sender<IOComm>,
     /// Receiver to receive instructions from the main process
@@ -50,8 +49,8 @@ pub struct Process
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
     ongoing_transfer : HashMap<UserId,bool>,
-    client_socket : SocketAddr,
-    server_socket : SocketAddr,
+    client_socket : (&'static str, u16),
+    server_socket : (&'static str, u16),
     serv_net_receiver : Receiver<SignedMessage>,
     pub nb_process : u32
 }
@@ -74,12 +73,17 @@ impl Process {
         };
         origin_historic.push(first_transaction);
         s.insert(1,origin_historic);
-        let client_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+id as u16));
-        let server_socket = SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000 + ( 1 + id+nb_process) as u16));
-        let mut serv_addr : Vec<SocketAddr> = Vec::new();
+
+
+        let client_socket = ("localhost", 8000+id as u16);
+        let server_socket = ("localhost", 8000 + ( 1 + id+nb_process) as u16);
+        let mut serv_addr : Vec<(&'static str, u16)> = Vec::new();
         for i in 1..nb_process +1 {
-            serv_addr.push(SocketAddr::from(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8000+ ( 1 + nb_process + i) as u16)))
+            serv_addr.push(("localhost", 8000+ ( 1 + nb_process + i) as u16))
         }
+
+
+        
         let mut list = List::new();
         list.insert(1,1);
         let mut ongoing_transfer = HashMap::new();
@@ -266,12 +270,12 @@ impl Process {
         self.id_proc
     }
 
-    pub fn get_client_socket(&self) -> SocketAddr
+    pub fn get_client_socket(&self) -> (&'static str, u16)
     {
         self.client_socket
     }
 
-    pub fn get_server_socket(&self) -> SocketAddr
+    pub fn get_server_socket(&self) -> (&'static str, u16)
     {
         self.server_socket
     }
@@ -298,7 +302,7 @@ impl Process {
     }
 
 
-    pub fn get_serv_addr(&self) -> &Vec<SocketAddr>
+    pub fn get_serv_addr(&self) -> &Vec<(&'static str, u16)>
     {
         &(self.serv_addr)
     }

@@ -1,6 +1,5 @@
 //! A simple module to manage communications between processes
 
-use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender};
 use crate::message::{MessageType};
@@ -26,7 +25,7 @@ use crate::crypto::SignedMessage;
 
 }*/
 
-pub fn broadcast( server_addr : &Vec<SocketAddr> , message : SignedMessage)
+pub fn broadcast( server_addr : &Vec<(&'static str, u16)> , message : SignedMessage)
 {
 
     for addr in server_addr {
