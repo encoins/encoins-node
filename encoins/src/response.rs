@@ -4,5 +4,5 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub enum Response {
     Balance(Currency),
-    Transfer(bool)
+    Transfer(bool,u8)
 }

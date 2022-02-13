@@ -1,7 +1,7 @@
 server1:
   ip: localhost
-  port_server: 12345
-  port_client: 12346
+  port_server: 16842
+  port_client: 25984
 
 server2:
   ip: localhost

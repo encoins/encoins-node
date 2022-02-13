@@ -5,7 +5,7 @@ use std::thread;
 use bincode::deserialize;
 use serde::Deserialize;
 use crate::instructions::Instruction;
-use crate::{IOComm, SignedMessage};
+use crate::{log, SignedMessage};
 
 
 fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMessage>) {
@@ -17,15 +17,15 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
             Ok(received) => {
                 // si on a reçu 0 octet, ça veut dire que le client s'est déconnecté
                 if received < 1 {
-                    //println!("Client disconnected {}", adresse);
+                    //log!("Client disconnected {}", adresse);
                     return;
                 }
 
-                //println!("buff {:?}",buf);
+                //log!("buff {:?}",buf);
 
                 let msg : SignedMessage = deserialize(&buf[..]).unwrap();
 
-                //println!("{}",msg);
+                //log!("{}",msg);
 
                 sender.send(msg);
 
@@ -33,7 +33,7 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
                 //stream.write(b"ok\n");
             }
             Err(_) => {
-                //println!("Client disconnected {}", adresse);
+                //log!("Client disconnected {}", adresse);
                 return;
             }
         }
@@ -42,9 +42,8 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
 
 pub fn server_listener(socket : (String, u16), msgsender : Sender<SignedMessage>) {
 
-    let string_socket = (socket.0 + ":" + &socket.1.to_string());
-    println!("{}", string_socket);
-    let listener = TcpListener::bind(string_socket).unwrap();
+    let listener = TcpListener::bind(socket)
+        .expect("Problem with the binding to the server socket");
 
     for stream in listener.incoming() {
         match stream {
@@ -60,7 +59,7 @@ pub fn server_listener(socket : (String, u16), msgsender : Sender<SignedMessage>
                 });
             }
             Err(e) => {
-                println!("La connexion du server a échoué : {}", e);
+                log!("La connexion du server a échoué : {}", e);
             }
         }
     }
@@ -72,13 +71,13 @@ pub fn server_listener(socket : (String, u16), msgsender : Sender<SignedMessage>
 pub fn send(addr : &(String, u16), message : SignedMessage ) {
     match TcpStream::connect(addr) {
         Ok(mut stream) => {
-            //println!("Connexion au serveur réussie !");
+            //log!("Connexion au serveur réussie !");
             let serialized_msg = &(bincode::serialize(&message).unwrap()[..]);
             stream.write(serialized_msg);
             //exchange_with_server(client,stream);
         }
         Err(e) => {
-            println!("La connexion au serveur a échoué : {}", e);
+            log!("La connexion au serveur a échoué : {}", e);
         }
     }
 }

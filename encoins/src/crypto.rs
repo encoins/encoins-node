@@ -57,18 +57,11 @@ impl SignedMessage {
 
 
 /// The function that returns a list of N public_keys and a list of N keypair_keys to be granted to processes
-pub fn init_crypto(nb_user : u32) -> (Vec<PublicKey>,Vec<Keypair>) {
+pub fn create_keypair() -> Keypair {
     let mut csprng = OsRng{};
 
-    let mut list_of_public_keys = vec![];
-    let mut list_of_keypair_keys = vec![]; // It's really seem like a bad idea, but sufficient for the moment
-    for _ in 0..nb_user + 1 {
-        let keypair: Keypair = Keypair::generate(&mut csprng);
-        list_of_public_keys.push(keypair.public);
-        list_of_keypair_keys.push(keypair);
-    };
+    let keypair: Keypair = Keypair::generate(&mut csprng);
 
-    // /!\ in real life never use a secret key coming from wild
-    (list_of_public_keys,list_of_keypair_keys)
+    keypair
 
 }

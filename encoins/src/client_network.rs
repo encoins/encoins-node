@@ -6,7 +6,7 @@ use std::thread;
 use bincode::deserialize;
 use serde::Deserialize;
 use crate::instructions::{Instruction, RespInstruction};
-use crate::IOComm;
+use crate::log;
 
 fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstruction>) {
 
@@ -21,15 +21,15 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
             Ok(received) => {
                 // si on a reçu 0 octet, ça veut dire que le client s'est déconnecté
                 if received < 1 {
-                    println!("Client disconnected {}", adresse);
+                    log!("Client disconnected {}", adresse);
                     return;
                 }
 
-                println!("buff {:?}",buf);
+                log!("buff {:?}",buf);
 
                 let instruction : Instruction = deserialize(&buf[..]).unwrap();
 
-                println!("Instruction : {}",instruction);
+                log!("Instruction : {}",instruction);
 
                 let resp_sender_copy = resp_sender.clone();
                 let resp_instruction = RespInstruction::from(instruction,resp_sender_copy);
@@ -47,7 +47,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
 
             }
             Err(_) => {
-                println!("Client disconnected {}", adresse);
+                log!("Client disconnected {}", adresse);
                 return;
             }
         }
@@ -56,10 +56,10 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
 
 pub fn client_listener(socket : (String, u16),iosender : Sender<RespInstruction>) {
 
-    let string_socket = (socket.0 + ":" + &socket.1.to_string());
-    let listener = TcpListener::bind(string_socket).unwrap();
+    let listener = TcpListener::bind(socket)
+        .expect("Problem with the binding to the client socket");
 
-    println!("En attente d'un client...");
+    log!("En attente d'un client...");
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -68,24 +68,24 @@ pub fn client_listener(socket : (String, u16),iosender : Sender<RespInstruction>
                     Err(_) => "inconnue".to_owned()
                 };
 
-                println!("Nouveau client {}", adresse);
+                log!("Nouveau client {}", adresse);
                 let iosender_copy = iosender.clone();
                 thread::spawn( move || {
                     handle_client(stream, &*adresse,iosender_copy);
                 });
             }
             Err(e) => {
-                println!("La connexion du client a échoué : {}", e);
+                log!("La connexion du client a échoué : {}", e);
             }
         }
-        println!("En attente d'un autre client...");
+        log!("En attente d'un autre client...");
     }
 }
 /*
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:1234").unwrap();
 
-    println!("En attente d'un client...");
+    log!("En attente d'un client...");
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -94,16 +94,16 @@ fn main() {
                     Err(_) => "inconnue".to_owned()
                 };
 
-                println!("Nouveau client {}", adresse);
+                log!("Nouveau client {}", adresse);
                 thread::spawn(move|| {
                     handle_client(stream, &*adresse)
                 });
             }
             Err(e) => {
-                println!("La connexion du client a échoué : {}", e);
+                log!("La connexion du client a échoué : {}", e);
             }
         }
-        println!("En attente d'un autre client...");
+        log!("En attente d'un autre client...");
     }
 }
 */
