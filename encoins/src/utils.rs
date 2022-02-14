@@ -26,7 +26,7 @@ pub static mut LOGGING_FILE_PATH : String = String::new();
 /// Creates directories for logs and HISTS in a main directory
 /// If `None` is given as the main_file_path, then it will be created in the directory containing the executable
 /// Otherwise, the main directory will be created at the given path
-pub fn initialize(write_logs : bool, main_file_path : Option<String>)
+pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : u32)
 {
     unsafe
         {
@@ -49,6 +49,7 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>)
                         exec_file_path.pop();
                         MAIN_DIRECTORY_PATH = String::from(exec_file_path.to_str().unwrap());
                         MAIN_DIRECTORY_PATH.push_str("/files");
+                        MAIN_DIRECTORY_PATH = String::from(format!("{}{}", MAIN_DIRECTORY_PATH, proc_nb));
                     }
                 Some(path) =>
                     {

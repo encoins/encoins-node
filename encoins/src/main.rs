@@ -4,7 +4,7 @@ use std::{env, thread};
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::time::Duration;
-use crate::base_types::UserId;
+use crate::base_types::{Transaction, UserId};
 use crate::broadcast::Broadcast;
 use crate::instructions::{Instruction, RespInstruction};
 use crate::crypto::{SignedMessage, create_keypair};
@@ -13,6 +13,7 @@ use std::sync::mpsc::Receiver;
 use crate::client_network::client_listener;
 use crate::process::Process;
 use crate::serv_network::server_listener;
+use crate::utils::write_transaction;
 use crate::yaml::*;
 
 
@@ -56,9 +57,19 @@ fn main()
     let number_of_processes = read_network_parameters(&hash_net_config);
 
     // Initialize logging
-    utils::initialize(write_logs, None);
+    utils::initialize(write_logs, None, proc_id);
 
     log!("Initializing with {} processes", number_of_processes);
+
+    // Give account 1 some money
+    let unlimited_money = Transaction{
+        seq_id: 0,
+        sender_id: 0,
+        receiver_id: 1,
+        amount: 10000
+    };
+
+    write_transaction(&unlimited_money);
 
     // Initialize threads
     let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id);
