@@ -1,3 +1,5 @@
+extern crate core;
+
 use std::{env, thread};
 use std::collections::HashMap;
 use std::sync::mpsc;

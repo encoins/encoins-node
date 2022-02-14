@@ -1,7 +1,6 @@
 //! Definition of a processus
 use std::collections::HashMap;
 #[allow(unused_must_use)]
-use crate::transaction::Transaction;
 use crate::base_types::*;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
@@ -10,10 +9,10 @@ use crate::crypto::{SignedMessage};
 use ed25519_dalek::{PublicKey, Keypair};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use crate::instructions::RespInstruction;
+use crate::utils::{load_history, write_transaction};
 
 
 type List = HashMap<UserId,u32>;
-type TransferSet = Vec<Transaction>;
 type MessageSet = Vec<Message>;
 
 
@@ -31,7 +30,7 @@ pub struct Process
     /// List of size N such that seq(q) = number of delivered transfers from q
     rec : List,
     /// List of size N such that hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
-    hist : HashMap<UserId,TransferSet>,
+   // hist : HashMap<UserId,TransferSet>,
     /// Set of last incoming transfers of local process
     deps : TransferSet,
     /// Set of delivered (but not validated) transfers
@@ -88,7 +87,7 @@ impl Process {
             /// In our current situation we consider
             seq : list.clone(),
             rec : list.clone(),
-            hist : s,
+            //hist : s,
             deps : TransferSet::new(),
             to_validate : MessageSet::new(),
             ongoing_transfer ,
@@ -149,7 +148,7 @@ impl Process {
 
         // The history is updated and transfer are now blocked
 
-        self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
+        //self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
         *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
         (true,0)
     }
@@ -198,7 +197,11 @@ impl Process {
             {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
-                self.hist.entry(message.transaction.sender_id).or_insert(TransferSet::new()).push(message.transaction.clone());
+                //self.hist.entry(message.transaction.sender_id).or_insert(TransferSet::new()).push(message.transaction.clone());
+
+                // Save transaction for receiver and sender
+                write_transaction(&message.transaction);
+
                 *self.seq.entry(message.transaction.sender_id).or_insert(0) = message.transaction.seq_id;
 
                 *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
@@ -206,7 +209,7 @@ impl Process {
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
 
-                self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
+                //self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 if self.id_proc == message.transaction.sender_id {
                     *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 }
@@ -228,7 +231,7 @@ impl Process {
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id as u32)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
-        let assert3 = Process::balance(message.transaction.sender_id, &self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
+        let assert3 = Process::balance(message.transaction.sender_id, &load_history(&message.transaction.sender_id)) >= message.transaction.amount;//&self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
 
@@ -302,12 +305,17 @@ impl Process {
         {
             hist.append(&mut self.deps.clone());
         } */
+
+        return load_history(account);
+        /*
         match self.hist.get(account) {
             Some(history) => {
                 //log!("History {:#?}", history);
                 history.clone() }
             None => {TransferSet::new()}
         }
+        */
+
     }
 
 
@@ -328,7 +336,7 @@ impl Process {
         let mut balance = 0;
         if account !=0
         {
-            for tr in self.history_for(&account)
+            for tr in load_history(&account) //self.history_for(&account)
             {
                 if account == tr.receiver_id
                 {
@@ -347,7 +355,7 @@ impl Process {
     /// Outputs to the main thread the balances of all accounts according to the process
     pub fn output_balances(&self)
     {
-        let mut final_string = String::from(format!("[Process {}] Balances are :, len {}", self.id_proc, self.hist.len()));
+        let mut final_string = String::from(format!("[Process {}] Balances are :", self.id_proc));
 
         //log!("{}",self.hist.len());
         for (id,_) in self.seq.iter()
@@ -370,7 +378,7 @@ impl Process {
             final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, id, balance);
 
         }
-        log!("{}",final_string);
+        log!(final_string);
     }
 
     pub fn get_pub_key(&self, account : UserId) -> &PublicKey

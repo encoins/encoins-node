@@ -1,7 +1,6 @@
 //! Definition of a message
 use std::fmt::{Display, Formatter};
-use crate::base_types::UserId;
-use crate::transaction::Transaction;
+use crate::base_types::{UserId, Transaction};
 use crate::crypto::SignedMessage;
 use serde::{Serialize,Deserialize};
 

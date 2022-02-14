@@ -3,9 +3,12 @@
 use std::env;
 use std::fmt::format;
 use std::fs::{create_dir_all, File, OpenOptions};
+use serde::{Serialize,Deserialize};
 use std::io::Write;
 use std::path::Path;
 use chrono::prelude::*;
+use crate::UserId;
+use crate::base_types::*;
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
@@ -15,12 +18,12 @@ static mut WRITE_LOGS: bool = true;
 pub static mut MAIN_DIRECTORY_PATH : String = String::new();
 /// Path to the logging directory
 pub static mut LOGS_DIRECTORY_PATH : String = String::new();
-/// Path to the saves directory
-pub static mut SAVES_DIRECTORY_PATH : String = String::new();
+/// Path to the HISTS directory
+pub static mut HISTS_DIRECTORY_PATH : String = String::new();
 /// Path to the file where logs are written
 pub static mut LOGGING_FILE_PATH : String = String::new();
 
-/// Creates directories for logs and saves in a main directory
+/// Creates directories for logs and HISTS in a main directory
 /// If `None` is given as the main_file_path, then it will be created in the directory containing the executable
 /// Otherwise, the main directory will be created at the given path
 pub fn initialize(write_logs : bool, main_file_path : Option<String>)
@@ -53,9 +56,9 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>)
                     }
             }
 
-            // Save files will be written in main_path/saves
-            SAVES_DIRECTORY_PATH = MAIN_DIRECTORY_PATH.clone();
-            SAVES_DIRECTORY_PATH.push_str("/saves");
+            // Save files will be written in main_path/HISTS
+            HISTS_DIRECTORY_PATH = MAIN_DIRECTORY_PATH.clone();
+            HISTS_DIRECTORY_PATH.push_str("/hists");
 
             // Logs file will be written in main_path/logs
             LOGS_DIRECTORY_PATH = MAIN_DIRECTORY_PATH.clone();
@@ -63,7 +66,7 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>)
 
             // Create paths
             create_dir_all(LOGS_DIRECTORY_PATH.clone()).unwrap();
-            create_dir_all(SAVES_DIRECTORY_PATH.clone()).unwrap();
+            create_dir_all(HISTS_DIRECTORY_PATH.clone()).unwrap();
 
             // Create log file path for this execution
             let date = Local::now().format("%Y_%m_%d");
@@ -115,6 +118,68 @@ pub fn write_log(to_write : String)
             }
         }
 }
+
+
+pub fn load_history(user : &UserId) -> TransferSet
+{
+    let mut hist : TransferSet = vec![];
+    unsafe
+        {
+            let path = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, user);
+            match csv::Reader::from_path(path)
+            {
+                Ok(mut reader) =>
+                    {
+                        for result in reader.deserialize()
+                        {
+                            let transaction: Transaction = match result
+                            {
+                                Ok(res) => { res }
+                                Err(err) => { panic!("{}", err.to_string()) }
+                            };
+                            hist.push(transaction);
+                        }
+                    }
+                Err(_) =>
+                    {
+                        //If nos such file exist, return an empty history
+                    }
+            }
+        }
+
+        return hist
+}
+
+
+pub fn write_transaction(transaction : &Transaction)
+{
+    unsafe
+        {
+            let path_receiver = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, transaction.receiver_id);
+            let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, transaction.sender_id);
+
+            let mut file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
+            {
+                Ok(f) => { f }
+                Err(error) => { panic!("Error : {}", error); }
+            };
+
+            let mut file_sender = match OpenOptions::new().write(true).create(true).append(true).open(path_sender)
+            {
+                Ok(f) => { f }
+                Err(error) => { panic!("Error : {}", error); }
+            };
+
+            let mut writer =  csv::Writer::from_writer(file_receiver);
+            writer.serialize(transaction);
+            writer.flush().unwrap();
+
+            writer = csv::Writer::from_writer(file_sender);
+            writer.serialize(transaction);
+            writer.flush().unwrap();
+        }
+}
+
 
 /// Formats the given message with its parameters into a log message
 /// # Examples
