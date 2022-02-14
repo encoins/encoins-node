@@ -1,5 +1,6 @@
 ## Usage
- - `cargo run <nb-nodes> <nb-byzantine-nodes>` to run with `nb-nodes` nodes and `nb-byzantine-nodes` byzantine nodes.
+ - `NUM_NODE={i} cargo run` to run the server i (we use an environment variable)
+ - servers informations have to be filled in the file net_config.yml
 
 ## Documentation
 To read documentation, type:`cargo doc` and run the file `index.html` in path `target/doc/encoins`

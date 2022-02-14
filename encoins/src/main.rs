@@ -13,6 +13,7 @@ use std::sync::mpsc::Receiver;
 use crate::client_network::client_listener;
 use crate::process::Process;
 use crate::serv_network::server_listener;
+use crate::yaml::*;
 
 
 mod transaction;
@@ -27,6 +28,7 @@ mod instructions;
 mod response;
 mod serv_network;
 mod broadcast;
+mod yaml;
 mod saving;
 
 
@@ -34,11 +36,9 @@ fn main()
 {
     // Get given arguments at execution
     let args: Vec<String> = env::args().collect();
-    let proc_id = args[1].parse::<u32>().unwrap();
-    let number_of_processes = args[2].parse::<u32>().unwrap();
 
     // Check if logs have to be written
-    let write_logs = match args.get(3) {
+    let write_logs = match args.get(1) {
         Some(bool) => match bool.parse::<bool>()
         {
             Ok(b) => { b }
@@ -47,7 +47,13 @@ fn main()
         None => false
     };
 
+    // Load network parameters
+    let proc_id: u32 = env::var("NUM_NODE")
+        .expect("No environment variable NUM_NODE found")
+        .parse::<u32>().unwrap();
 
+    let hash_net_config = yaml_to_hash("net_config.yml");
+    let number_of_processes = read_network_parameters(&hash_net_config);
 
     // Initialize logging
     utils::initialize(write_logs, None);
