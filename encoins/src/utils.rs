@@ -7,7 +7,7 @@ use serde::{Serialize,Deserialize};
 use std::io::Write;
 use std::path::Path;
 use chrono::prelude::*;
-use crate::UserId;
+use crate::{UserId};
 use crate::base_types::*;
 
 /// States if the logging system has been initialized
@@ -22,6 +22,62 @@ pub static mut LOGS_DIRECTORY_PATH : String = String::new();
 pub static mut HISTS_DIRECTORY_PATH : String = String::new();
 /// Path to the file where logs are written
 pub static mut LOGGING_FILE_PATH : String = String::new();
+
+/// Formats the given message with its parameters into a log message
+/// # Examples
+///
+/// ```
+/// log!("hello there!"); // Logs the message "hello there"
+///```
+/// ```
+/// log!("format {} arguments", "some"); // Logs the message "format some arguments"
+/// ```
+#[macro_export]
+macro_rules! log {
+    //The macro formats the given string and passes it to write_log
+
+    ($message:expr) => {
+        let mes = format!("{}", $message);
+        $crate::utils::write_log(mes, false);
+    };
+
+    ($mes:expr, $($arg:tt)*) => {
+        let mes = format!($mes, $($arg)*);
+        $crate::utils::write_log(mes,false);
+    };
+}
+
+/// Formats the given message with its parameters into an uppercase crash message
+/// # Examples
+///
+/// ```
+/// warn!("hello there!"); // Logs the message "/!\ HELLO THERE /!\"
+///```
+/// ```
+/// warn!("format {} arguments", "some"); // Logs the message "/!\ FORMAT SOME ARGUMENTS /!\"
+/// ```
+#[macro_export]
+macro_rules! crash_with
+{
+    // The macro formats the given string, puts everything to upper cases, adds a warning and passes it to write_log
+
+    ($message:expr) => {
+        let msg = String::from($message).to_uppercase();
+        let mes = format!("/!\\ {} /!\\", msg);
+        $crate::utils::write_log(mes.clone(), true);
+        panic!("{}", mes);
+    };
+
+    ($message:expr, $($arg:tt)*) => {
+        let mes = format!($message, $($arg)*);
+        let msg = String::from(mes).to_uppercase();
+        let final_mes = format!("/!\\ {} /!\\", msg);
+        $crate::utils::write_log(final_mes.clone(), true);
+        panic!("{}", final_mes);
+    };
+
+}
+
 
 /// Creates directories for logs and HISTS in a main directory
 /// If `None` is given as the main_file_path, then it will be created in the directory containing the executable
@@ -91,28 +147,29 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : 
 /// Writes the given string to the right log file
 ///
 /// `write_log` should only be used by [`log!`]. To write logs use the latter.
-pub fn write_log(to_write : String)
+pub fn write_log(to_write : String, crash_msg : bool)
 {
     unsafe
         {
             // Adding local time to the logs
             let now = Local::now();
-            let wow = String::from("bg").to_uppercase();
             let final_string = format!("[{}] : {}", now.format("%H:%M"), to_write);
-            println!("{}", final_string);
-
+            if !crash_msg
+            {
+                println!("{}", final_string);
+            }
             if WRITE_LOGS
             {
                 if !INITIALIZED
                 {
-                    // If it was not initialized we panic because we can't let threads try creating files simultaneously
-                    panic!("The logging system has not been initialized!");
+                    // If it was not initialized we crash_with!() because we can't let threads try creating files simultaneously
+                    crash_with!("The logging system has not been initialized!");
                 }
 
                 let mut file = match OpenOptions::new().write(true).append(true).open(LOGGING_FILE_PATH.clone())
                 {
                     Ok( f) => {f}
-                    Err(_) => { panic!("Could not access path {}", LOGGING_FILE_PATH); }
+                    Err(_) => { crash_with!("Could not access path {}", LOGGING_FILE_PATH); }
                 };
                 let log_final_string = format!("{}\n", final_string);
                 file.write_all(log_final_string.as_bytes()).unwrap();
@@ -127,16 +184,22 @@ pub fn load_history(user : &UserId) -> TransferSet
     unsafe
         {
             let path = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, user);
-            match csv::Reader::from_path(path)
+            log!("Trying to read file {}", path);
+            //match csv::Reader::from_path(path)
+            match csv::ReaderBuilder::new().has_headers(false).from_path(path)
             {
                 Ok(mut reader) =>
                     {
                         for result in reader.deserialize()
                         {
+
                             let transaction: Transaction = match result
                             {
                                 Ok(res) => { res }
-                                Err(err) => { panic!("{}", err.to_string()) }
+                                Err(err) =>
+                                    {
+                                        crash_with!("{}", err.to_string());
+                                    }
                             };
                             hist.push(transaction);
                         }
@@ -162,75 +225,25 @@ pub fn write_transaction(transaction : &Transaction)
             let mut file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
             {
                 Ok(f) => { f }
-                Err(error) => { panic!("Error : {}", error); }
+                Err(error) => { crash_with!("Error : {}", error); }
             };
 
             let mut file_sender = match OpenOptions::new().write(true).create(true).append(true).open(path_sender)
             {
                 Ok(f) => { f }
-                Err(error) => { panic!("Error : {}", error); }
+                Err(error) => { crash_with!("Error : {}", error); }
             };
 
             let mut writer =  csv::Writer::from_writer(file_receiver);
-            writer.serialize(transaction);
+            //writer.serialize(transaction);
+            writer.write_record(&[transaction.seq_id.to_string(),transaction.sender_id.to_string(), transaction.receiver_id.to_string(), transaction.amount.to_string()]).unwrap();
             writer.flush().unwrap();
 
             writer = csv::Writer::from_writer(file_sender);
-            writer.serialize(transaction);
+            //writer.serialize(transaction);
+            writer.write_record(&[transaction.seq_id.to_string(),transaction.sender_id.to_string(), transaction.receiver_id.to_string(), transaction.amount.to_string()]).unwrap();
             writer.flush().unwrap();
         }
 }
 
-
-/// Formats the given message with its parameters into a log message
-/// # Examples
-///
-/// ```
-/// log!("hello there!"); // Logs the message "hello there"
-///```
-/// ```
-/// log!("format {} arguments", "some"); // Logs the message "format some arguments"
-/// ```
-#[macro_export]
-macro_rules! log {
-    //The macro formats the given string and passes it to write_log
-
-    ($message:expr) => {
-        let mes = format!("{}", $message);
-        $crate::utils::write_log(mes);
-    };
-
-    ($mes:expr, $($arg:tt)*) => {
-        let mes = format!($mes, $($arg)*);
-        $crate::utils::write_log(mes);
-    };
-}
-
-/// Formats the given message with its parameters into an uppercase warning message
-/// # Examples
-///
-/// ```
-/// warn!("hello there!"); // Logs the message "/!\ WARNING : HELLO THERE /!\"
-///```
-/// ```
-/// log!("format {} arguments", "some"); // Logs the message "/!\ WARNING : FORMAT SOME ARGUMENTS /!\"
-/// ```
-#[macro_export]
-macro_rules! warn {
-    // The macro formats the given string, puts everything to upper cases, adds a warning and passes it to write_log
-
-    ($message:expr) => {
-        let msg = String::from($message).to_uppercase();
-        let mes = format!("/!\\ WARNING : {} /!\\", msg);
-        $crate::utils::write_log(mes);
-    };
-
-    ($mes:expr, $($arg:tt)*) => {
-        let mes = format!($mes, $($arg)*);
-        let msg = String::from(mes).to_uppercase();
-        let final_mes = format!("/!\\ WARNING : {} /!\\", msg);
-        $crate::utils::write_log(mes);
-    };
-
-}
 

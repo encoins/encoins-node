@@ -45,7 +45,7 @@ fn main()
             Ok(b) => { b }
             Err(_) => { false }
         }
-        None => false
+        None => true
     };
 
     // Load network parameters
