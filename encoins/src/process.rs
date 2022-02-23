@@ -5,12 +5,13 @@ use crate::transaction::Transaction;
 use crate::base_types::*;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use crate::{log};
+use crate::{Instruction, log};
 use crate::crypto::{SignedMessage};
 use crate::yaml::*;
-use ed25519_dalek::{PublicKey, Keypair};
+use ed25519_dalek::{PublicKey, Keypair, Signature};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
-use crate::instructions::RespInstruction;
+use crate::Instruction::SignedTransfer;
+use crate::instructions::{RespInstruction, Transfer};
 
 
 type List = HashMap<UserId,u32>;
@@ -116,19 +117,28 @@ impl Process {
     }
 
     /// The function that allows processes to transfer money
-    pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> (bool,u8) {
+    pub fn transfer(& mut self,transfer : Transfer, pub_key : ComprPubKey,signature : Vec<u8>) -> (bool,u8) {
+
+        if ! transfer.verif_signature_transfer(pub_key,signature) {
+            log!("I refused to start the transfer because the signature is not correct");
+            return (false,1)
+        }
+
+        let user_id = transfer.sender;
+        let receiver_id = transfer.recipient;
+        let amount = transfer.amount;
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
         if  ! (user_id == 0) && self.read(user_id) < amount
         {
             log!("I refused to start the transfer because I don't have enough money on my account");
-            return (false,1)
+            return (false,2)
         }
         if *self.ongoing_transfer.get(&user_id).unwrap() == true
         {
             log!("I refused to start a new transfer because I have not validated my previous one");
-            return (false,2)
+            return (false,3)
         }
 
         // Then a transaction is created in accordance to the white paper

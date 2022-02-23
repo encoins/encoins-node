@@ -7,7 +7,9 @@ use crate::crypto::ed25519_dalek::Signer;
 use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use crate::message::Message;
 use serde::{Serialize,Deserialize};
-
+use crate::Instruction;
+use crate::instructions::Transfer;
+use crate::base_types::ComprPubKey;
 
 
 /// A SignedMessage is a message and its signature
@@ -52,6 +54,14 @@ impl SignedMessage {
     }
 }
 
+impl Transfer {
+    pub fn verif_signature_transfer(&self, pub_key : ComprPubKey, signature : Vec<u8>) -> bool {
+
+        let public_key = PublicKey::from_bytes(&pub_key[..]).unwrap();
+        let transfer = &(bincode::serialize(&self).unwrap()[..]);
+        public_key.verify(transfer, &Signature::from_bytes(signature.as_slice()).unwrap()).is_ok()
+    }
+}
 
 
 

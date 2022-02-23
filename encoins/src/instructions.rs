@@ -1,12 +1,12 @@
 use std::fmt::{Display, Formatter};
 use std::sync::mpsc::Sender;
-use crate::base_types::{Currency, UserId};
+use crate::base_types::{Currency, UserId,ComprPubKey};
 use crate::process::Process;
-use serde::Deserialize;
+use serde::{Deserialize,Serialize};
 use crate::response::Response;
 use crate::log;
 
-#[derive(Clone,Deserialize,Debug)]
+#[derive(Clone,Deserialize,Debug,Serialize)]
 pub struct Transfer {
     pub sender : UserId,
     pub recipient : UserId,
@@ -18,6 +18,7 @@ pub struct Transfer {
 pub enum Instruction {
     // redondance avec la def de crypto :(
     SignedTransfer {
+        pub_key : ComprPubKey,
         transfer : Transfer,
         signature : Vec<u8> // vec of (signature .to_byte (easier to serialize))
     },
@@ -48,7 +49,7 @@ impl Display for Instruction
         match self
         {
             Instruction::Balance {user} => { write!(f, " Balances of {}", user) }
-            Instruction::SignedTransfer {transfer, signature} => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",transfer.sender , transfer.recipient, transfer.amount) }
+            Instruction::SignedTransfer {pub_key,transfer, signature} => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",transfer.sender , transfer.recipient, transfer.amount) }
 
         }
     }
@@ -65,9 +66,9 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
             resp_sender.send(Response::Balance(balance));
 
         }
-        Instruction::SignedTransfer {transfer,signature} => {
+        Instruction::SignedTransfer {pub_key,transfer,signature} => {
             log!("transfer incoming");
-            let suceed = process.transfer(transfer.sender, transfer.recipient, transfer.amount);
+            let suceed = process.transfer(transfer, pub_key, signature);
             resp_sender.send(Response::Transfer(suceed.0,suceed.1));
 
         }
