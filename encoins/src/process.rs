@@ -47,8 +47,8 @@ pub struct Process
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
     ongoing_transfer : HashMap<UserId,bool>,
-    client_socket : (String, u16),
-    server_socket : (String, u16),
+    pub client_socket : (String, u16),
+    pub server_socket : (String, u16),
     // serv_net_receiver : Receiver<SignedMessage>,
     // pub serv_net_receiver : Receiver<SignedMessage>,
     pub nb_process : u32,
@@ -80,8 +80,8 @@ impl Process {
         let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
         
         // Save the values
-        let client_socket: (String, u16) = (ip.clone(), port_server);
-        let server_socket: (String, u16) = (ip.clone(), port_client);
+        let client_socket: (String, u16) = (ip.clone(), port_client);
+        let server_socket: (String, u16) = (ip.clone(), port_server);
         let mut serv_addr : Vec<(String, u16)> = Vec::new();
         for i in 1..nb_process+1 {
             let (ip, port_server, port_client) = read_server_address(&hash_net_config, i);
