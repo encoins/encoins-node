@@ -12,6 +12,8 @@ use ed25519_dalek::{PublicKey, Keypair, Signature};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use crate::Instruction::SignedTransfer;
 use crate::instructions::{RespInstruction, Transfer};
+use crate::key_converter::string_from_compr_pub_key;
+
 
 
 type List = HashMap<UserId,u32>;
@@ -27,7 +29,7 @@ pub struct Process
 {
     /// Every process has a unique ID
     /// In our current implementation we consider that there exist an (nb_process + 1) = N th process with ID : 0 ( the well process )
-    id_proc : UserId,
+    pub id : ProcId,
     /// List of size N such that seq(q) = number of validated transfers outgoing from q
     seq : List,
     /// List of size N such that seq(q) = number of delivered transfers from q
@@ -63,17 +65,17 @@ impl Process {
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
-    pub fn init(id : UserId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
+    pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
         let first_transaction : Transaction = Transaction {
             seq_id : 1,
-            sender_id : 0,
-            receiver_id : 1,
+            sender_id : cinhkpgfaeokhfokbpagkgompfmgmdkhcljcfkpincemobnoknnaplnholpipabi,
+            receiver_id : jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,
             amount : 10000,
         };
         origin_historic.push(first_transaction);
-        s.insert(1,origin_historic);
+        s.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,origin_historic);
 
         // Network informations
         let hash_net_config = yaml_to_hash("net_config.yml");        
@@ -90,14 +92,14 @@ impl Process {
 
         
         let mut list = List::new();
-        list.insert(1,1);
-        let mut ongoing_transfer = HashMap::new();
+        list.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,0);
+        let mut ongoing_transfer : HashMap<UserId,bool> = HashMap::new();
 
         // Find a mean to fill it
         let public_keys : Vec<PublicKey> = Vec::new();
-        ongoing_transfer.insert(1,false);
+        ongoing_transfer.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,false);
         Process {
-            id_proc : id,
+            id : id,
             /// In our current situation we consider
             seq : list.clone(),
             rec : list.clone(),
@@ -157,7 +159,7 @@ impl Process {
                 transaction,
                 dependencies: self.deps.clone(),
                 message_type: MessageType::Init,
-                sender_id: self.id_proc,
+                sender_id: self.id,
             };
 
         // Then the message is signed
@@ -171,7 +173,7 @@ impl Process {
 
         // The history is updated and transfer are now blocked
 
-        self.hist.entry(self.id_proc).or_insert(TransferSet::new()).append(&mut self.deps);
+        self.hist.entry(self.id).or_insert(TransferSet::new()).append(&mut self.deps);
         *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
         (true,0)
     }
@@ -229,7 +231,7 @@ impl Process {
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
 
                 self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
-                if self.id_proc == message.transaction.sender_id {
+                if self.id == message.transaction.sender_id {
                     *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 }
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
@@ -248,7 +250,7 @@ impl Process {
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
-        let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id as u32)).unwrap() + 1 ;
+        let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
         let assert3 = Process::balance(message.transaction.sender_id, &self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
@@ -264,7 +266,7 @@ impl Process {
             }
         }
 
-        log!("proc {} a {} {} {} {}",self.id_proc,assert1,assert2,assert3,assert4);
+        log!("proc {} a {} {} {} {}",string_from_compr_pub_key(self.id),assert1,assert2,assert3,assert4);
 
         (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
 
@@ -272,9 +274,9 @@ impl Process {
     }
 
 
-    pub fn get_id(&self) -> UserId
+    pub fn get_id(&self) -> P
     {
-        self.id_proc
+        self.id
     }
 
     pub fn get_client_socket(&self) -> (String, u16)
@@ -336,7 +338,7 @@ impl Process {
     /// Outputs to the main thread the history of a given account according to the process
     pub fn output_history_for(&self, account : UserId) -> String
     {
-        let mut final_string = String::from(format!("[Process {}] History for process {} :", self.id_proc, account));
+        let mut final_string = String::from(format!("[Process {}] History for account {} :", self.id, string_from_compr_pub_key(&account)));
         for tr in self.history_for(&account)
         {
             final_string = format!("{} \n \t - {}", final_string, tr);
@@ -369,7 +371,7 @@ impl Process {
     /// Outputs to the main thread the balances of all accounts according to the process
     pub fn output_balances(&self)
     {
-        let mut final_string = String::from(format!("[Process {}] Balances are :, len {}", self.id_proc, self.hist.len()));
+        let mut final_string = String::from(format!("[Process {}] Balances are :, len {}", self.id, self.hist.len()));
 
         //log!("{}",self.hist.len());
         for (id,_) in self.seq.iter()
@@ -389,7 +391,7 @@ impl Process {
                 }
                 log!("balance {}",balance);
             }
-            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, id, balance);
+            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, string_from_compr_pub_key(id), balance);
 
         }
         log!("{}",final_string);
@@ -397,7 +399,7 @@ impl Process {
 
     pub fn get_pub_key(&self, account : UserId) -> &PublicKey
     {
-         self.public_keys.get(account as usize).unwrap()
+         self.public_keys.get(account).unwrap()
     }
 
     pub fn get_key_pair(&self) -> &Keypair

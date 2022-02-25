@@ -34,7 +34,7 @@ pub fn read_server_address(hash_net_config: &Hash, i: u32) -> (String, u16, u16)
 
     let server_i: String = "server".to_owned() + &i.to_string();
 
-    let ip_yaml: Yaml = read_yaml(hash_net_config, &server_i, "ip");
+    let ip_yaml: Yaml = read_yaml(hash_net_config, &server_i, "adresse");
     let ip: String = ip_yaml.into_string()
         .expect("In yaml file, one ip adress is not of string type");
 

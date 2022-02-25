@@ -36,7 +36,7 @@ pub fn broadcast( server_addr : &Vec<(String, u16)> , message : SignedMessage)
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
 pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage, ongoing_broadcasts: &mut HashMap<UserId, Broadcast>)
 {
-    let proc_id = process.get_id();
+    let proc_id = process.id;
     let sender_id = signed_message.message.sender_id;
     //let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
     let msg = signed_message.message;
