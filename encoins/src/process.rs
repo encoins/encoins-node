@@ -67,9 +67,9 @@ impl Process {
     pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
-        let creator = comp_pub_key_from_string(&String::from("cinhkpgfaeokhfokbpagkgompfmgmdkhcljcfkpincemobnoknnaplnholpipabi")).unwrap();
+        /*let creator = comp_pub_key_from_string(&String::from("cinhkpgfaeokhfokbpagkgompfmgmdkhcljcfkpincemobnoknnaplnholpipabi")).unwrap();
         let first_user = comp_pub_key_from_string(&String::from("jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo")).unwrap();
-        let first_transaction : Transaction = Transaction {
+        /*let first_transaction : Transaction = Transaction {
             seq_id : 1,
             sender_id : creator,
             receiver_id : first_user,
@@ -77,8 +77,10 @@ impl Process {
         };
         origin_historic.push(first_transaction);
         s.insert(first_user,origin_historic);
+        */
+         */
 
-        // Network informations
+        // Network information
         let hash_net_config = yaml_to_hash("net_config.yml");        
         let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
         
@@ -93,12 +95,12 @@ impl Process {
 
         
         let mut list = List::new();
-        list.insert(first_user,0);
+        //list.insert(first_user,0);
         let mut ongoing_transfer : HashMap<UserId,bool> = HashMap::new();
 
         // Find a mean to fill it
         let public_keys : Vec<PublicKey> = Vec::new();
-        ongoing_transfer.insert(first_user,false);
+        //ongoing_transfer.insert(first_user,false);
         Process {
             id,
             /// In our current situation we consider

@@ -2,6 +2,7 @@
 
 use std::fmt::{Display, Formatter};
 use crate::base_types::*;
+use crate::key_converter::string_from_compr_pub_key;
 
 
 impl Display for Transaction

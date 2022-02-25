@@ -1,5 +1,7 @@
 //! Definition of global types used in the algorithm
 
+use serde::{Serialize, Deserialize};
+
 /// For the moment, a user id is a 32-bit integer. It should change with implementation of encryption
 pub type UserId = ComprPubKey;
 //pub type UserId = [u8; 32]; // CompressedEdwardsY of the public key
@@ -13,6 +15,8 @@ pub type Currency = u32;
 pub type SeqId = u32;
 
 use std::fmt;
+use std::fmt::{Formatter, write};
+use std::path::Display;
 
 pub type ComprPubKey = [u8; 32]; // from CompressedEdwardsY
 

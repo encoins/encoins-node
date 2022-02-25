@@ -11,6 +11,7 @@ use crate::crypto::{SignedMessage, create_keypair};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Receiver;
 use crate::client_network::client_listener;
+use crate::key_converter::comp_pub_key_from_string;
 use crate::process::Process;
 use crate::serv_network::server_listener;
 use crate::utils::write_transaction;
@@ -30,7 +31,6 @@ mod response;
 mod serv_network;
 mod broadcast;
 mod yaml;
-mod saving;
 mod key_converter;
 
 
@@ -62,15 +62,18 @@ fn main()
 
     log!("Initializing with {} processes", number_of_processes);
 
-    // Give account 1 some money
+    /* Give account 1 some money
+    let user1_pub_key = String::from("ldehakcahmdhkdgngcaplkoebekogodebilmfnkollchfapeajofkgjaemgcjkbg");
+    let user2_pub_key = String::from("ipjoeehlblhdmmhclmppecimjpineomlbimjlociabpijabgbigofpehbbpkdaom");
+
     let unlimited_money = Transaction{
         seq_id: 0,
-        sender_id: 0,
-        receiver_id: 1,
+        sender_id: comp_pub_key_from_string(&user2_pub_key).unwrap(),
+        receiver_id: comp_pub_key_from_string(&user1_pub_key).unwrap(),
         amount: 10000
     };
 
-    write_transaction(&unlimited_money);
+    write_transaction(&unlimited_money);*/
 
     // Initialize threads
     let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id);
@@ -117,8 +120,8 @@ fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMe
 
     let mut proc = process::Process::init(proc_id, nb_process, keypair);
     log!("Server initialized correctly!");
-    log!(" Client_socket :{:?}",proc.client_socket);
-    log!(" Serv_socket :{:?}",proc.server_socket);
+    log!("Client_socket :{:?}",proc.client_socket);
+    log!("Serv_socket :{:?}",proc.server_socket);
 
     let client_socket = proc.get_client_socket();
     thread::spawn( move ||{

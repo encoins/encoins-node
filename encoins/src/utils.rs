@@ -9,6 +9,7 @@ use std::path::Path;
 use chrono::prelude::*;
 use crate::{UserId};
 use crate::base_types::*;
+use crate::key_converter::string_from_compr_pub_key;
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
@@ -183,7 +184,7 @@ pub fn load_history(user : &UserId) -> TransferSet
     let mut hist : TransferSet = vec![];
     unsafe
         {
-            let path = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, user);
+            let path = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(user));
             log!("Trying to read file {}", path);
             //match csv::Reader::from_path(path)
             match csv::ReaderBuilder::new().has_headers(false).from_path(path)
@@ -219,8 +220,8 @@ pub fn write_transaction(transaction : &Transaction)
 {
     unsafe
         {
-            let path_receiver = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, transaction.receiver_id);
-            let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, transaction.sender_id);
+            let path_receiver = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.receiver_id));
+            let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
 
             let mut file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
             {
@@ -236,14 +237,13 @@ pub fn write_transaction(transaction : &Transaction)
 
             let mut writer =  csv::Writer::from_writer(file_receiver);
             //writer.serialize(transaction);
-            writer.write_record(&[transaction.seq_id.to_string(),transaction.sender_id.to_string(), transaction.receiver_id.to_string(), transaction.amount.to_string()]).unwrap();
+            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()]).unwrap();
             writer.flush().unwrap();
 
             writer = csv::Writer::from_writer(file_sender);
             //writer.serialize(transaction);
-            writer.write_record(&[transaction.seq_id.to_string(),transaction.sender_id.to_string(), transaction.receiver_id.to_string(), transaction.amount.to_string()]).unwrap();
+            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()]).unwrap();
             writer.flush().unwrap();
         }
 }
-
 
