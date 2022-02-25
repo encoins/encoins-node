@@ -37,7 +37,7 @@ pub struct Process
     /// List of size N such that hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
     hist : HashMap<UserId,TransferSet>,
     /// Set of last incoming transfers of local process
-    deps : TransferSet,
+    deps : HashMap<UserId,TransferSet>,
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
     /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
@@ -104,7 +104,7 @@ impl Process {
             seq : list.clone(),
             rec : list.clone(),
             hist : s,
-            deps : TransferSet::new(),
+            deps : HashMap::new(),
             to_validate : MessageSet::new(),
             ongoing_transfer ,
             public_keys,
@@ -157,7 +157,7 @@ impl Process {
         // Which is encapsulated in an Init Message
         let message  = Message {
                 transaction,
-                dependencies: self.deps.clone(),
+                dependencies: self.deps.entry(user_id).or_insert(TransferSet::new()).clone(),
                 message_type: MessageType::Init,
                 sender_id: self.id,
             };
@@ -173,7 +173,7 @@ impl Process {
 
         // The history is updated and transfer are now blocked
 
-        self.hist.entry(self.id).or_insert(TransferSet::new()).append(&mut self.deps);
+        self.hist.entry(user_id).or_insert(TransferSet::new()).append(&mut self.deps.entry(user_id).or_insert(TransferSet::new()));
         *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
         (true,0)
     }
@@ -225,9 +225,7 @@ impl Process {
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
 
                 self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
-                if self.id == message.transaction.sender_id {
-                    *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
-                }
+                *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
                 self.to_validate.remove(index);
             }
@@ -240,7 +238,7 @@ impl Process {
     }
 
     /// Function that tests if a message is validated by the process
-    fn is_valid(& self, message : &Message) -> bool{
+    fn is_valid(&mut self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
@@ -254,7 +252,7 @@ impl Process {
         let mut assert4 = true;
 
         for dependence in &message.dependencies {
-            if self.deps.clone().iter().any(|transaction| transaction == dependence) {
+            if self.deps.entry(user_id).or_insert(TransferSet::new()).clone().iter().any(|transaction| transaction == dependence) {
                 //return false;
                 assert4 = false;
             }
@@ -268,10 +266,6 @@ impl Process {
     }
 
 
-    pub fn get_id(&self) -> P
-    {
-        self.id
-    }
 
     pub fn get_client_socket(&self) -> (String, u16)
     {
@@ -391,7 +385,7 @@ impl Process {
 
     pub fn get_pub_key(&self, account : ProcId) -> &PublicKey
     {
-         self.public_keys.get(account).unwrap()
+         self.public_keys.get(account as usize).unwrap()
     }
 
     pub fn get_key_pair(&self) -> &Keypair
