@@ -31,6 +31,7 @@ mod serv_network;
 mod broadcast;
 mod yaml;
 mod saving;
+mod key_converter;
 
 
 fn main()
@@ -116,6 +117,8 @@ fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMe
 
     let mut proc = process::Process::init(proc_id, nb_process, keypair);
     log!("Server initialized correctly!");
+    log!(" Client_socket :{:?}",proc.client_socket);
+    log!(" Serv_socket :{:?}",proc.server_socket);
 
     let client_socket = proc.get_client_socket();
     thread::spawn( move ||{

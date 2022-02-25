@@ -1,6 +1,7 @@
 //! Definition of a message
 use std::fmt::{Display, Formatter};
-use crate::base_types::{UserId, Transaction};
+use crate::base_types::{UserId, Transaction, ProcId};
+use crate::transaction::Transaction;
 use crate::crypto::SignedMessage;
 use serde::{Serialize,Deserialize};
 
@@ -18,7 +19,7 @@ pub struct Message
     /// Message type
     pub message_type: MessageType,
     /// Id of the process sending the message
-    pub sender_id : UserId,
+    pub sender_id : ProcId,
 }
 
 

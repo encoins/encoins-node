@@ -21,7 +21,7 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
                     return;
                 }
 
-                //log!("buff {:?}",buf);
+                log!("buff from serv{:?}",buf);
 
                 let msg : SignedMessage = deserialize(&buf[..]).unwrap();
 

@@ -25,7 +25,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
                     return;
                 }
 
-                log!("buff {:?}",buf);
+                log!("buff from iencli {:?}",buf);
 
                 let instruction : Instruction = deserialize(&buf[..]).unwrap();
 

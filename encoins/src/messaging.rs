@@ -6,6 +6,7 @@ use crate::{Broadcast, log, UserId};
 use crate::broadcast::init_broadcast;
 use crate::process::Process;
 use crate::crypto::SignedMessage;
+use crate::key_converter::string_from_compr_pub_key;
 
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
@@ -36,7 +37,7 @@ pub fn broadcast( server_addr : &Vec<(String, u16)> , message : SignedMessage)
 /// Utility functions used by a [`Processus`] to deal with an incoming [`Message`]
 pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage, ongoing_broadcasts: &mut HashMap<UserId, Broadcast>)
 {
-    let proc_id = process.get_id();
+    let proc_id = process.id;
     let sender_id = signed_message.message.sender_id;
     //let unsigned_message = signed_message.verif_sig(process.get_pub_key(sender_id));
     let msg = signed_message.message;
@@ -49,14 +50,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                 {
                     MessageType::Init =>
                         {
-                            if false //msg.sender_id != msg.transaction.sender_id
-                            {
-                                log!("Process {} tried to usurp {} by initiating a transfer in its name", msg.sender_id, msg.transaction.sender_id );
-                                return;
-                            }
-                            else
-                            {
-                                match ongoing_broadcasts.contains_key(&msg.sender_id)
+                                match ongoing_broadcasts.contains_key(&msg.transaction.sender_id)
                                 {
 
                                     true =>
@@ -81,7 +75,6 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                             broadcast(&process.get_serv_addr(), signed_echo_msg);
                                         }
                                 }
-                            }
                         }
                     _ =>
                         {
@@ -89,7 +82,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                             {
                                 None =>
                                     {
-                                        log!("No ongoing broadcast for proc id {} .", msg.transaction.sender_id);
+                                        log!("No ongoing broadcast for proc id {} .", string_from_compr_pub_key(&msg.transaction.sender_id));
                                     }
                                 Some(brb) =>
                                     {
@@ -109,11 +102,14 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                         if brb.quorum_found()
                                         {
                                             log!("Quorum was achieved. I can add the message to transactions to process.");
+                                            /*
                                             // Tell main_thread I am ready to process transaction
                                             if msg.transaction.receiver_id == proc_id
                                             {
                                                 // process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, msg.transaction))}).unwrap();
                                             }
+                                            */
+
 
                                             // Remove thr associated broadcast
                                             log!("Removing current transaction from ongoing broadcasts");

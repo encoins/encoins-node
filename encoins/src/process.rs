@@ -4,13 +4,16 @@ use std::collections::HashMap;
 use crate::base_types::*;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use crate::{log};
+use crate::{Instruction, log};
 use crate::crypto::{SignedMessage};
 use crate::yaml::*;
-use ed25519_dalek::{PublicKey, Keypair};
+use ed25519_dalek::{PublicKey, Keypair, Signature};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
-use crate::instructions::RespInstruction;
 use crate::utils::{load_history, write_transaction};
+use crate::Instruction::SignedTransfer;
+use crate::instructions::{RespInstruction, Transfer};
+use crate::key_converter::{string_from_compr_pub_key,comp_pub_key_from_string};
+
 
 
 type List = HashMap<UserId,u32>;
@@ -25,7 +28,7 @@ pub struct Process
 {
     /// Every process has a unique ID
     /// In our current implementation we consider that there exist an (nb_process + 1) = N th process with ID : 0 ( the well process )
-    id_proc : UserId,
+    pub id : ProcId,
     /// List of size N such that seq(q) = number of validated transfers outgoing from q
     seq : List,
     /// List of size N such that seq(q) = number of delivered transfers from q
@@ -33,7 +36,7 @@ pub struct Process
     /// List of size N such that hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
    // hist : HashMap<UserId,TransferSet>,
     /// Set of last incoming transfers of local process
-    deps : TransferSet,
+    deps : HashMap<UserId,TransferSet>,
     /// Set of delivered (but not validated) transfers
     to_validate : MessageSet,
     /// List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
@@ -45,8 +48,8 @@ pub struct Process
     secret_key : Keypair,
     /// Flag to know if the process has already send a transfer that it has not yet validate
     ongoing_transfer : HashMap<UserId,bool>,
-    client_socket : (String, u16),
-    server_socket : (String, u16),
+    pub client_socket : (String, u16),
+    pub server_socket : (String, u16),
     // serv_net_receiver : Receiver<SignedMessage>,
     // pub serv_net_receiver : Receiver<SignedMessage>,
     pub nb_process : u32,
@@ -61,17 +64,19 @@ impl Process {
     /// seq(q) and rec(q) = 0, for all q in 1..N,
     /// deps and hist(q) are empty sets of transfers,
     /// outgoing_transfer is false
-    pub fn init(id : UserId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
+    pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
+        let creator = comp_pub_key_from_string(&String::from("cinhkpgfaeokhfokbpagkgompfmgmdkhcljcfkpincemobnoknnaplnholpipabi")).unwrap();
+        let first_user = comp_pub_key_from_string(&String::from("jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo")).unwrap();
         let first_transaction : Transaction = Transaction {
             seq_id : 1,
-            sender_id : 0,
-            receiver_id : 1,
+            sender_id : creator,
+            receiver_id : first_user,
             amount : 10000,
         };
         origin_historic.push(first_transaction);
-        s.insert(1,origin_historic);
+        s.insert(first_user,origin_historic);
 
         // Network informations
         let hash_net_config = yaml_to_hash("net_config.yml");        
@@ -88,19 +93,18 @@ impl Process {
 
         
         let mut list = List::new();
-        list.insert(1,1);
-        let mut ongoing_transfer = HashMap::new();
+        list.insert(first_user,0);
+        let mut ongoing_transfer : HashMap<UserId,bool> = HashMap::new();
 
         // Find a mean to fill it
         let public_keys : Vec<PublicKey> = Vec::new();
-        ongoing_transfer.insert(1,false);
+        ongoing_transfer.insert(first_user,false);
         Process {
-            id_proc : id,
+            id,
             /// In our current situation we consider
             seq : list.clone(),
             rec : list.clone(),
-            //hist : s,
-            deps : TransferSet::new(),
+            deps : HashMap::new(),
             to_validate : MessageSet::new(),
             ongoing_transfer ,
             public_keys,
@@ -115,19 +119,28 @@ impl Process {
     }
 
     /// The function that allows processes to transfer money
-    pub fn transfer(& mut self, user_id: UserId, receiver_id: UserId, amount : Currency) -> (bool,u8) {
+    pub fn transfer(& mut self,transfer : Transfer, signature : Vec<u8>) -> (bool,u8) {
+
+        if ! transfer.verif_signature_transfer(transfer.sender,signature) {
+            log!("I refused to start the transfer because the signature is not correct");
+            return (false,1)
+        }
+
+        let user_id = transfer.sender;
+        let receiver_id = transfer.recipient;
+        let amount = transfer.amount;
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
-        if  ! (user_id == 0) && self.read(user_id) < amount
+        if self.read(user_id) < amount
         {
             log!("I refused to start the transfer because I don't have enough money on my account");
-            return (false,1)
+            return (false,2)
         }
-        if *self.ongoing_transfer.get(&user_id).unwrap() == true
+        if *self.ongoing_transfer.entry(user_id).or_insert(false) == true
         {
             log!("I refused to start a new transfer because I have not validated my previous one");
-            return (false,2)
+            return (false,3)
         }
 
         // Then a transaction is created in accordance to the white paper
@@ -144,9 +157,9 @@ impl Process {
         // Which is encapsulated in an Init Message
         let message  = Message {
                 transaction,
-                dependencies: self.deps.clone(),
+                dependencies: self.deps.entry(user_id).or_insert(TransferSet::new()).clone(),
                 message_type: MessageType::Init,
-                sender_id: self.id_proc,
+                sender_id: self.id,
             };
 
         // Then the message is signed
@@ -175,12 +188,7 @@ impl Process {
     /// i.e the sum of incoming amount minus the sum of outgoing amount
     fn balance( a: UserId, h: &TransferSet) -> Currency
     {
-        if a == 0
-        {
-            0
-        }
-        else
-        {
+
             let mut balance : u32 = 0;
             for transfer in h {
                 if transfer.receiver_id == a
@@ -192,7 +200,6 @@ impl Process {
                 }
             }
             balance
-        }
     }
 
     /// The function which tests the validity of every messages pending validation ( in to_validate ) according to the white paper
@@ -205,7 +212,7 @@ impl Process {
                 Some(message) => {message}
                 None => break
             };
-            if self.is_valid(message)
+            if self.is_valid( message)
             {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
@@ -222,9 +229,7 @@ impl Process {
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
 
                 //self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
-                if self.id_proc == message.transaction.sender_id {
-                    *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
-                }
+                *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
                 self.to_validate.remove(index);
             }
@@ -237,11 +242,11 @@ impl Process {
     }
 
     /// Function that tests if a message is validated by the process
-    fn is_valid(& self, message : &Message) -> bool{
+    fn is_valid(&self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
-        let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id as u32)).unwrap() + 1 ;
+        let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
         let assert3 = Process::balance(message.transaction.sender_id, &load_history(&message.transaction.sender_id)) >= message.transaction.amount;//&self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
@@ -251,24 +256,20 @@ impl Process {
         let mut assert4 = true;
 
         for dependence in &message.dependencies {
-            if self.deps.clone().iter().any(|transaction| transaction == dependence) {
+            if self.deps.get(&message.transaction.sender_id).unwrap().clone().iter().any(|transaction| transaction == dependence) {
                 //return false;
                 assert4 = false;
             }
         }
 
-        log!("proc {} a {} {} {} {}",self.id_proc,assert1,assert2,assert3,assert4);
+        log!("proc {} a {} {} {} {}",self.id,assert1,assert2,assert3,assert4);
 
-        (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
+        (assert1 && assert2 && assert3 && assert4 )
 
 
     }
 
 
-    pub fn get_id(&self) -> UserId
-    {
-        self.id_proc
-    }
 
     pub fn get_client_socket(&self) -> (String, u16)
     {
@@ -334,7 +335,7 @@ impl Process {
     /// Outputs to the main thread the history of a given account according to the process
     pub fn output_history_for(&self, account : UserId) -> String
     {
-        let mut final_string = String::from(format!("[Process {}] History for process {} :", self.id_proc, account));
+        let mut final_string = String::from(format!("[Process {}] History for account {} :", self.id, string_from_compr_pub_key(&account)));
         for tr in self.history_for(&account)
         {
             final_string = format!("{} \n \t - {}", final_string, tr);
@@ -346,9 +347,7 @@ impl Process {
     pub fn output_balance_for(&self, account : UserId) -> Currency
     {
         let mut balance = 0;
-        if account !=0
-        {
-            for tr in load_history(&account) //self.history_for(&account)
+            for tr in load_history(&account)
             {
                 if account == tr.receiver_id
                 {
@@ -360,14 +359,14 @@ impl Process {
                     balance -= tr.amount;
                 }
             }
-        }
+
         balance
     }
 
     /// Outputs to the main thread the balances of all accounts according to the process
     pub fn output_balances(&self)
     {
-        let mut final_string = String::from(format!("[Process {}] Balances are :", self.id_proc));
+        let mut final_string = String::from(format!("[Process {}] Balances are :", self.id));
 
         //log!("{}",self.hist.len());
         for (id,_) in self.seq.iter()
@@ -387,13 +386,13 @@ impl Process {
                 }
                 log!("balance {}",balance);
             }
-            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, id, balance);
+            final_string = format!("{} \n \t - Process {}'s balance : {}", final_string, string_from_compr_pub_key(id), balance);
 
         }
         log!(final_string);
     }
 
-    pub fn get_pub_key(&self, account : UserId) -> &PublicKey
+    pub fn get_pub_key(&self, account : ProcId) -> &PublicKey
     {
          self.public_keys.get(account as usize).unwrap()
     }
