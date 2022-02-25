@@ -99,7 +99,7 @@ impl Process {
         let public_keys : Vec<PublicKey> = Vec::new();
         ongoing_transfer.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,false);
         Process {
-            id : id,
+            id,
             /// In our current situation we consider
             seq : list.clone(),
             rec : list.clone(),
@@ -132,7 +132,7 @@ impl Process {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
-        if  ! (user_id == 0) && self.read(user_id) < amount
+        if self.read(user_id) < amount
         {
             log!("I refused to start the transfer because I don't have enough money on my account");
             return (false,2)
@@ -188,12 +188,7 @@ impl Process {
     /// i.e the sum of incoming amount minus the sum of outgoing amount
     fn balance( a: UserId, h: &TransferSet) -> Currency
     {
-        if a == 0
-        {
-            0
-        }
-        else
-        {
+
             let mut balance : u32 = 0;
             for transfer in h {
                 if transfer.receiver_id == a
@@ -205,7 +200,6 @@ impl Process {
                 }
             }
             balance
-        }
     }
 
     /// The function which tests the validity of every messages pending validation ( in to_validate ) according to the white paper
@@ -266,9 +260,9 @@ impl Process {
             }
         }
 
-        log!("proc {} a {} {} {} {}",string_from_compr_pub_key(self.id),assert1,assert2,assert3,assert4);
+        log!("proc {} a {} {} {} {}",self.id,assert1,assert2,assert3,assert4);
 
-        (assert1 && assert2 && assert3 && assert4 )|| message.transaction.sender_id == 0
+        (assert1 && assert2 && assert3 && assert4 )
 
 
     }
@@ -350,8 +344,6 @@ impl Process {
     pub fn output_balance_for(&self, account : UserId) -> Currency
     {
         let mut balance = 0;
-        if account !=0
-        {
             for tr in self.history_for(&account)
             {
                 if account == tr.receiver_id
@@ -364,7 +356,7 @@ impl Process {
                     balance -= tr.amount;
                 }
             }
-        }
+
         balance
     }
 
@@ -397,7 +389,7 @@ impl Process {
         log!("{}",final_string);
     }
 
-    pub fn get_pub_key(&self, account : UserId) -> &PublicKey
+    pub fn get_pub_key(&self, account : ProcId) -> &PublicKey
     {
          self.public_keys.get(account).unwrap()
     }

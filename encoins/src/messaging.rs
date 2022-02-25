@@ -49,14 +49,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                 {
                     MessageType::Init =>
                         {
-                            if false //msg.sender_id != msg.transaction.sender_id
-                            {
-                                log!("Process {} tried to usurp {} by initiating a transfer in its name", msg.sender_id, msg.transaction.sender_id );
-                                return;
-                            }
-                            else
-                            {
-                                match ongoing_broadcasts.contains_key(&msg.sender_id)
+                                match ongoing_broadcasts.contains_key(&msg.transaction.sender_id)
                                 {
 
                                     true =>
@@ -81,7 +74,6 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                             broadcast(&process.get_serv_addr(), signed_echo_msg);
                                         }
                                 }
-                            }
                         }
                     _ =>
                         {
@@ -89,7 +81,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                             {
                                 None =>
                                     {
-                                        log!("No ongoing broadcast for proc id {} .", msg.transaction.sender_id);
+                                        log!("No ongoing broadcast for proc id {} .", string_from_compr_pub_key(msg.transaction.sender_id));
                                     }
                                 Some(brb) =>
                                     {
@@ -109,11 +101,14 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                                         if brb.quorum_found()
                                         {
                                             log!("Quorum was achieved. I can add the message to transactions to process.");
+                                            /*
                                             // Tell main_thread I am ready to process transaction
                                             if msg.transaction.receiver_id == proc_id
                                             {
                                                 // process.get_mainsender().send(IOComm::Output { message : String::from(format!("[Process : {}] I started processing the transaction : {}", proc_id, msg.transaction))}).unwrap();
                                             }
+                                            */
+
 
                                             // Remove thr associated broadcast
                                             log!("Removing current transaction from ongoing broadcasts");
