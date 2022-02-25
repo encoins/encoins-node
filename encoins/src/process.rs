@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::base_types::*;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use crate::{Instruction, log};
+use crate::{crash_with, Instruction, log};
 use crate::crypto::{SignedMessage};
 use crate::yaml::*;
 use ed25519_dalek::{PublicKey, Keypair, Signature};
@@ -13,7 +13,7 @@ use crate::utils::{load_history, write_transaction};
 use crate::Instruction::SignedTransfer;
 use crate::instructions::{RespInstruction, Transfer};
 use crate::key_converter::{string_from_compr_pub_key,comp_pub_key_from_string};
-
+use crate::serv_network::send;
 
 
 type List = HashMap<UserId,u32>;
@@ -124,7 +124,7 @@ impl Process {
     pub fn transfer(& mut self,transfer : Transfer, signature : Vec<u8>) -> (bool,u8) {
 
         if ! transfer.verif_signature_transfer(transfer.sender,signature) {
-            log!("I refused to start the transfer because the signature is not correct");
+            log!("Transaction refused because signature could not be verified!");
             return (false,1)
         }
 
@@ -134,14 +134,15 @@ impl Process {
 
         // First a process check if it has enough money or if it does not already have a transfer in progress
         // If the process is the well process it can do a transfer without verifying its balance
-        if self.read(user_id) < amount
+        let sender_money = self.read(user_id);
+        if sender_money < amount
         {
-            log!("I refused to start the transfer because I don't have enough money on my account");
+            log!("Transaction refused because the sender does not have enough money on their account (Sender has {} encoins)", sender_money);
             return (false,2)
         }
         if *self.ongoing_transfer.entry(user_id).or_insert(false) == true
         {
-            log!("I refused to start a new transfer because I have not validated my previous one");
+            log!("Transaction refused for other reasons");
             return (false,3)
         }
 
@@ -250,7 +251,18 @@ impl Process {
         // 2) any preceding transfers that process q issued must have been validated
         let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
-        let assert3 = Process::balance(message.transaction.sender_id, &load_history(&message.transaction.sender_id)) >= message.transaction.amount;//&self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
+        let history = match load_history(&message.transaction.sender_id)
+        {
+            Ok(h) =>
+                {
+                    h
+                }
+            Err(err) =>
+                {
+                    crash_with!("Could not load history for user {} (Error: {}).", string_from_compr_pub_key(&message.transaction.sender_id), err);
+                }
+        };
+        let assert3 = Process::balance(message.transaction.sender_id, &history) >= message.transaction.amount;//&self.hist.get(&message.transaction.sender_id).unwrap()) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been
         // validated and exist in hist[q]
 
@@ -321,7 +333,16 @@ impl Process {
             hist.append(&mut self.deps.clone());
         } */
 
-        return load_history(account);
+        match load_history(account)
+        {
+            Ok(his) => { return his}
+            Err(err) =>
+                {
+                    log!("Could not load history for account {}. (Error: {}). This should not happen!", string_from_compr_pub_key(account), err);
+                    return vec![];
+                }
+        }
+
         /*
         match self.hist.get(account) {
             Some(history) => {
@@ -349,20 +370,31 @@ impl Process {
     pub fn output_balance_for(&self, account : UserId) -> Currency
     {
         let mut balance = 0;
-            for tr in load_history(&account)
-            {
-                if account == tr.receiver_id
+        match load_history(&account)
+        {
+            Ok(hist) =>
                 {
-                    balance += tr.amount;
-                }
+                    for tr in hist
+                    {
+                        if account == tr.receiver_id
+                        {
+                            balance += tr.amount;
+                        }
 
-                if account == tr.sender_id
+                        if account == tr.sender_id
+                        {
+                            balance -= tr.amount;
+                        }
+                    }
+
+                    balance
+                }
+            Err(err) =>
                 {
-                    balance -= tr.amount;
+                    crash_with!("Could not load history for user {} ! (Error : {})");
                 }
-            }
+        }
 
-        balance
     }
 
     /// Outputs to the main thread the balances of all accounts according to the process

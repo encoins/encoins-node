@@ -7,7 +7,8 @@ use serde::{Serialize,Deserialize};
 use std::io::Write;
 use std::path::Path;
 use chrono::prelude::*;
-use crate::{UserId};
+use serde::de::Unexpected::Str;
+use crate::{comp_pub_key_from_string, UserId};
 use crate::base_types::*;
 use crate::key_converter::string_from_compr_pub_key;
 
@@ -179,7 +180,7 @@ pub fn write_log(to_write : String, crash_msg : bool)
 }
 
 
-pub fn load_history(user : &UserId) -> TransferSet
+pub fn load_history(user : &UserId) -> Result<TransferSet, String>
 {
     let mut hist : TransferSet = vec![];
     unsafe
@@ -191,18 +192,53 @@ pub fn load_history(user : &UserId) -> TransferSet
             {
                 Ok(mut reader) =>
                     {
-                        for result in reader.deserialize()
+                        for result in reader.records()
                         {
 
-                            let transaction: Transaction = match result
+                            match result
                             {
-                                Ok(res) => { res }
+                                Ok(res) =>
+                                    {
+
+                                        let seq_id = match &res[0].parse::<SeqId>()
+                                        {
+                                            Ok(seqid) => { *seqid }
+                                            Err(err) => { return Err(err.to_string()) }
+                                        };
+
+                                        let sender_id = match comp_pub_key_from_string( &String::from(&res[1]))
+                                        {
+                                            Ok(pk) => { pk }
+                                            Err(err) => { return Err(err) }
+                                        };
+
+                                        let receiver_id = match comp_pub_key_from_string(&String::from(&res[2]))
+                                        {
+                                            Ok(pk) => { pk }
+                                            Err(err) => { return  Err(err) }
+                                        };
+
+                                        let amount = match &res[3].parse::<Currency>()
+                                        {
+                                            Ok(currency) => { *currency }
+                                            Err(err) => { return Err(err.to_string()) }
+                                        };
+
+                                        let transaction= Transaction
+                                        {
+                                            seq_id,
+                                            sender_id,
+                                            receiver_id,
+                                            amount
+                                        };
+                                        hist.push(transaction);
+                                    }
                                 Err(err) =>
                                     {
-                                        crash_with!("{}", err.to_string());
+                                       return Err(err.to_string())
                                     }
-                            };
-                            hist.push(transaction);
+                            }
+
                         }
                     }
                 Err(_) =>
@@ -212,7 +248,7 @@ pub fn load_history(user : &UserId) -> TransferSet
             }
         }
 
-        return hist
+        return Ok(hist)
 }
 
 
