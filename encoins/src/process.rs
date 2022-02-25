@@ -12,7 +12,7 @@ use ed25519_dalek::{PublicKey, Keypair, Signature};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use crate::Instruction::SignedTransfer;
 use crate::instructions::{RespInstruction, Transfer};
-use crate::key_converter::string_from_compr_pub_key;
+use crate::key_converter::{string_from_compr_pub_key,comp_pub_key_from_string};
 
 
 
@@ -68,14 +68,16 @@ impl Process {
     pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair, /* serv_net_receiver : Receiver<SignedMessage>, instruction_receiver : Receiver<RespInstruction> */ ) -> Process {
         let mut s : HashMap<UserId,TransferSet> = HashMap::new();
         let mut origin_historic = TransferSet::new();
+        let creator = comp_pub_key_from_string(&String::from("cinhkpgfaeokhfokbpagkgompfmgmdkhcljcfkpincemobnoknnaplnholpipabi")).unwrap();
+        let first_user = comp_pub_key_from_string(&String::from("jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo")).unwrap();
         let first_transaction : Transaction = Transaction {
             seq_id : 1,
-            sender_id : cinhkpgfaeokhfokbpagkgompfmgmdkhcljcfkpincemobnoknnaplnholpipabi,
-            receiver_id : jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,
+            sender_id : creator,
+            receiver_id : first_user,
             amount : 10000,
         };
         origin_historic.push(first_transaction);
-        s.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,origin_historic);
+        s.insert(first_user,origin_historic);
 
         // Network informations
         let hash_net_config = yaml_to_hash("net_config.yml");        
@@ -92,12 +94,12 @@ impl Process {
 
         
         let mut list = List::new();
-        list.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,0);
+        list.insert(first_user,0);
         let mut ongoing_transfer : HashMap<UserId,bool> = HashMap::new();
 
         // Find a mean to fill it
         let public_keys : Vec<PublicKey> = Vec::new();
-        ongoing_transfer.insert(jdjnoahplppjehmjigfbijljnelhmjjebjjpobgbjnglmhiaaneeghllhmhojnfo,false);
+        ongoing_transfer.insert(first_user,false);
         Process {
             id,
             /// In our current situation we consider
@@ -212,7 +214,8 @@ impl Process {
                 Some(message) => {message}
                 None => break
             };
-            if self.is_valid(message)
+            let deps = self.deps.get(&message.transaction.sender_id).unwrap();
+            if self.is_valid( message,deps)
             {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
@@ -238,7 +241,7 @@ impl Process {
     }
 
     /// Function that tests if a message is validated by the process
-    fn is_valid(&mut self, message : &Message) -> bool{
+    fn is_valid(&self, message : &Message, deps : &TransferSet) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
@@ -252,7 +255,7 @@ impl Process {
         let mut assert4 = true;
 
         for dependence in &message.dependencies {
-            if self.deps.entry(user_id).or_insert(TransferSet::new()).clone().iter().any(|transaction| transaction == dependence) {
+            if deps.clone().iter().any(|transaction| transaction == dependence) {
                 //return false;
                 assert4 = false;
             }

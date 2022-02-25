@@ -6,6 +6,7 @@ use crate::{Broadcast, log, UserId};
 use crate::broadcast::init_broadcast;
 use crate::process::Process;
 use crate::crypto::SignedMessage;
+use crate::key_converter::string_from_compr_pub_key;
 
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
@@ -81,7 +82,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                             {
                                 None =>
                                     {
-                                        log!("No ongoing broadcast for proc id {} .", string_from_compr_pub_key(msg.transaction.sender_id));
+                                        log!("No ongoing broadcast for proc id {} .", string_from_compr_pub_key(&msg.transaction.sender_id));
                                     }
                                 Some(brb) =>
                                     {
