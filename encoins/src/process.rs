@@ -121,9 +121,9 @@ impl Process {
     }
 
     /// The function that allows processes to transfer money
-    pub fn transfer(& mut self,transfer : Transfer, pub_key : ComprPubKey,signature : Vec<u8>) -> (bool,u8) {
+    pub fn transfer(& mut self,transfer : Transfer, signature : Vec<u8>) -> (bool,u8) {
 
-        if ! transfer.verif_signature_transfer(pub_key,signature) {
+        if ! transfer.verif_signature_transfer(transfer.sender,signature) {
             log!("I refused to start the transfer because the signature is not correct");
             return (false,1)
         }
@@ -139,7 +139,7 @@ impl Process {
             log!("I refused to start the transfer because I don't have enough money on my account");
             return (false,2)
         }
-        if *self.ongoing_transfer.get(&user_id).unwrap() == true
+        if *self.ongoing_transfer.entry(user_id).or_insert(false) == true
         {
             log!("I refused to start a new transfer because I have not validated my previous one");
             return (false,3)
@@ -214,8 +214,7 @@ impl Process {
                 Some(message) => {message}
                 None => break
             };
-            let deps = self.deps.get(&message.transaction.sender_id).unwrap();
-            if self.is_valid( message,deps)
+            if self.is_valid( message)
             {
                 // for me the following line is not necessary because e is valid => e.h belongs to hist[q]
                 // self.hist[e.transaction.sender_id as usize].append(&mut e.dependencies.clone());
@@ -241,7 +240,7 @@ impl Process {
     }
 
     /// Function that tests if a message is validated by the process
-    fn is_valid(&self, message : &Message, deps : &TransferSet) -> bool{
+    fn is_valid(&self, message : &Message) -> bool{
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
@@ -255,7 +254,7 @@ impl Process {
         let mut assert4 = true;
 
         for dependence in &message.dependencies {
-            if deps.clone().iter().any(|transaction| transaction == dependence) {
+            if self.deps.get(&message.transaction.sender_id).unwrap().clone().iter().any(|transaction| transaction == dependence) {
                 //return false;
                 assert4 = false;
             }

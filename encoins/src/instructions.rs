@@ -19,7 +19,6 @@ pub struct Transfer {
 pub enum Instruction {
     // redondance avec la def de crypto :(
     SignedTransfer {
-        pub_key : ComprPubKey,
         transfer : Transfer,
         signature : Vec<u8> // vec of (signature .to_byte (easier to serialize))
     },
@@ -50,7 +49,7 @@ impl Display for Instruction
         match self
         {
             Instruction::Balance {user} => { write!(f, " Balances of {}", string_from_compr_pub_key(user)) }
-            Instruction::SignedTransfer {pub_key,transfer, signature} => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",string_from_compr_pub_key(&transfer.sender) , string_from_compr_pub_key(&transfer.recipient), transfer.amount) }
+            Instruction::SignedTransfer {transfer, signature} => { write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",string_from_compr_pub_key(&transfer.sender) , string_from_compr_pub_key(&transfer.recipient), transfer.amount) }
 
         }
     }
@@ -67,9 +66,9 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
             resp_sender.send(Response::Balance(balance));
 
         }
-        Instruction::SignedTransfer {pub_key,transfer,signature} => {
+        Instruction::SignedTransfer {transfer,signature} => {
             log!("transfer incoming");
-            let suceed = process.transfer(transfer, pub_key, signature);
+            let suceed = process.transfer(transfer, signature);
             resp_sender.send(Response::Transfer(suceed.0,suceed.1));
 
         }
