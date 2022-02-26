@@ -7,9 +7,8 @@ use serde::{Serialize,Deserialize};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use chrono::prelude::*;
-use crate::{comp_pub_key_from_string, UserId};
 use crate::base_types::*;
-use crate::key_converter::string_from_compr_pub_key;
+use crate::key_converter::{comp_pub_key_from_string, string_from_compr_pub_key};
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
@@ -341,4 +340,3 @@ pub fn write_transaction(transaction : &Transaction)
             file.flush().unwrap();
         }
 }
-

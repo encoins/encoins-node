@@ -1,7 +1,9 @@
+//! To get a string from a PublicKey and vice-versa
+
 use crate::base_types::ComprPubKey;
 
-pub fn string_from_compr_pub_key(pub_key : &ComprPubKey) -> String {
-
+pub fn string_from_compr_pub_key(pub_key : &ComprPubKey) -> String
+{
     let mut result = String::new();
     for el in pub_key {
         let el1 : u8 = (el << 4) >> 4;
@@ -10,8 +12,8 @@ pub fn string_from_compr_pub_key(pub_key : &ComprPubKey) -> String {
         result.push((el2 + b"a".get(0).unwrap()) as char);
     }
     result
-
 }
+
 pub fn comp_pub_key_from_string(string_pub_key : &String) -> Result<[u8;32],String>
 {
     let mut result : [u8;32] = [0;32];
@@ -20,6 +22,5 @@ pub fn comp_pub_key_from_string(string_pub_key : &String) -> Result<[u8;32],Stri
         let el2 = string_pub_key.as_bytes()[2*i+1] - b"a".get(0).unwrap();
         result[i] = el1 + (el2 << 4);
     }
-
     Ok(result)
 }

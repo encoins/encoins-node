@@ -56,21 +56,21 @@ impl Broadcast
         match message.message_type
         {
             MessageType::Init =>
-                {
-                    String::from("Received an init message which should not be possible at this point!")
-                }
+            {
+                String::from("Received an init message which should not be possible at this point!")
+            }
             MessageType::Echo =>
-                {
-                    self.echos[message.sender_id as usize] = Some(message.clone());
-                    self.update_broadcast(&message);
-                    String::from(format!("Received an echo message from {}", message.sender_id))
-                }
+            {
+                self.echos[message.sender_id as usize] = Some(message.clone());
+                self.update_broadcast(&message);
+                String::from(format!("Received an echo message from {}", message.sender_id))
+            }
             MessageType::Ready =>
-                {
-                    self.ready[message.sender_id as usize] = Some(message.clone());
-                    self.update_broadcast(&message);
-                    String::from(format!("Received a ready message from {}", message.sender_id))
-                }
+            {
+                self.ready[message.sender_id as usize] = Some(message.clone());
+                self.update_broadcast(&message);
+                String::from(format!("Received a ready message from {}", message.sender_id))
+            }
         }
     }
 
@@ -82,23 +82,23 @@ impl Broadcast
             match self.ready[self.proc_id]
             {
                 None =>
+                {
+                    let k = (2 * self.nb_procs) / 3;
+                    if nb_occs(&self.echos, message) > k
                     {
-                        let k = (2 * self.nb_procs) / 3;
-                        if nb_occs(&self.echos, message) > k
-                        {
-                            self.is_ready = true;
-                            self.ready[self.proc_id] = Some(message.clone());
-                        }
+                        self.is_ready = true;
+                        self.ready[self.proc_id] = Some(message.clone());
                     }
+                }
                 Some(_) =>
+                {
+                    let k = self.nb_procs / 3;
+                    if nb_occs(&self.ready, message) > k
                     {
-                        let k = self.nb_procs / 3;
-                        if nb_occs(&self.ready, message) > k
-                        {
-                            self.is_ready = true;
-                            self.ready[self.proc_id] = Some(message.clone());
-                        }
+                        self.is_ready = true;
+                        self.ready[self.proc_id] = Some(message.clone());
                     }
+                }
             };
         }
 
@@ -139,12 +139,12 @@ fn nb_occs(tab: &Vec<Option<Message>>, ref_msg: &Message) -> usize
         {
             None => {}
             Some(message) =>
+            {
+                if ref_msg == message
                 {
-                    if ref_msg == message
-                    {
-                        nb_occs +=1;
-                    }
+                    nb_occs +=1;
                 }
+            }
         }
     }
     nb_occs
