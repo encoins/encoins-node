@@ -259,23 +259,33 @@ impl Process
     /// Outputs to the main thread the balance of an account according to the process
     pub fn output_balance_for(&self, account : UserId) -> Currency
     {
-        let mut balance = 0;
+        let mut positive_balance = 0;
+        let mut negative_balance = 0;
         match load_history(&account)
         {
+
             Ok(hist) =>
             {
                 for tr in hist
                 {
                     if account == tr.receiver_id
                     {
-                        balance += tr.amount;
+                        positive_balance += tr.amount;
                     }
 
                     if account == tr.sender_id
                     {
-                        balance -= tr.amount;
+                        negative_balance += tr.amount;
                     }
                 }
+
+                if negative_balance>positive_balance
+                {
+                    crash_with!("Account {} has more expenses than incomes. This should not happen. I am byzantine.", string_from_compr_pub_key(&account));
+                }
+
+                positive_balance - negative_balance
+            }
 
                 balance
             }
