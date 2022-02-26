@@ -10,7 +10,8 @@ pub fn yaml_to_hash(file: &str) -> Hash
         .expect("file net_config.yml not found, be sure to be in encoins-node/encoins")[..];
 
     // Transform the str into a Yaml hash table
-    let vec_yaml: Vec<Yaml> = YamlLoader::load_from_str(str_yaml).unwrap();
+    let vec_yaml: Vec<Yaml> = YamlLoader::load_from_str(str_yaml)
+        .expect("Failed to convert the content of network configuration file into a yaml table");
 
     vec_yaml[0].as_hash()
         .expect("Syntax problem in yaml file")

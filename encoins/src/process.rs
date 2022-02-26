@@ -204,7 +204,8 @@ impl Process
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
-        let assert2 = message.transaction.seq_id ==  load_seq(&message.transaction.sender_id).unwrap() +1 ;
+        let assert2 = message.transaction.seq_id ==  load_seq(&message.transaction.sender_id)
+            .expect("Something got wrong with the loading of a seq file") +1 ;
         // 3) the balance of account q must not drop below zero
         let history = match load_history(&message.transaction.sender_id)
         {
@@ -223,7 +224,9 @@ impl Process
         let mut assert4 = true;
         for dependence in &message.dependencies 
         {
-            if self.deps.get(&message.transaction.sender_id).unwrap().clone().iter().any(|transaction| transaction == dependence)
+            if self.deps.get(&message.transaction.sender_id)
+                .expect("In Hash table deps, no corresponding entry for the sender of a transaction in process")
+                .clone().iter().any(|transaction| transaction == dependence)
             {
                 //return false;
                 assert4 = false;
@@ -286,7 +289,8 @@ impl Process
     /// Getters
     pub fn get_pub_key(&self, account : ProcId) -> &PublicKey
     {
-         self.public_keys.get(account as usize).unwrap()
+         self.public_keys.get(account as usize)
+            .expect("Trying to access the public key of an unregistered user")
     }
 
     pub fn get_key_pair(&self) -> &Keypair

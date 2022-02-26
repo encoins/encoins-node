@@ -44,7 +44,8 @@ fn main()
     // Load network parameters
     let proc_id: u32 = env::var("NUM_NODE")
         .expect("No environment variable NUM_NODE found")
-        .parse::<u32>().unwrap();
+        .parse::<u32>()
+        .expect("Environment variable NUM_NODE is not an int");
 
     let hash_net_config = yaml::yaml_to_hash("net_config.yml");
     let number_of_processes = yaml::read_network_parameters(&hash_net_config);

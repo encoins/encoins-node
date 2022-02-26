@@ -75,8 +75,10 @@ pub fn send(addr : &(String, u16), message : SignedMessage ) {
     {
         Ok(mut stream) => 
         {
-            let serialized_msg = &(bincode::serialize(&message).unwrap()[..]);
-            stream.write(serialized_msg).unwrap();
+            let serialized_msg = &(bincode::serialize(&message)
+                .expect("Problem with the deserialization of a message before sending phase")[..]);
+            stream.write(serialized_msg)
+                .expect("A message cannot be sent because of a bad stream");
         }
         Err(e) => 
         {

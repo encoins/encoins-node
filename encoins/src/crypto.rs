@@ -24,7 +24,8 @@ impl Message
     /// A method that given a keypair returns the signed version of the message
     pub fn sign(self,keypair: &Keypair) -> SignedMessage
     {
-        let msg : &[u8] =  &(bincode::serialize(&self).unwrap()[..]);
+        let msg : &[u8] =  &(bincode::serialize(&self)
+            .expect("problem with the deserialization o")[..]);
         let signature  = keypair.sign(msg).to_bytes().to_vec();
         SignedMessage 
         {
@@ -41,9 +42,11 @@ impl SignedMessage
     pub fn verif_sig(self, public_key: &PublicKey) -> Result<Message, String> {
 
         let message = self.message;
-        let msg = &(bincode::serialize(&message).unwrap()[..]);
+        let msg = &(bincode::serialize(&message)
+            .expect("Problem with th deserialization of the message")[..]);
 
-        match public_key.verify(msg, &Signature::from_bytes(self.signature.as_slice()).unwrap()).is_ok()
+        match public_key.verify(msg, &Signature::from_bytes(self.signature.as_slice())
+            .expect("Problem with the conversion from signature to bytes")).is_ok()
         {
             true => { Ok(message) }
             false => { Err(String::from("The signature is not valid!")) }
@@ -55,9 +58,12 @@ impl Transfer
 {
     pub fn verif_signature_transfer(&self, pub_key : ComprPubKey, signature : Vec<u8>) -> bool 
     {
-        let public_key = PublicKey::from_bytes(&pub_key[..]).unwrap();
-        let transfer = &(bincode::serialize(&self).unwrap()[..]);
-        public_key.verify(transfer, &Signature::from_bytes(signature.as_slice()).unwrap()).is_ok()
+        let public_key = PublicKey::from_bytes(&pub_key[..])
+            .expect("Problem with the conversion from signature to bytes");
+        let transfer = &(bincode::serialize(&self)
+            .expect("Problem with the deserialization of a transfer message")[..]);
+        public_key.verify(transfer, &Signature::from_bytes(signature.as_slice())
+            .expect("Problem with the conversion from signature to bytes")).is_ok()
     }
 }
 

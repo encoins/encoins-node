@@ -73,9 +73,12 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
                     .expect("the channel between the main thread and the client thread is closed");
 
                 //write the response
-                let response = resp_receiver.recv().unwrap();
-                let serialized_response = &(bincode::serialize(&response).unwrap()[..]);
-                stream.write(serialized_response).unwrap();
+                let response = resp_receiver.recv()
+                    .expect("Problem with the reception of the response");
+                let serialized_response = &(bincode::serialize(&response)
+                    .expect("Problem with the deserialization of the response")[..]);
+                stream.write(serialized_response)
+                    .expect("Failed to write on the stream between server and client");
             }
             Err(_) => 
             {
