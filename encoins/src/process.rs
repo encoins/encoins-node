@@ -9,7 +9,7 @@ use crate::crypto::{SignedMessage};
 use crate::yaml::*;
 use ed25519_dalek::{PublicKey, Keypair, Signature};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
-use crate::utils::{load_history, write_transaction};
+use crate::utils::{load_history, load_seq, write_transaction};
 use crate::Instruction::SignedTransfer;
 use crate::instructions::{RespInstruction, Transfer};
 use crate::key_converter::{string_from_compr_pub_key,comp_pub_key_from_string};
@@ -30,11 +30,9 @@ pub struct Process
     /// In our current implementation we consider that there exist an (nb_process + 1) = N th process with ID : 0 ( the well process )
     pub id : ProcId,
     /// List of size N such that seq(q) = number of validated transfers outgoing from q
-    seq : List,
+    //seq : List,
     /// List of size N such that seq(q) = number of delivered transfers from q
     rec : List,
-    /// List of size N such that hist(q) is the set of validated transfers involving ( incoming and outgoing ) q
-   // hist : HashMap<UserId,TransferSet>,
     /// Set of last incoming transfers of local process
     deps : HashMap<UserId,TransferSet>,
     /// Set of delivered (but not validated) transfers
@@ -104,7 +102,7 @@ impl Process {
         Process {
             id,
             /// In our current situation we consider
-            seq : list.clone(),
+           // seq : list.clone(),
             rec : list.clone(),
             deps : HashMap::new(),
             to_validate : MessageSet::new(),
@@ -137,7 +135,7 @@ impl Process {
         let sender_money = self.read(user_id);
         if sender_money < amount
         {
-            log!("Transaction refused because the sender does not have enough money on their account (Sender has {} encoins)", sender_money);
+            log!("The transaction sender does not have enough money to make the transaction. Transaction is refused and not broadcast to others (Sender has {} encoins)", sender_money);
             return (false,2)
         }
         if *self.ongoing_transfer.entry(user_id).or_insert(false) == true
@@ -147,11 +145,19 @@ impl Process {
         }
 
         // Then a transaction is created in accordance to the white paper
-        let transaction = Transaction {
-            seq_id: match self.seq.get(&user_id) {
-                Some(n) => {n+1}
-                None => 0
-            } ,
+        let transaction = Transaction
+        {
+            seq_id: match load_seq(&transfer.sender)
+            {
+                Ok(num) =>
+                    {
+                        num+1
+                    }
+                Err(err) =>
+                    {
+                        crash_with!("Could not process transaction : {}", err);
+                    }
+            },
             sender_id: user_id,
             receiver_id,
             amount,
@@ -224,13 +230,14 @@ impl Process {
                 // Save transaction for receiver and sender
                 write_transaction(&message.transaction);
 
-                *self.seq.entry(message.transaction.sender_id).or_insert(0) = message.transaction.seq_id;
+                //*self.seq.entry(message.transaction.sender_id).or_insert(0) = message.transaction.seq_id;
 
                 *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
 
+                /*
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
                 self.seq.entry(message.transaction.receiver_id).or_insert(0) ;
-
+                */
                 //self.hist.entry(message.transaction.receiver_id).or_insert(TransferSet::new()).push(message.transaction.clone());
                 *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
@@ -249,7 +256,7 @@ impl Process {
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
-        let assert2 = message.transaction.seq_id == self.seq.get(&(message.transaction.sender_id)).unwrap() + 1 ;
+        let assert2 = message.transaction.seq_id ==  load_seq(&message.transaction.sender_id).unwrap() +1 ; //self.seq.get(&(message.transaction.sender_id)).unwrap() + 1 ;
         // 3) the balance of account q must not drop below zero
         let history = match load_history(&message.transaction.sender_id)
         {
@@ -398,6 +405,7 @@ impl Process {
     }
 
     /// Outputs to the main thread the balances of all accounts according to the process
+    /*
     pub fn output_balances(&self)
     {
         let mut final_string = String::from(format!("[Process {}] Balances are :", self.id));
@@ -424,7 +432,7 @@ impl Process {
 
         }
         log!(final_string);
-    }
+    }*/
 
     pub fn get_pub_key(&self, account : ProcId) -> &PublicKey
     {
