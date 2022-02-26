@@ -1,20 +1,14 @@
 //! Definition of a processus
+use ed25519_dalek::{PublicKey, Keypair};
 use std::collections::HashMap;
-#[allow(unused_must_use)]
 use crate::base_types::*;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
-use crate::{crash_with, Instruction, log};
-use crate::crypto::{SignedMessage};
+use crate::{crash_with, log};
 use crate::yaml::*;
-use ed25519_dalek::{PublicKey, Keypair, Signature};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use crate::utils::{load_history, load_seq, write_transaction};
-use crate::Instruction::SignedTransfer;
-use crate::instructions::{RespInstruction, Transfer};
-use crate::key_converter::{string_from_compr_pub_key,comp_pub_key_from_string};
-use crate::serv_network::send;
-
+use crate::instructions::Transfer;
+use crate::key_converter::string_from_compr_pub_key;
 
 type List = HashMap<UserId,u32>;
 type MessageSet = Vec<Message>;
@@ -56,8 +50,6 @@ impl Process
     /// Function which initialises a [Process]
     pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair) -> Process 
     {
-        let mut list = List::new();
-
         // Network information
         let hash_net_config = yaml_to_hash("net_config.yml");        
         let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
@@ -68,14 +60,14 @@ impl Process
         let mut serv_addr : Vec<(String, u16)> = Vec::new();
         for i in 1..nb_process+1 
         {
-            let (ip, port_server, port_client) = read_server_address(&hash_net_config, i);
+            let (ip, port_server, _) = read_server_address(&hash_net_config, i);
             serv_addr.push((ip, port_server));
         }
   
         Process 
         {
             id,                                     //arg
-            rec : list.clone(),                     //empty
+            rec : List::new(),                      //empty
             deps : HashMap::new(),                  //empty
             to_validate : MessageSet::new(),        //empty
             ongoing_transfer : HashMap::new(),      //empty
@@ -240,7 +232,7 @@ impl Process
 
         log!("proc {} a {} {} {} {}",self.id,assert1,assert2,assert3,assert4);
 
-        (assert1 && assert2 && assert3 && assert4 )
+        assert1 && assert2 && assert3 && assert4
     }
 
     /// Returns the history of a given account according to the process
@@ -259,18 +251,6 @@ impl Process
                 return vec![];
             }
         }
-    }
-
-    /// Outputs to the main thread the history of a given account according to the process
-    pub fn output_history_for(&self, account : UserId) -> String
-    {
-        let mut final_string = String::from(format!("[Process {}] History for account {} :", 
-            self.id, string_from_compr_pub_key(&account)));
-        for tr in self.history_for(&account)
-        {
-            final_string = format!("{} \n \t - {}", final_string, tr);
-        }
-        final_string
     }
 
     /// Outputs to the main thread the balance of an account according to the process
@@ -298,10 +278,9 @@ impl Process
             }
             Err(err) =>
             {
-                crash_with!("Could not load history for user {} ! (Error : {})");
+                crash_with!("Could not load history for user ! (Error : {})", err);
             }
         }
-
     }
 
     /// Getters

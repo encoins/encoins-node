@@ -1,12 +1,10 @@
 extern crate rand;
 extern crate ed25519_dalek;
-
+use serde::{Serialize,Deserialize};
+use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
-use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use crate::message::Message;
-use serde::{Serialize,Deserialize};
-use crate::Instruction;
 use crate::instructions::Transfer;
 use crate::base_types::ComprPubKey;
 

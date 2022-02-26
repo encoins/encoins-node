@@ -23,7 +23,6 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
     ongoing_broadcasts: &mut HashMap<UserId, Broadcast>)
 {
     let proc_id = process.id;
-    let sender_id = signed_message.message.sender_id;
     let msg = signed_message.message;
     match msg.message_type
     {

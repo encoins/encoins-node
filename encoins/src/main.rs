@@ -8,7 +8,7 @@ use crate::serv_network::server_listener;
 use crate::process::Process;
 use crate::base_types::UserId;
 use crate::broadcast::Broadcast;
-use crate::instructions::{Instruction, RespInstruction};
+use crate::instructions::RespInstruction;
 use crate::crypto::{SignedMessage, create_keypair};
 
 mod transaction;

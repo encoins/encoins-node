@@ -1,10 +1,8 @@
 use std::net::{TcpListener, TcpStream};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 use std::io::{Read, Write};
 use std::thread;
 use bincode::deserialize;
-use serde::Deserialize;
-use crate::instructions::Instruction;
 use crate::{log, SignedMessage};
 
 /// management of the stream received with the socket
@@ -43,7 +41,7 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
 {
     loop 
     {
-        let mut buf = &mut [0; 200];
+        let buf = &mut [0; 200];
 
         match stream.read(buf) 
         {
@@ -59,7 +57,8 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
                 log!("buff from serv{:?}", adresse);
                 let msg : SignedMessage = deserialize(&buf[..])
                     .expect("Problem with the deserialization of a server message");
-                sender.send(msg);
+                sender.send(msg)
+                    .expect("the channel between the main thread and the server thread is closed");
             }
             Err(_) => 
             {
@@ -77,7 +76,7 @@ pub fn send(addr : &(String, u16), message : SignedMessage ) {
         Ok(mut stream) => 
         {
             let serialized_msg = &(bincode::serialize(&message).unwrap()[..]);
-            stream.write(serialized_msg);
+            stream.write(serialized_msg).unwrap();
         }
         Err(e) => 
         {

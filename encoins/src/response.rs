@@ -1,6 +1,6 @@
 //! Response type
-use crate::base_types::Currency;
 use serde::Serialize;
+use crate::base_types::Currency;
 
 #[derive(Serialize)]
 pub enum Response 

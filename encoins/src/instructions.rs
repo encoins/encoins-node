@@ -54,7 +54,7 @@ impl Display for Instruction
             { 
                 write!(f, " Balances of {}", string_from_compr_pub_key(user)) 
             }
-            Instruction::SignedTransfer {transfer, signature} => 
+            Instruction::SignedTransfer {transfer, signature:_} => 
             { 
                 write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",
                 string_from_compr_pub_key(&transfer.sender), 
@@ -67,7 +67,6 @@ impl Display for Instruction
 
 pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstruction) 
 {
-    let proc_id = process.id;
     let instruction = resp_instruction.instruction;
     let resp_sender = resp_instruction.resp_sender;
     match instruction 
@@ -76,14 +75,16 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
         {
             log!("balance incoming");
             let balance = process.output_balance_for(user);
-            resp_sender.send(Response::Balance(balance));
+            resp_sender.send(Response::Balance(balance))
+                .expect("the channel between the instruction thread and the server one is closed");
 
         }
         Instruction::SignedTransfer {transfer,signature} => 
         {
             log!("transfer incoming");
             let suceed = process.transfer(transfer, signature);
-            resp_sender.send(Response::Transfer(suceed.0,suceed.1));
+            resp_sender.send(Response::Transfer(suceed.0,suceed.1))
+                .expect("the channel between the instruction thread and the server one is closed");
         }
     }
 }

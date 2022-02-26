@@ -1,9 +1,6 @@
 //! Definition of global types used in the algorithm
 
 use serde::{Serialize, Deserialize};
-use std::fmt;
-use std::fmt::{Formatter, write};
-use std::path::Display;
 
 /// Type of crypto keys, from CompressedEdwardsY
 pub type ComprPubKey = [u8; 32];

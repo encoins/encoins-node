@@ -1,9 +1,7 @@
 //! A simple logging system to log infos about processes
 
 use std::env;
-use std::fmt::format;
 use std::fs::{create_dir_all, File, OpenOptions};
-use serde::{Serialize,Deserialize};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use chrono::prelude::*;
@@ -287,7 +285,7 @@ pub fn load_seq(user : &UserId) -> Result<SeqId, String>
                                             {
                                                 return Ok(seq_id)
                                             }
-                                        Err(err) =>
+                                        Err(_) =>
                                             {
                                                 crash_with!("File {} is corrupted! Program cannot continue correctly...", path);
                                             }
@@ -311,13 +309,13 @@ pub fn write_transaction(transaction : &Transaction)
             let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
             let path_seq_sender = format!("{}/{}.seq", SEQS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
 
-            let mut file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
+            let file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
             {
                 Ok(f) => { f }
                 Err(error) => { crash_with!("Error : {}", error); }
             };
 
-            let mut file_sender = match OpenOptions::new().write(true).create(true).append(true).open(path_sender)
+            let file_sender = match OpenOptions::new().write(true).create(true).append(true).open(path_sender)
             {
                 Ok(f) => { f }
                 Err(error) => { crash_with!("Error : {}", error); }
@@ -336,7 +334,14 @@ pub fn write_transaction(transaction : &Transaction)
                 Ok(f) => { f }
                 Err(err) => { crash_with!("Error : {}", err); }
             };
-            file.write_all(transaction.seq_id.to_string().as_bytes());
+            match file.write_all(transaction.seq_id.to_string().as_bytes())
+            {
+                Ok(_) => {}
+                Err(_) =>
+                {
+                    log!("Problem when writing transctions");
+                }
+            }
             file.flush().unwrap();
         }
 }

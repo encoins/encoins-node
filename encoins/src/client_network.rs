@@ -1,10 +1,9 @@
 use std::net::{TcpListener, TcpStream};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 use std::io::{Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use bincode::deserialize;
-use serde::Deserialize;
 use crate::instructions::{Instruction, RespInstruction};
 use crate::log;
 
@@ -48,7 +47,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
 
     loop
     {
-        let mut buf = &mut [0; 200];
+        let buf = &mut [0; 200];
 
         match stream.read(buf) 
         {
@@ -63,19 +62,20 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
                 log!("buff from client {:?}", buf);
 
                 let instruction : Instruction = deserialize(&buf[..])
-                    .expect("Problem with the deserialization of a client message");;
+                    .expect("Problem with the deserialization of a client message");
 
                 log!("Instruction : {}",instruction);
 
                 //send instruction with sender
                 let resp_sender_copy = resp_sender.clone();
                 let resp_instruction = RespInstruction::from(instruction,resp_sender_copy);
-                sender.send(resp_instruction);
+                sender.send(resp_instruction)
+                    .expect("the channel between the main thread and the client thread is closed");
 
                 //write the response
                 let response = resp_receiver.recv().unwrap();
                 let serialized_response = &(bincode::serialize(&response).unwrap()[..]);
-                stream.write(serialized_response);
+                stream.write(serialized_response).unwrap();
             }
             Err(_) => 
             {
