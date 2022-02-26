@@ -4,10 +4,9 @@ use std::env;
 use std::fmt::format;
 use std::fs::{create_dir_all, File, OpenOptions};
 use serde::{Serialize,Deserialize};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use chrono::prelude::*;
-use serde::de::Unexpected::Str;
 use crate::{comp_pub_key_from_string, UserId};
 use crate::base_types::*;
 use crate::key_converter::string_from_compr_pub_key;
@@ -22,6 +21,8 @@ pub static mut MAIN_DIRECTORY_PATH : String = String::new();
 pub static mut LOGS_DIRECTORY_PATH : String = String::new();
 /// Path to the HISTS directory
 pub static mut HISTS_DIRECTORY_PATH : String = String::new();
+///Path to the SEQS directory
+pub static mut SEQS_DIRECTORY_PATH : String = String::new();
 /// Path to the file where logs are written
 pub static mut LOGGING_FILE_PATH : String = String::new();
 
@@ -115,7 +116,7 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : 
                     }
             }
 
-            // Save files will be written in main_path/HISTS
+            // History files will be written in main_path/hists
             HISTS_DIRECTORY_PATH = MAIN_DIRECTORY_PATH.clone();
             HISTS_DIRECTORY_PATH.push_str("/hists");
 
@@ -123,9 +124,14 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : 
             LOGS_DIRECTORY_PATH = MAIN_DIRECTORY_PATH.clone();
             LOGS_DIRECTORY_PATH.push_str("/logs");
 
+            // Seq files will be writtent in main_path/seqs
+            SEQS_DIRECTORY_PATH = MAIN_DIRECTORY_PATH.clone();
+            SEQS_DIRECTORY_PATH.push_str("/seqs");
+
             // Create paths
             create_dir_all(LOGS_DIRECTORY_PATH.clone()).unwrap();
             create_dir_all(HISTS_DIRECTORY_PATH.clone()).unwrap();
+            create_dir_all(SEQS_DIRECTORY_PATH.clone()).unwrap();
 
             // Create log file path for this execution
             let date = Local::now().format("%Y_%m_%d");
@@ -251,6 +257,52 @@ pub fn load_history(user : &UserId) -> Result<TransferSet, String>
         return Ok(hist)
 }
 
+pub fn load_seq(user : &UserId) -> Result<SeqId, String>
+{
+    unsafe
+        {
+            let path = format!( "{}/{}.seq",SEQS_DIRECTORY_PATH, string_from_compr_pub_key(user));
+            log!("Trying to read file {}", path);
+            let file = match File::open(&path)
+            {
+                Ok(f) => {f}
+                Err(_) => { return Ok(0 as SeqId) }
+            };
+
+            let file = BufReader::new(file);
+            match file.lines().next()
+            {
+                None =>
+                    {
+                        return Ok(0 as SeqId)
+                    }
+                Some(value) =>
+                    {
+                        match value
+                        {
+                            Ok(num) =>
+                                {
+                                    match num.parse::<SeqId>()
+                                    {
+                                        Ok(seq_id) =>
+                                            {
+                                                return Ok(seq_id)
+                                            }
+                                        Err(err) =>
+                                            {
+                                                crash_with!("File {} is corrupted! Program cannot continue correctly...", path);
+                                            }
+                                    }
+                                }
+                            Err(err) =>
+                                {
+                                    return Err(err.to_string());
+                                }
+                        }
+                    }
+            };
+        }
+}
 
 pub fn write_transaction(transaction : &Transaction)
 {
@@ -258,6 +310,7 @@ pub fn write_transaction(transaction : &Transaction)
         {
             let path_receiver = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.receiver_id));
             let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
+            let path_seq_sender = format!("{}/{}.seq", SEQS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
 
             let mut file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
             {
@@ -272,14 +325,20 @@ pub fn write_transaction(transaction : &Transaction)
             };
 
             let mut writer =  csv::Writer::from_writer(file_receiver);
-            //writer.serialize(transaction);
             writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()]).unwrap();
             writer.flush().unwrap();
 
             writer = csv::Writer::from_writer(file_sender);
-            //writer.serialize(transaction);
             writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()]).unwrap();
             writer.flush().unwrap();
+
+            let mut file = match OpenOptions::new().create(true).write(true).truncate(true).open(path_seq_sender)
+            {
+                Ok(f) => { f }
+                Err(err) => { crash_with!("Error : {}", err); }
+            };
+            file.write_all(transaction.seq_id.to_string().as_bytes());
+            file.flush().unwrap();
         }
 }
 

@@ -62,19 +62,19 @@ fn main()
 
     log!("Initializing with {} processes", number_of_processes);
 
-    /* Give account 1 some money
-    let user1_pub_key = String::from("ldehakcahmdhkdgngcaplkoebekogodebilmfnkollchfapeajofkgjaemgcjkbg");
+    /* Give account 1 some money*/
+    /*let user1_pub_key = String::from("ldehakcahmdhkdgngcaplkoebekogodebilmfnkollchfapeajofkgjaemgcjkbg");
     let user2_pub_key = String::from("ipjoeehlblhdmmhclmppecimjpineomlbimjlociabpijabgbigofpehbbpkdaom");
 
     let unlimited_money = Transaction{
-        seq_id: 0,
+        seq_id: 1,
         sender_id: comp_pub_key_from_string(&user2_pub_key).unwrap(),
         receiver_id: comp_pub_key_from_string(&user1_pub_key).unwrap(),
         amount: 10000
     };
 
-    write_transaction(&unlimited_money);*/
-
+    write_transaction(&unlimited_money);
+    */
     // Initialize threads
     let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id);
     let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
