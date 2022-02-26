@@ -97,7 +97,7 @@ fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMe
     // Init the communication channels and a process
     let (serv_net_sender,serv_net_receiver) = mpsc::channel();
     let (instruction_sender,instruction_receiver) = mpsc::channel();
-    let mut proc = process::Process::init(proc_id, nb_process, keypair);
+    let proc = process::Process::init(proc_id, nb_process, keypair);
 
     log!("Server initialized correctly!");
     log!("Client_socket :{:?}",proc.client_socket);
