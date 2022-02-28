@@ -398,7 +398,8 @@ impl Process {
 
                     if negative_balance>positive_balance
                     {
-                        crash_with!("Account {} has more expenses than incomes. This should not happen. I am byzantine.", string_from_compr_pub_key(&account));
+                        log!("Account {} has more expenses than incomes. This should not happen. Am I byzantine?.", string_from_compr_pub_key(&account));
+                        return 0
                     }
 
                     positive_balance - negative_balance

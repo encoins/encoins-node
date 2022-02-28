@@ -81,29 +81,3 @@ pub fn client_listener(socket : (String, u16),iosender : Sender<RespInstruction>
         log!("En attente d'un autre client...");
     }
 }
-/*
-fn main() {
-    let listener = TcpListener::bind("127.0.0.1:1234").unwrap();
-
-    log!("En attente d'un client...");
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                let adresse = match stream.peer_addr() {
-                    Ok(addr) => format!("[adresse : {}]", addr),
-                    Err(_) => "inconnue".to_owned()
-                };
-
-                log!("Nouveau client {}", adresse);
-                thread::spawn(move|| {
-                    handle_client(stream, &*adresse)
-                });
-            }
-            Err(e) => {
-                log!("La connexion du client a échoué : {}", e);
-            }
-        }
-        log!("En attente d'un autre client...");
-    }
-}
-*/

@@ -8,22 +8,6 @@ use crate::process::Process;
 use crate::crypto::SignedMessage;
 use crate::key_converter::string_from_compr_pub_key;
 
-
-/// A simple broadcast function to make a basic broadcast to all [`Processus`]
-/*pub fn broadcast(transmitters : &Vec<Sender<SignedMessage>>, message: SignedMessage)
-{
-    for addr in server_addr {
-        let message_copy = message.clone();
-        send(addr,message_copy);
-    }
-    for transmitter in transmitters
-    {
-        let message_copy = message.clone();
-        transmitter.send(message_copy).unwrap();
-    }
-
-}*/
-
 pub fn broadcast( server_addr : &Vec<(String, u16)> , message : SignedMessage)
 {
 
