@@ -164,7 +164,8 @@ impl Process
             {
                 balance += transfer.amount;
             }
-            if transfer.sender_id == a {
+            if transfer.sender_id == a 
+            {
                 balance -= transfer.amount;
             }
         }
@@ -200,7 +201,8 @@ impl Process
     }
 
     /// Function that tests if a message is validated by the process
-    fn is_valid(&self, message : &Message) -> bool{
+    fn is_valid(&self, message : &Message) -> bool
+    {
         // 1) process q (the issuer of transfer op) must be the owner of the outgoing
         let assert1 = true; // verified in deal_with_message for init messages
         // 2) any preceding transfers that process q issued must have been validated
@@ -286,9 +288,7 @@ impl Process
 
                 positive_balance - negative_balance
             }
-
-                balance
-            }
+            
             Err(err) =>
             {
                 crash_with!("Could not load history for user ! (Error : {})", err);
