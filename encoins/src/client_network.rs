@@ -8,7 +8,7 @@ use serde::Deserialize;
 use crate::instructions::{Instruction, RespInstruction};
 use crate::log;
 
-/// management of the stream received with the socket
+/// Manages the stream received with by socket
 pub fn client_listener(socket : (String, u16), iosender : Sender<RespInstruction>) {
 
     let listener = TcpListener::bind(socket)
@@ -22,26 +22,26 @@ pub fn client_listener(socket : (String, u16), iosender : Sender<RespInstruction
             Ok(stream) =>
             {
                 //loading who is the sender
-                let adresse = match stream.peer_addr()
+                let address = match stream.peer_addr()
                 {
                     Ok(addr) => format!("[address : {}]", addr),
                     Err(_) => "unknowned".to_owned()
                 };
 
                 //handling the stream in a new thread
-                log!("New client {}", adresse);
+                log!("New client {}", address);
                 let iosender_copy = iosender.clone();
-                thread::spawn( move || {handle_client(stream, &*adresse,iosender_copy);});
+                thread::spawn( move || {handle_client(stream, &*address, iosender_copy);});
             }
             Err(e) =>
             {
-                log!("Connexion to client failed : {}", e);
+                log!("Connection to client failed : {}", e);
             }
         }
     }
 }
 
-/// retransmit the content of stream with sender
+/// Retransmits the content of stream with sender
 fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstruction>)
 {
     let (resp_sender,resp_receiver) = mpsc::channel();
@@ -90,30 +90,3 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
     }
 }
 
-pub fn client_listener(socket : (String, u16),iosender : Sender<RespInstruction>) {
-
-    let listener = TcpListener::bind(socket)
-        .expect("Problem with the binding to the client socket");
-
-    log!("En attente d'un client...");
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                let adresse = match stream.peer_addr() {
-                    Ok(addr) => format!("[adresse : {}]", addr),
-                    Err(_) => "inconnue".to_owned()
-                };
-
-                log!("Nouveau client {}", adresse);
-                let iosender_copy = iosender.clone();
-                thread::spawn( move || {
-                    handle_client(stream, &*adresse,iosender_copy);
-                });
-            }
-            Err(e) => {
-                log!("La connexion du client a échoué : {}", e);
-            }
-        }
-        log!("En attente d'un autre client...");
-    }
-}
