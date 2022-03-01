@@ -4,8 +4,8 @@ use std::io::{Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use bincode::deserialize;
-use serde::Deserialize;
-use crate::instructions::{Instruction, RespInstruction};
+use crate::instructions::RespInstruction;
+use encoins_api::instruction::Instruction;
 use crate::log;
 
 /// Manages the stream received with by socket
@@ -25,7 +25,7 @@ pub fn client_listener(socket : (String, u16), iosender : Sender<RespInstruction
                 let address = match stream.peer_addr()
                 {
                     Ok(addr) => format!("[address : {}]", addr),
-                    Err(_) => "unknowned".to_owned()
+                    Err(_) => "unknown".to_owned()
                 };
 
                 //handling the stream in a new thread
@@ -42,7 +42,7 @@ pub fn client_listener(socket : (String, u16), iosender : Sender<RespInstruction
 }
 
 /// Retransmits the content of stream with sender
-fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstruction>)
+fn handle_client(mut stream: TcpStream, address: &str, sender: Sender<RespInstruction>)
 {
     let (resp_sender,resp_receiver) = mpsc::channel();
 
@@ -56,7 +56,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
             {
                 if received < 1
                 {
-                    log!("Client disconnected {}", adresse);
+                    log!("Client disconnected {}", address);
                     return;
                 }
 
@@ -83,7 +83,7 @@ fn handle_client(mut stream: TcpStream, adresse: &str, sender: Sender<RespInstru
             }
             Err(_) =>
             {
-                log!("Client disconnected {}", adresse);
+                log!("Client disconnected {}", address);
                 return;
             }
         }

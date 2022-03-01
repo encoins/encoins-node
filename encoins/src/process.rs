@@ -1,18 +1,19 @@
 //! Definition of a processus
 use ed25519_dalek::{PublicKey, Keypair};
 use std::collections::HashMap;
-use crate::base_types::*;
+use encoins_api::base_types::*;
+use encoins_api::transfer::Transfer;
 use crate::message::{Message, MessageType};
 use crate::messaging::broadcast;
 use crate::{crash_with, log};
 use crate::yaml::*;
 use crate::utils::{load_history, load_seq, write_transaction};
-use crate::instructions::Transfer;
-use crate::key_converter::string_from_compr_pub_key;
 
 type List = HashMap<UserId,u32>;
 type MessageSet = Vec<Message>;
-
+pub type ProcId = u32;
+/// Type of a set of transactions
+pub type TransferSet = Vec<Transaction>;
 
 
 #[derive(Debug)]
@@ -83,7 +84,7 @@ impl Process
     /// The function that allows processes to transfer money
     pub fn transfer(& mut self,transfer : Transfer, signature : Vec<u8>) -> (bool,u8)
     {
-        if ! transfer.verif_signature_transfer(transfer.sender,signature)
+        if ! transfer.verif_signature_transfer(transfer.sender.id,signature)
         {
             log!("Transaction refused because signature could not be verified!");
             return (false,1)
@@ -103,7 +104,7 @@ impl Process
         }
 
         //check if there is no transaction with the user in progress
-        if *self.ongoing_transfer.entry(user_id).or_insert(false) == true
+        if *self.ongoing_transfer.entry(user_id.clone()).or_insert(false) == true
         {
             log!("Transaction refused for other reasons");
             return (false,3)
@@ -123,7 +124,7 @@ impl Process
                     crash_with!("Could not process transaction : {}", err);
                 }
             },
-            sender_id: user_id,
+            sender_id: user_id.clone(),
             receiver_id,
             amount,
         };
@@ -132,7 +133,7 @@ impl Process
         let message  = Message
         {
             transaction,
-            dependencies: self.deps.entry(user_id).or_insert(TransferSet::new()).clone(),
+            dependencies: self.deps.entry(user_id.clone()).or_insert(TransferSet::new()).clone(),
             message_type: MessageType::Init,
             sender_id: self.id,
         };
@@ -142,7 +143,7 @@ impl Process
         broadcast(&self.serv_addr,  message);
 
         // transfers are now blocked
-        *self.ongoing_transfer.entry(user_id).or_insert(true) = true;
+        *self.ongoing_transfer.entry(user_id.clone()).or_insert(true) = true;
         (true,0)
     }
 
@@ -187,7 +188,7 @@ impl Process
             {
                 // Save transaction for receiver and sender
                 write_transaction(&message.transaction);
-                *self.ongoing_transfer.entry(message.transaction.sender_id).or_insert(false) = false;
+                *self.ongoing_transfer.entry(message.clone().transaction.sender_id).or_insert(false) = false;
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
                 self.to_validate.remove(index);
             }
@@ -218,10 +219,10 @@ impl Process
             Err(err) =>
             {
                 crash_with!("Could not load history for user {} (Error: {}).",
-                    string_from_compr_pub_key(&message.transaction.sender_id), err);
+                    &message.transaction.sender_id, err);
             }
         };
-        let assert3 = Process::balance(message.transaction.sender_id, &history) >= message.transaction.amount;
+        let assert3 = Process::balance(message.clone().transaction.sender_id, &history) >= message.transaction.amount;
         // 4) the reported dependencies of op (encoded in h of line 26) must have been validated and exist in hist[q]
         let mut assert4 = true;
         for dependence in &message.dependencies
@@ -251,8 +252,7 @@ impl Process
             }
             Err(err) =>
             {
-                log!("Could not load history for account {}. (Error: {}). This should not happen!",
-                    string_from_compr_pub_key(account), err);
+                log!("Could not load history for account {}. (Error: {}). This should not happen!",account, err);
                 return vec![];
             }
         }
@@ -283,7 +283,7 @@ impl Process
 
                     if negative_balance>positive_balance
                     {
-                        log!("Account {} has more expenses than incomes. This should not happen. Am I byzantine?.", string_from_compr_pub_key(&account));
+                        log!("Account {} has more expenses than incomes. This should not happen. Am I byzantine?.", account);
                         return 0
                     }
 
@@ -297,12 +297,6 @@ impl Process
         }
     }
 
-    /// Getters
-    pub fn get_pub_key(&self, account : ProcId) -> &PublicKey
-    {
-         self.public_keys.get(account as usize)
-            .expect("Trying to access the public key of an unregistered user")
-    }
 
     pub fn get_key_pair(&self) -> &Keypair
     {

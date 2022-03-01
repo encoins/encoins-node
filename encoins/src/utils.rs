@@ -5,8 +5,8 @@ use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use chrono::prelude::*;
-use crate::base_types::*;
-use crate::key_converter::{comp_pub_key_from_string, string_from_compr_pub_key};
+use encoins_api::base_types::*;
+use crate::process::TransferSet;
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
@@ -195,7 +195,7 @@ pub fn load_history(user : &UserId) -> Result<TransferSet, String>
     let mut hist : TransferSet = vec![];
     unsafe
         {
-            let path = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(user));
+            let path = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, user.to_string());
             log!("Trying to read file {}", path);
             //match csv::Reader::from_path(path)
             match csv::ReaderBuilder::new().has_headers(false).from_path(path)
@@ -216,13 +216,13 @@ pub fn load_history(user : &UserId) -> Result<TransferSet, String>
                                             Err(err) => { return Err(err.to_string()) }
                                         };
 
-                                        let sender_id = match comp_pub_key_from_string( &String::from(&res[1]))
+                                        let sender_id = match UserId::from_string( &String::from(&res[1]))
                                         {
                                             Ok(pk) => { pk }
                                             Err(err) => { return Err(err) }
                                         };
 
-                                        let receiver_id = match comp_pub_key_from_string(&String::from(&res[2]))
+                                        let receiver_id = match UserId::from_string(&String::from(&res[2]))
                                         {
                                             Ok(pk) => { pk }
                                             Err(err) => { return  Err(err) }
@@ -234,13 +234,10 @@ pub fn load_history(user : &UserId) -> Result<TransferSet, String>
                                             Err(err) => { return Err(err.to_string()) }
                                         };
 
-                                        let transaction= Transaction
-                                        {
-                                            seq_id,
-                                            sender_id,
-                                            receiver_id,
-                                            amount
-                                        };
+                                        let transaction = Transaction::from(seq_id,
+                                                                            sender_id,
+                                                                            receiver_id,
+                                                                            amount);
                                         hist.push(transaction);
                                     }
                                 Err(err) =>
@@ -265,7 +262,7 @@ pub fn load_seq(user : &UserId) -> Result<SeqId, String>
 {
     unsafe
         {
-            let path = format!( "{}/{}.seq",SEQS_DIRECTORY_PATH, string_from_compr_pub_key(user));
+            let path = format!( "{}/{}.seq",SEQS_DIRECTORY_PATH, user.to_string());
             log!("Trying to read file {}", path);
             let file = match File::open(&path)
             {
@@ -312,9 +309,9 @@ pub fn write_transaction(transaction : &Transaction)
 {
     unsafe
         {
-            let path_receiver = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.receiver_id));
-            let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
-            let path_seq_sender = format!("{}/{}.seq", SEQS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
+            let path_receiver = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, &transaction.receiver_id.to_string());
+            let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, &transaction.sender_id.to_string());
+            let path_seq_sender = format!("{}/{}.seq", SEQS_DIRECTORY_PATH, &transaction.sender_id.to_string());
 
             let file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
             {
@@ -329,15 +326,15 @@ pub fn write_transaction(transaction : &Transaction)
             };
 
             let mut writer =  csv::Writer::from_writer(file_receiver);
-            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), 
-                string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()])
+            writer.write_record(&[transaction.seq_id.to_string(), transaction.sender_id.to_string(),
+                transaction.receiver_id.to_string(), transaction.amount.to_string()])
                 .expect("Difficulty to write record on csv file");
             writer.flush()
                 .expect("Difficulty to flush the csv writer");
 
             writer = csv::Writer::from_writer(file_sender);
-            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), 
-                string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()])
+            writer.write_record(&[transaction.seq_id.to_string(), transaction.sender_id.to_string(),
+                transaction.receiver_id.to_string(), transaction.amount.to_string()])
                 .expect("Difficulty to write record on csv file");
             writer.flush()
                 .expect("Difficulty to flush the csv writer");

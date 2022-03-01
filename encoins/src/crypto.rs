@@ -5,8 +5,6 @@ use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
 use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use crate::message::Message;
-use crate::instructions::Transfer;
-use crate::base_types::ComprPubKey;
 
 /// A SignedMessage is a message and its signature
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -54,18 +52,7 @@ impl SignedMessage
     }
 }
 
-impl Transfer 
-{
-    pub fn verif_signature_transfer(&self, pub_key : ComprPubKey, signature : Vec<u8>) -> bool 
-    {
-        let public_key = PublicKey::from_bytes(&pub_key[..])
-            .expect("Problem with the conversion from signature to bytes");
-        let transfer = &(bincode::serialize(&self)
-            .expect("Problem with the deserialization of a transfer message")[..]);
-        public_key.verify(transfer, &Signature::from_bytes(signature.as_slice())
-            .expect("Problem with the conversion from signature to bytes")).is_ok()
-    }
-}
+
 
 /// The function that returns a list of N public_keys and a list of N keypair_keys to be granted to processes
 pub fn create_keypair() -> Keypair 

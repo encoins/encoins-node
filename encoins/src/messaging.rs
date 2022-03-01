@@ -1,12 +1,12 @@
 //! A simple module to manage communications between processes
 
 use std::collections::HashMap;
+use encoins_api::base_types::UserId;
 use crate::message::{MessageType};
-use crate::{Broadcast, log, UserId};
+use crate::{Broadcast, log};
 use crate::broadcast::init_broadcast;
 use crate::process::Process;
 use crate::crypto::SignedMessage;
-use crate::key_converter::string_from_compr_pub_key;
 
 /// A simple broadcast function to make a basic broadcast to all [`Processus`]
 pub fn broadcast( server_addr : &Vec<(String, u16)> , message : SignedMessage)
@@ -59,8 +59,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
             {
                 None =>
                 {
-                    log!("No ongoing broadcast for proc id {} .",
-                        string_from_compr_pub_key(&msg.transaction.sender_id));
+                    log!("No ongoing broadcast for proc id {} .", &msg.transaction.sender_id.to_string());
                 }
                 Some(brb) =>
                 {

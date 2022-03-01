@@ -6,25 +6,21 @@ use std::sync::mpsc::Receiver;
 use crate::client_network::client_listener;
 use crate::serv_network::server_listener;
 use crate::process::Process;
-use crate::base_types::UserId;
+use encoins_api::base_types::UserId;
 use crate::broadcast::Broadcast;
 use crate::instructions::RespInstruction;
 use crate::crypto::{SignedMessage, create_keypair};
 
-mod transaction;
 mod utils;
-mod base_types;
 mod message;
 mod messaging;
 mod process;
 mod crypto;
 mod client_network;
 mod instructions;
-mod response;
 mod serv_network;
 mod broadcast;
 mod yaml;
-mod key_converter;
 
 fn main()
 {

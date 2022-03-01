@@ -1,30 +1,9 @@
-use serde::{Deserialize,Serialize};
-use std::fmt::{Display, Formatter};
 use std::sync::mpsc::Sender;
-use crate::base_types::{Currency, UserId};
-use crate::response::Response;
+use encoins_api::instruction::Instruction;
+use encoins_api::response::Response;
 use crate::process::Process;
 use crate::log;
-use crate::key_converter::string_from_compr_pub_key;
 
-#[derive(Clone,Deserialize,Debug,Serialize)]
-pub struct Transfer 
-{
-    pub sender : UserId,
-    pub recipient : UserId,
-    pub amount : Currency
-}
-
-#[derive(Clone,Deserialize,Debug)]
-pub enum Instruction 
-{
-    SignedTransfer 
-    {
-        transfer : Transfer,
-        signature : Vec<u8> // vec of (signature .to_byte (easier to serialize))
-    },
-    Balance{user: UserId}
-}
 
 pub struct RespInstruction 
 {
@@ -40,27 +19,6 @@ impl RespInstruction
         {
             instruction,
             resp_sender
-        }
-    }
-}
-
-impl Display for Instruction
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result 
-    {
-        match self
-        {
-            Instruction::Balance {user} => 
-            { 
-                write!(f, " Balances of {}", string_from_compr_pub_key(user)) 
-            }
-            Instruction::SignedTransfer {transfer, signature:_} => 
-            { 
-                write!(f, "New transfer : (sender : {}, recipient :{}, amount {})",
-                string_from_compr_pub_key(&transfer.sender), 
-                string_from_compr_pub_key(&transfer.recipient), 
-                transfer.amount) 
-            }
         }
     }
 }

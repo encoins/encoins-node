@@ -1,8 +1,9 @@
 //! Definition of a message
 use serde::{Serialize,Deserialize};
 use std::fmt::{Display, Formatter};
-use crate::base_types::{Transaction, ProcId};
+use encoins_api::base_types::{Transaction};
 use crate::crypto::SignedMessage;
+use crate::process::ProcId;
 
 /// A message is composed of a transaction, the dependencies needed to validate a
 /// transaction and a message type
