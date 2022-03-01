@@ -1,15 +1,12 @@
 //! A simple logging system to log infos about processes
 
 use std::env;
-use std::fmt::format;
 use std::fs::{create_dir_all, File, OpenOptions};
-use serde::{Serialize,Deserialize};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use chrono::prelude::*;
-use crate::{comp_pub_key_from_string, UserId};
 use crate::base_types::*;
-use crate::key_converter::string_from_compr_pub_key;
+use crate::key_converter::{comp_pub_key_from_string, string_from_compr_pub_key};
 
 /// States if the logging system has been initialized
 static mut INITIALIZED: bool = false;
@@ -104,9 +101,11 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : 
             {
                 None =>
                     {
-                        let mut exec_file_path = env::current_exe().unwrap();
+                        let mut exec_file_path = env::current_exe()
+                            .expect("Problem to access the current exe path");
                         exec_file_path.pop();
-                        MAIN_DIRECTORY_PATH = String::from(exec_file_path.to_str().unwrap());
+                        MAIN_DIRECTORY_PATH = String::from(exec_file_path.to_str()
+                            .expect("Failed to convert current exe path to string"));
                         MAIN_DIRECTORY_PATH.push_str("/files");
                         MAIN_DIRECTORY_PATH = String::from(format!("{}{}", MAIN_DIRECTORY_PATH, proc_nb));
                     }
@@ -129,9 +128,12 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : 
             SEQS_DIRECTORY_PATH.push_str("/seqs");
 
             // Create paths
-            create_dir_all(LOGS_DIRECTORY_PATH.clone()).unwrap();
-            create_dir_all(HISTS_DIRECTORY_PATH.clone()).unwrap();
-            create_dir_all(SEQS_DIRECTORY_PATH.clone()).unwrap();
+            create_dir_all(LOGS_DIRECTORY_PATH.clone())
+                .expect("Impossible to create a directory for logs");
+            create_dir_all(HISTS_DIRECTORY_PATH.clone())
+                .expect("Impossible to create a directory for hists");
+            create_dir_all(SEQS_DIRECTORY_PATH.clone())
+                .expect("Impossible to create a directory for seqs");
 
             // Create log file path for this execution
             let date = Local::now().format("%Y_%m_%d");
@@ -144,7 +146,8 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : 
                 temp_logging_path = format!("{}{}.txt", LOGGING_FILE_PATH, iteration);
             }
             LOGGING_FILE_PATH = format!("{}", temp_logging_path);
-            File::create(LOGGING_FILE_PATH.clone()).unwrap();
+            File::create(LOGGING_FILE_PATH.clone())
+                .expect("Impossible to create a file for logging");
 
         }
 
@@ -180,7 +183,8 @@ pub fn write_log(to_write : String, crash_msg : bool)
                     Err(_) => { crash_with!("Could not access path {}", LOGGING_FILE_PATH); }
                 };
                 let log_final_string = format!("{}\n", final_string);
-                file.write_all(log_final_string.as_bytes()).unwrap();
+                file.write_all(log_final_string.as_bytes())
+                    .expect("Difficulties to write in a log file");
             }
         }
 }
@@ -288,7 +292,7 @@ pub fn load_seq(user : &UserId) -> Result<SeqId, String>
                                             {
                                                 return Ok(seq_id)
                                             }
-                                        Err(err) =>
+                                        Err(_) =>
                                             {
                                                 crash_with!("File {} is corrupted! Program cannot continue correctly...", path);
                                             }
@@ -312,33 +316,45 @@ pub fn write_transaction(transaction : &Transaction)
             let path_sender = format!( "{}/{}.csv",HISTS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
             let path_seq_sender = format!("{}/{}.seq", SEQS_DIRECTORY_PATH, string_from_compr_pub_key(&transaction.sender_id));
 
-            let mut file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
+            let file_receiver = match OpenOptions::new().write(true).create(true).append(true).open(path_receiver)
             {
                 Ok(f) => { f }
                 Err(error) => { crash_with!("Error : {}", error); }
             };
 
-            let mut file_sender = match OpenOptions::new().write(true).create(true).append(true).open(path_sender)
+            let file_sender = match OpenOptions::new().write(true).create(true).append(true).open(path_sender)
             {
                 Ok(f) => { f }
                 Err(error) => { crash_with!("Error : {}", error); }
             };
 
             let mut writer =  csv::Writer::from_writer(file_receiver);
-            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()]).unwrap();
-            writer.flush().unwrap();
+            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), 
+                string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()])
+                .expect("Difficulty to write record on csv file");
+            writer.flush()
+                .expect("Difficulty to flush the csv writer");
 
             writer = csv::Writer::from_writer(file_sender);
-            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()]).unwrap();
-            writer.flush().unwrap();
+            writer.write_record(&[transaction.seq_id.to_string(), string_from_compr_pub_key(&transaction.sender_id), 
+                string_from_compr_pub_key(&transaction.receiver_id), transaction.amount.to_string()])
+                .expect("Difficulty to write record on csv file");
+            writer.flush()
+                .expect("Difficulty to flush the csv writer");
 
             let mut file = match OpenOptions::new().create(true).write(true).truncate(true).open(path_seq_sender)
             {
                 Ok(f) => { f }
                 Err(err) => { crash_with!("Error : {}", err); }
             };
-            file.write_all(transaction.seq_id.to_string().as_bytes());
-            file.flush().unwrap();
+            match file.write_all(transaction.seq_id.to_string().as_bytes())
+            {
+                Ok(_) => {}
+                Err(_) =>
+                {
+                    log!("Problem when writing transctions");
+                }
+            }
+            file.flush().expect("Difficulty to flush the csv writer");
         }
 }
-

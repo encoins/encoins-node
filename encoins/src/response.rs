@@ -1,8 +1,12 @@
-use crate::base_types::Currency;
+//! Response type
 use serde::Serialize;
+use crate::base_types::Currency;
 
 #[derive(Serialize)]
-pub enum Response {
+pub enum Response 
+{
     Balance(Currency),
-    Transfer(bool,u8)
+    Transfer(bool,u8),
+    SendErr,
+    RcvErr
 }
