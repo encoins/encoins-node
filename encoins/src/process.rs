@@ -157,7 +157,13 @@ impl Process
     /// i.e the sum of incoming amount minus the sum of outgoing amount
     fn balance( a: UserId, h: &TransferSet) -> Currency
     {
-
+        if a == UserId::from_string(
+            &"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            .to_string())
+            .expect("Problem with the user id of the unlimited user") 
+        {
+            return 10000;
+        }
         let mut balance : u32 = 0;
         for transfer in h
         {
@@ -268,26 +274,31 @@ impl Process
 
             Ok(hist) =>
             {
+                println!("The hist file was read correctly");
                 for tr in hist
                 {
                     if account == tr.receiver_id
                     {
+                        println!("positive trans");
                         positive_balance += tr.amount;
                     }
 
                     if account == tr.sender_id
                     {
+                        println!("positive trans");
                         negative_balance += tr.amount;
                     }
                 }
 
                     if negative_balance>positive_balance
                     {
+                        println!("Problem");
                         log!("Account {} has more expenses than incomes. This should not happen. Am I byzantine?.", account);
                         return 0
                     }
 
-                positive_balance - negative_balance
+                    println!("finished output_balance");
+                    positive_balance - negative_balance
             }
 
             Err(err) =>
