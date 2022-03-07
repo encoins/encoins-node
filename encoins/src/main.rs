@@ -43,7 +43,7 @@ fn main()
         .parse::<u32>()
         .expect("Environment variable NUM_NODE is not an int");
 
-    let hash_net_config = yaml::yaml_to_hash("net_config.yml");
+    let hash_net_config = yaml::yaml_to_hash("encoins-config/net_config.yml");
     let number_of_processes = yaml::read_network_parameters(&hash_net_config);
 
     // Initialize logging

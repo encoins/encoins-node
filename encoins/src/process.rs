@@ -52,7 +52,7 @@ impl Process
     pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair) -> Process
     {
         // Network information
-        let hash_net_config = yaml_to_hash("net_config.yml");        
+        let hash_net_config = yaml_to_hash("encoins-config/net_config.yml");        
         let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
         
         // Save the values
