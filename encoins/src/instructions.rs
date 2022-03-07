@@ -33,6 +33,7 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
         {
             log!("balance incoming");
             let balance = process.output_balance_for(user);
+            log!("For me, user {} has {} encoins", user, balance);
             resp_sender.send(Response::Balance(balance))
                 .expect("the channel between the instruction thread and the server one is closed");
 
