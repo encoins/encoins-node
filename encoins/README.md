@@ -6,5 +6,5 @@ To read documentation, type:`cargo doc` and run the file `index.html` in path `t
 
 ## Docker
 Docker image for encoins (about 85Mo). Nothing required but a working docker installation.
-- build Docker image : `docker build -t encoins-docker .`
-- run docker image : `docker run --restart always --name running-encoins-docker -e NUM_NODE={i} -v ~/encoins-config:/encoins-config encoins-docker`
+- build Docker image : `docker build -t encoins/encoins-node .`
+- run docker image : `docker run [- d --restart always|--rm] --name running-encoins-node -e NUM_NODE={i} -v ~/encoins-config:/encoins-config -p 12345:12345 -p 12346:12346 encoins/encoins-node` with {i} the number of the server in the net_config file
