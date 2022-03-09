@@ -1,7 +1,7 @@
 extern crate rand;
 extern crate ed25519_dalek;
 use serde::{Serialize,Deserialize};
-use ed25519_dalek::{PublicKey, Verifier,Signature,Keypair};
+use ed25519_dalek::Keypair;
 use rand::rngs::OsRng;
 use crate::crypto::ed25519_dalek::Signer;
 use crate::message::Message;
@@ -33,26 +33,6 @@ impl Message
     }
 
 }
-
-impl SignedMessage 
-{
-    /// A method that given a public_key returns the message if the signature is right and returns an error otherwise
-    pub fn verif_sig(self, public_key: &PublicKey) -> Result<Message, String> {
-
-        let message = self.message;
-        let msg = &(bincode::serialize(&message)
-            .expect("Problem with th deserialization of the message")[..]);
-
-        match public_key.verify(msg, &Signature::from_bytes(self.signature.as_slice())
-            .expect("Problem with the conversion from signature to bytes")).is_ok()
-        {
-            true => { Ok(message) }
-            false => { Err(String::from("The signature is not valid!")) }
-        }
-    }
-}
-
-
 
 /// The function that returns a list of N public_keys and a list of N keypair_keys to be granted to processes
 pub fn create_keypair() -> Keypair 

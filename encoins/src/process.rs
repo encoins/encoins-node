@@ -1,5 +1,5 @@
 //! Definition of a processus
-use ed25519_dalek::{PublicKey, Keypair};
+use ed25519_dalek::Keypair;
 use std::collections::HashMap;
 use encoins_api::base_types::*;
 use encoins_api::transfer::Transfer;
@@ -9,7 +9,6 @@ use crate::{crash_with, log};
 use crate::yaml::*;
 use crate::utils::{load_history, load_seq, write_transaction};
 
-type List = HashMap<UserId,u32>;
 type MessageSet = Vec<Message>;
 pub type ProcId = u32;
 /// Type of a set of transactions
@@ -23,16 +22,12 @@ pub struct Process
 {
     // Every process has a unique ID
     pub id : ProcId,
-    // List of size N such that rec(q) = number of delivered transfers from q
-    rec : List,
     // Set of last incoming transfers of local process
     deps : HashMap<UserId,TransferSet>,
     // Set of delivered (but not validated) transfers
     to_validate : MessageSet,
     // List of N transmitters such that senders(q) is the transmitter that allow to communicate with process q
     serv_addr : Vec<(String, u16)>,
-    // List of size N such that public_key(q) is the public_key of the process q
-    public_keys : Vec<PublicKey>,
     // Keypair of private key required to sign messages and the public key associated with
     secret_key : Keypair,
     // Flags to know if the process has already send a transfer that it has not yet validate
@@ -59,7 +54,7 @@ impl Process
         let client_socket: (String, u16) = (ip.clone(), port_client);
         let server_socket: (String, u16) = (ip.clone(), port_server);
         let mut serv_addr : Vec<(String, u16)> = Vec::new();
-        for i in 1..nb_process+1
+        for i in 0..nb_process
         {
             let (ip, port_server, _) = read_server_address(&hash_net_config, i);
             serv_addr.push((ip, port_server));
@@ -68,11 +63,9 @@ impl Process
         Process
         {
             id,                                     //arg
-            rec : List::new(),                      //empty
             deps : HashMap::new(),                  //empty
             to_validate : MessageSet::new(),        //empty
             ongoing_transfer : HashMap::new(),      //empty
-            public_keys : Vec::new(),               //empty
             serv_addr,                              //loaded
             secret_key,                             //arg
             client_socket,                          //loaded

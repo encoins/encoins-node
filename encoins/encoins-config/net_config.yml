@@ -7,7 +7,7 @@ server0:
   port_client: 12346
 
 server1:
-  address: 171.33.106.160
+  address: localhost
   port_server: 12345
   port_client: 12346
 
