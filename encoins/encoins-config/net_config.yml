@@ -1,53 +1,17 @@
 parameters:
-  nb_servers: 10
+  nb_servers: 3
 
 server0:
-  address: 171.33.80.169
+  address: localhost
   port_server: 12345
   port_client: 12346
 
 server1:
   address: localhost
-  port_server: 12345
-  port_client: 12346
+  port_server: 12347
+  port_client: 12348
 
 server2:
-  address: 217.75.172.226
-  port_server: 12345
-  port_client: 12346
-
-server3:
-  address: 171.33.90.58
-  port_server: 12345
-  port_client: 12346
-
-server4:
-  address: 217.75.175.148
-  port_server: 12345
-  port_client: 12346
-
-server5:
-  address: 171.33.69.66
-  port_server: 12345
-  port_client: 12346
-
-server6:
-  address: 171.33.125.60
-  port_server: 12345
-  port_client: 12346
-
-server7:
-  address: 148.253.94.239
-  port_server: 12345
-  port_client: 12346
-
-server8:
-  address: 171.33.79.117
-  port_server: 12345
-  port_client: 12346
-
-server9:
-  address: 171.33.95.222
-  port_server: 12345
-  port_client: 12346
-
+  address: localhost
+  port_server: 12349
+  port_client: 12340

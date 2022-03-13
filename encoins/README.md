@@ -1,5 +1,11 @@
 ## Usage
- - `cargo run <nb-nodes> <nb-byzantine-nodes>` to run with `nb-nodes` nodes and `nb-byzantine-nodes` byzantine nodes.
+ - `cargo run <nb-nodes>` with two environment vars:
+    NUM_NODE: id of proc
+    OBJ_TRANSACTIONS: nb of transactions to reach
+    when the number is reached, a file 'result.txt' is written in debug directory with the number of milliseconds taken.
+
+## Warning
+Every node must be ran on different locations (for instance containers). If two nodes are ran in the same directory there will be problems when writing hists/logs/seqs files
 
 ## Documentation
 To read documentation, type:`cargo doc` and run the file `index.html` in path `target/doc/encoins`
