@@ -42,19 +42,6 @@ fn main()
         .expect("No environment variable NUM_NODE found")
         .parse::<u32>()
         .expect("Environment variable NUM_NODE is not an int");
-    
-    let obj_transactions: u32 = match env::var("OBJ_TRANSACTIONS") 
-    {
-        Err(_e) =>
-        {
-            u32::MAX
-        }
-        Ok(obj) =>
-        {
-            obj.parse::<u32>()
-            .expect("Environment variable NUM_NODE is not an int")
-        }
-    };
 
     let hash_net_config = yaml::yaml_to_hash("encoins-config/net_config.yml");
     let number_of_processes = yaml::read_network_parameters(&hash_net_config);
@@ -65,7 +52,7 @@ fn main()
     log!("Initializing with {} processes", number_of_processes);
 
     // Initialize threads
-    let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id, obj_transactions);
+    let (mut proc,serv_net_receiver,instruction_receiver) = initialize_node(number_of_processes,proc_id);
     let mut ongoing_broadcasts : HashMap<UserId, Broadcast> = HashMap::new();
 
     loop
@@ -99,7 +86,7 @@ fn main()
 }
 
 /// Function that initializes threads. Each thread runs the code for one Processus.
-fn initialize_node(nb_process: u32, proc_id : u32, obj_transactions: u32) -> (Process,Receiver<SignedMessage>,Receiver<RespInstruction>){
+fn initialize_node(nb_process: u32, proc_id : u32) -> (Process,Receiver<SignedMessage>,Receiver<RespInstruction>){
 
     // Create public/private key pairs to authenticate messages
     let keypair = create_keypair();
@@ -107,7 +94,7 @@ fn initialize_node(nb_process: u32, proc_id : u32, obj_transactions: u32) -> (Pr
     // Init the communication channels and a process
     let (serv_net_sender,serv_net_receiver) = mpsc::channel();
     let (instruction_sender,instruction_receiver) = mpsc::channel();
-    let proc = process::Process::init(proc_id, nb_process, keypair, obj_transactions);
+    let proc = process::Process::init(proc_id, nb_process, keypair);
 
     log!("Server initialized correctly!");
     log!("Client_socket :{:?}",proc.client_socket);

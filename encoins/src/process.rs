@@ -1,10 +1,6 @@
 //! Definition of a processus
 use ed25519_dalek::Keypair;
 use std::collections::HashMap;
-use std::io::Write; 
-use std::fs::File;
-use std::env;
-use std::time::Instant;
 use encoins_api::base_types::*;
 use encoins_api::transfer::Transfer;
 use crate::message::{Message, MessageType};
@@ -42,19 +38,13 @@ pub struct Process
     pub server_socket : (String, u16),
     // Number of servers
     pub nb_process : u32,
-    // Number of transactions validated
-    pub trans_valid : u32,
-    // Objective of transactions,
-    pub obj_trans : u32,
-    // Time when proc was started
-    time_init : Instant,
 }
 
 
 impl Process
 {
     /// Function which initialises a [Process]
-    pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair, obj_trans : u32) -> Process
+    pub fn init(id : ProcId, nb_process : u32, secret_key : Keypair) -> Process
     {
         // Network information
         let hash_net_config = yaml_to_hash("encoins-config/net_config.yml");        
@@ -81,9 +71,6 @@ impl Process
             client_socket,                          //loaded
             server_socket,                          //loaded
             nb_process,                             //arg
-            trans_valid : 0,
-            obj_trans,
-            time_init : Instant::now(),
         }
     }
 
@@ -197,26 +184,6 @@ impl Process
                 *self.ongoing_transfer.entry(message.clone().transaction.sender_id).or_insert(false) = false;
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
                 self.to_validate.remove(index);
-                self.trans_valid = self.trans_valid+1;
-                if self.trans_valid == self.obj_trans
-                {
-                    // Create a file.
-                    let mut exec_file_path = env::current_exe()
-                            .expect("Problem to access the current exe path");
-                    exec_file_path.pop();
-                    let mut file_path = String::from(exec_file_path.to_str()
-                        .expect("Failed to convert current exe path to string"));
-                    file_path.push_str("/result.txt");
-
-                    // Open a file in write-only (ignoring errors).
-                    // This creates the file if it does not exist (and empty the file if it exists).
-                    let mut file = File::create(file_path).unwrap();
-
-                    // Write a &str in the file (ignoring the result).
-                    let elapsed_time = self.time_init.elapsed();
-                    let res = elapsed_time.as_millis().to_string();
-                    writeln!(&mut file, "{}", res).unwrap();
-                }
             }
             else
             {

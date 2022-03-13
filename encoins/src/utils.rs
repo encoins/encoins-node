@@ -82,7 +82,7 @@ macro_rules! crash_with
 /// Creates directories for logs and HISTS in a main directory
 /// If `None` is given as the main_file_path, then it will be created in the directory containing the executable
 /// Otherwise, the main directory will be created at the given path
-pub fn initialize(write_logs : bool, main_file_path : Option<String>, _proc_nb : u32)
+pub fn initialize(write_logs : bool, main_file_path : Option<String>, proc_nb : u32)
 {
     unsafe
         {
