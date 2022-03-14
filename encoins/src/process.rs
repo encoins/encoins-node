@@ -52,8 +52,8 @@ impl Process
         let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
 
         // Save the values
-        let client_socket: (String, u16) = (ip.clone(), port_client);
-        let server_socket: (String, u16) = (ip.clone(), port_server);
+        let client_socket: (String, u16) = (String::from("localhost"), port_client);
+        let server_socket: (String, u16) = (String::from("localhost"), port_server);
         let mut serv_addr : Vec<(String, u16)> = Vec::new();
         for i in 0..nb_process
         {
@@ -62,7 +62,9 @@ impl Process
             {
                 ip = String::from("localhost");
             }
+            println!("{}, {}", ip, port_server);
             serv_addr.push((ip, port_server));
+
         }
 
         Process
