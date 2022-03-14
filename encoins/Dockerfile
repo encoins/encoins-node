@@ -7,5 +7,4 @@ RUN cargo install --path .
 
 FROM debian:bullseye-slim
 COPY --from=builder /usr/local/cargo/bin/encoins /usr/local/bin/encoins
-COPY encoins-config/ encoins-config/
 CMD ["encoins"]
