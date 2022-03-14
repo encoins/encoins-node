@@ -62,7 +62,6 @@ impl Process
             {
                 ip = String::from("localhost");
             }
-            println!("{}, {}", ip, port_server);
             serv_addr.push((ip, port_server));
 
         }
