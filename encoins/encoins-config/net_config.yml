@@ -1,5 +1,5 @@
 parameters:
-  nb_servers: 10
+  nb_servers: 1
 
 server0:
   address: 171.33.80.169

@@ -49,7 +49,7 @@ impl Process
     {
         // Network information
         let hash_net_config = yaml_to_hash("encoins-config/net_config.yml");        
-        let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
+        let (_ip, port_server, port_client) = read_server_address(&hash_net_config, id);
 
         // Save the values
         let client_socket: (String, u16) = (String::from("localhost"), port_client);
