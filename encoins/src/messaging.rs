@@ -1,6 +1,7 @@
 //! A simple module to manage communications between processes
 
 use std::collections::HashMap;
+use std::time::Instant;
 use encoins_api::base_types::UserId;
 use crate::message::{MessageType};
 use crate::{Broadcast, log};
@@ -21,6 +22,12 @@ pub fn broadcast( server_addr : &Vec<(String, u16)> , message : SignedMessage)
 pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMessage,
     ongoing_broadcasts: &mut HashMap<UserId, Broadcast>)
 {
+    match process.time_init
+    {
+        Some(_) => {}
+        None    => {process.time_init = Some(Instant::now())}
+    };
+
     let proc_id = process.id;
     let msg = signed_message.message;
     match msg.message_type

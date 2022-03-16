@@ -27,6 +27,7 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
 {
     let instruction = resp_instruction.instruction;
     let resp_sender = resp_instruction.resp_sender;
+
     match instruction 
     {
         Instruction::Balance {user} => 

@@ -47,7 +47,7 @@ pub struct Process
     // Objective of transactions,
     pub obj_trans : u32,
     // Time when proc was started
-    time_init : Instant,
+    pub time_init : Option<Instant>,
 }
 
 
@@ -83,10 +83,11 @@ impl Process
             nb_process,                             //arg
             trans_valid : 0,
             obj_trans,
-            time_init : Instant::now(),
+            time_init : None,
         }
     }
 
+    /// 
     /// The function that allows processes to transfer money
     pub fn transfer(& mut self,transfer : Transfer, signature : Vec<u8>) -> (bool,u8)
     {
@@ -95,6 +96,8 @@ impl Process
             log!("Transaction refused because signature could not be verified!");
             return (false,1)
         }
+
+        // if it is the first transfer required init time_init
 
         let user_id = transfer.sender;
         let receiver_id = transfer.recipient;
@@ -208,8 +211,10 @@ impl Process
                     .expect("Failed to convert current exe path to string"));
                 validated_path.push_str("/validated.txt");
 
-                let mut file_validated = File::create(validated_path).unwrap();
-                writeln!(&mut file_validated, "{}", self.trans_valid).unwrap();
+                let mut file_validated = File::create(validated_path)
+                    .expect("problem when creating the file validated.txt");
+                writeln!(&mut file_validated, "{}", self.trans_valid)
+                    .expect("problem when writing in the file validated.txt");
 
                 if self.trans_valid == self.obj_trans
                 {
@@ -220,12 +225,15 @@ impl Process
 
                     // Open a file in write-only (ignoring errors).
                     // This creates the file if it does not exist (and empty the file if it exists).
-                    let mut file = File::create(file_path).unwrap();
+                    let mut file = File::create(file_path)
+                        .expect("problem when creating the file result.txt");
 
                     // Write a &str in the file (ignoring the result).
-                    let elapsed_time = self.time_init.elapsed();
+                    let elapsed_time = (self.time_init)
+                        .expect("time_init wasn't initialized").elapsed();
                     let res = elapsed_time.as_millis().to_string();
-                    writeln!(&mut file, "{}", res).unwrap();
+                    writeln!(&mut file, "{}", res)
+                        .expect("problem when writing in result.txt");
                 }
             }
             else
