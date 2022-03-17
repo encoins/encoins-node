@@ -52,15 +52,15 @@ impl Process
         let (_ip, port_server, port_client) = read_server_address(&hash_net_config, id);
 
         // Save the values
-        let client_socket: (String, u16) = (String::from("localhost"), port_client);
-        let server_socket: (String, u16) = (String::from("localhost"), port_server);
+        let client_socket: (String, u16) = (String::from("0.0.0.0"), port_client);
+        let server_socket: (String, u16) = (String::from("0.0.0.0"), port_server);
         let mut serv_addr : Vec<(String, u16)> = Vec::new();
         for i in 0..nb_process
         {
             let (mut ip, port_server, _) = read_server_address(&hash_net_config, i);
             if i == id
             {
-                ip = String::from("localhost");
+                ip = String::from("0.0.0.0");
             }
             serv_addr.push((ip, port_server));
 
