@@ -1,5 +1,9 @@
 parameters:
+<<<<<<< HEAD
   nb_servers: 3
+=======
+  nb_servers: 1
+>>>>>>> deployement/docker
 
 server0:
   address: localhost

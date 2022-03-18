@@ -12,6 +12,7 @@ use crate::messaging::broadcast;
 use crate::{crash_with, log};
 use crate::yaml::*;
 use crate::utils::{load_history, load_seq, write_transaction};
+extern crate yaml_rust;
 
 type MessageSet = Vec<Message>;
 pub type ProcId = u32;
@@ -58,16 +59,21 @@ impl Process
     {
         // Network information
         let hash_net_config = yaml_to_hash("encoins-config/net_config.yml");        
-        let (ip, port_server, port_client) = read_server_address(&hash_net_config, id);
-        
+        let (_ip, port_server, port_client) = read_server_address(&hash_net_config, id);
+
         // Save the values
-        let client_socket: (String, u16) = (ip.clone(), port_client);
-        let server_socket: (String, u16) = (ip.clone(), port_server);
+        let client_socket: (String, u16) = (String::from("0.0.0.0"), port_client);
+        let server_socket: (String, u16) = (String::from("0.0.0.0"), port_server);
         let mut serv_addr : Vec<(String, u16)> = Vec::new();
         for i in 0..nb_process
         {
-            let (ip, port_server, _) = read_server_address(&hash_net_config, i);
+            let (mut ip, port_server, _) = read_server_address(&hash_net_config, i);
+            if i == id
+            {
+                ip = String::from("0.0.0.0");
+            }
             serv_addr.push((ip, port_server));
+
         }
 
         Process
