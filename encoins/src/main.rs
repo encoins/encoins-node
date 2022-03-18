@@ -94,7 +94,6 @@ fn main()
         };
 
         proc.valid();
-        thread::sleep(std::time::Duration::from_millis(200));
     }
 }
 
