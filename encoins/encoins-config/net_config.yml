@@ -1,0 +1,22 @@
+parameters:
+  nb_servers: 4
+
+server1:
+  address: localhost
+  port_server: 12340
+  port_client: 12341
+
+server2:
+  address: localhost
+  port_server: 12342
+  port_client: 12343
+
+server3:
+  address: localhost
+  port_server: 12344
+  port_client: 12345
+
+server4:
+  address: localhost
+  port_server: 12346
+  port_client: 12347
