@@ -7,7 +7,7 @@ pub fn yaml_to_hash(file: &str) -> Hash
 {
     // Load the yaml file into a str
     let str_yaml: &str = &fs::read_to_string(file)
-        .expect("file net_config.yml not found, be sure to be in encoins-node/encoins")[..];
+        .expect("file net_config.yml not found at {}, be sure to be in encoins-node/encoins")[..];
 
     // Transform the str into a Yaml hash table
     let vec_yaml: Vec<Yaml> = YamlLoader::load_from_str(str_yaml)
