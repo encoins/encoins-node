@@ -49,12 +49,12 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
             {
                 if received < 1 
                 {
-                    log!("Server disconnected {}", adresse);
+                    //log!("Server disconnected {}", adresse);
                     return;
                 }
 
                 //send the msg with sender
-                log!("buff from serv{:?}", adresse);
+                //log!("buff from serv{:?}", adresse);
                 let msg : SignedMessage = deserialize(&buf[..])
                     .expect("Problem with the deserialization of a server message");
                 sender.send(msg)
@@ -62,7 +62,7 @@ fn handle_server(mut stream: TcpStream, adresse: &str, sender: Sender<SignedMess
             }
             Err(_) => 
             {
-                log!("Server disconnected {}", adresse);
+                //log!("Server disconnected {}", adresse);
                 return;
             }
         }

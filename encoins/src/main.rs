@@ -1,4 +1,5 @@
 extern crate core;
+
 use std::{env, thread};
 use std::collections::HashMap;
 use std::sync::mpsc;
@@ -28,7 +29,7 @@ fn main()
     let args: Vec<String> = env::args().collect();
 
     // Check if logs have to be written
-    let write_logs = match args.get(1) {
+    let write_logs = match args.get(2) {
         Some(bool) => match bool.parse::<bool>()
         {
             Ok(b) => { b }
@@ -38,10 +39,14 @@ fn main()
     };
 
     // Load network parameters
-    let proc_id: u32 = env::var("NUM_NODE")
-        .expect("No environment variable NUM_NODE found")
-        .parse::<u32>()
-        .expect("Environment variable NUM_NODE is not an int");
+    let proc_id: u32 = match args.get(1)
+    {
+        None => { panic!("I need a proc id")}
+        Some(id_string) =>
+            {
+                id_string.parse().unwrap()
+            }
+    };
     
     let obj_transactions: u32 = match env::var("OBJ_TRANSACTIONS") 
     {
@@ -76,6 +81,7 @@ fn main()
         {
             Ok(message) => 
             {
+                proc.valid();
                 messaging::deal_with_message(&mut proc, message, &mut ongoing_broadcasts)
             }
             Err(_) => {}
@@ -93,8 +99,7 @@ fn main()
             Err(_) => {}
         };
 
-        proc.valid();
-        thread::sleep(std::time::Duration::from_millis(10));
+        //thread::sleep(std::time::Duration::from_millis(5));
     }
 }
 

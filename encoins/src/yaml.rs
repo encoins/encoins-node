@@ -1,12 +1,16 @@
 extern crate yaml_rust;
 use yaml_rust::yaml::{Hash, Yaml, YamlLoader};
-use std::fs;
+use std::{env, fs};
 
 /// Transform the yaml file into a Hash table
 pub fn yaml_to_hash(file: &str) -> Hash 
 {
+    let mut exec_file_path = env::current_exe().unwrap();
+    exec_file_path.pop();
+    let path = format!("{}/{}",exec_file_path.to_str().unwrap(), file);
+
     // Load the yaml file into a str
-    let str_yaml: &str = &fs::read_to_string(file)
+    let str_yaml: &str = &fs::read_to_string(path)
         .expect("file net_config.yml not found, be sure to be in encoins-node/encoins")[..];
 
     // Transform the str into a Yaml hash table

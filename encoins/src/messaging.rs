@@ -55,7 +55,7 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
                     echo_msg.sender_id = proc_id;
                     echo_msg.message_type = MessageType::Echo;
                     let signed_echo_msg = echo_msg.sign(process.get_key_pair());
-                    log!("Broadcasting echo message to everyone!");
+                    //log!("Broadcasting echo message to everyone!");
                     broadcast(&process.get_serv_addr(), signed_echo_msg);
                 }
             }
@@ -66,15 +66,15 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
             {
                 None =>
                 {
-                    log!("No ongoing broadcast for proc id {} .", &msg.transaction.sender_id.to_string());
+                    //log!("No ongoing broadcast for proc id {} .", &msg.transaction.sender_id.to_string());
                 }
                 Some(brb) =>
                 {
-                    log!("{}", brb.add_message(msg.clone()));
+                    brb.add_message(msg.clone());
 
                     if brb.is_ready() && !brb.ready_message_sent()
                     {
-                        log!("I am ready to accept a message. Broadcasting it to everyone.");
+                        //log!("I am ready to accept a message. Broadcasting it to everyone.");
                         brb.set_ready_message_sent(true);
                         let mut ready_msg = msg.clone();
                         ready_msg.sender_id = proc_id;
@@ -85,10 +85,10 @@ pub(crate) fn deal_with_message(process: &mut Process, signed_message: SignedMes
 
                     if brb.quorum_found()
                     {
-                        log!("Quorum was achieved. I can add the message to transactions to process.");
+                        //log!("Quorum was achieved. I can add the message to transactions to process.");
 
                         // Remove thr associated broadcast
-                        log!("Removing current transaction from ongoing broadcasts");
+                        //log!("Removing current transaction from ongoing broadcasts");
                         ongoing_broadcasts.remove(&msg.transaction.sender_id);
 
                         // Save the message
