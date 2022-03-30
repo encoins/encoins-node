@@ -1,6 +1,10 @@
 //! Definition of a processus
 use ed25519_dalek::Keypair;
 use std::collections::HashMap;
+use std::io::Write; 
+use std::fs::File;
+use std::env;
+use std::time::Instant;
 use encoins_api::base_types::*;
 use encoins_api::transfer::Transfer;
 use crate::message::{Message, MessageType};
@@ -39,6 +43,10 @@ pub struct Process
     pub server_socket : (String, u16),
     // Number of servers
     pub nb_process : u32,
+    // Number of transactions validated
+    pub trans_valid : u32,
+    // Time when proc was started
+    pub time_init : Option<Instant>,
 }
 
 
@@ -77,9 +85,12 @@ impl Process
             client_socket,                          //loaded
             server_socket,                          //loaded
             nb_process,                             //arg
+            trans_valid : 0,
+            time_init : None,
         }
     }
 
+    /// 
     /// The function that allows processes to transfer money
     pub fn transfer(& mut self,transfer : Transfer, signature : Vec<u8>) -> (bool,u8)
     {
@@ -88,6 +99,8 @@ impl Process
             log!("Transaction refused because signature could not be verified!");
             return (false,1)
         }
+
+        // if it is the first transfer required init time_init
 
         let user_id = transfer.sender;
         let receiver_id = transfer.recipient;
@@ -190,6 +203,41 @@ impl Process
                 *self.ongoing_transfer.entry(message.clone().transaction.sender_id).or_insert(false) = false;
                 log!("Transaction {} is valid and confirmed on my part.", message.transaction);
                 self.to_validate.remove(index);
+                
+                // Writing results
+                self.trans_valid = self.trans_valid+1;
+
+                let mut exec_file_path = env::current_exe()
+                            .expect("Problem to access the current exe path");
+                exec_file_path.pop();
+                let mut validated_path = String::from(exec_file_path.to_str()
+                    .expect("Failed to convert current exe path to string"));
+                validated_path.push_str("/validated.txt");
+
+                let mut file_validated = File::create(validated_path)
+                    .expect("problem when creating the file validated.txt");
+                writeln!(&mut file_validated, "{}", self.trans_valid)
+                    .expect("problem when writing in the file validated.txt");
+
+                /*if self.trans_valid == self.obj_trans
+                {
+                    // Create a file.
+                    let mut file_path = String::from(exec_file_path.to_str()
+                        .expect("Failed to convert current exe path to string"));
+                    file_path.push_str("/result.txt");
+
+                    // Open a file in write-only (ignoring errors).
+                    // This creates the file if it does not exist (and empty the file if it exists).
+                    let mut file = File::create(file_path)
+                        .expect("problem when creating the file result.txt");
+
+                    // Write a &str in the file (ignoring the result).
+                    let elapsed_time = (self.time_init)
+                        .expect("time_init wasn't initialized").elapsed();
+                    let res = elapsed_time.as_millis().to_string();
+                    writeln!(&mut file, "{}", res)
+                        .expect("problem when writing in result.txt");
+                }*/
             }
             else
             {

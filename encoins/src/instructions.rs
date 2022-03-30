@@ -27,12 +27,14 @@ pub fn deal_with_instruction(process: &mut Process, resp_instruction : RespInstr
 {
     let instruction = resp_instruction.instruction;
     let resp_sender = resp_instruction.resp_sender;
+
     match instruction 
     {
         Instruction::Balance {user} => 
         {
             log!("balance incoming");
             let balance = process.output_balance_for(user);
+            log!("For me, user {} has {} encoins", user, balance);
             resp_sender.send(Response::Balance(balance))
                 .expect("the channel between the instruction thread and the server one is closed");
 

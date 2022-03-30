@@ -5,6 +5,10 @@ use std::fs;
 /// Transform the yaml file into a Hash table
 pub fn yaml_to_hash(file: &str) -> Hash 
 {
+    /*let mut exec_file_path = env::current_exe().unwrap();
+    exec_file_path.pop();
+    let path = format!("{}/{}",exec_file_path.to_str().unwrap(), file);*/
+
     // Load the yaml file into a str
     let str_yaml: &str = &fs::read_to_string(file)
         .expect("file net_config.yml not found, be sure to be in encoins-node/encoins")[..];
@@ -39,16 +43,16 @@ pub fn read_server_address(hash_net_config: &Hash, i: u32) -> (String, u16, u16)
 
     let address_yaml: Yaml = read_yaml(hash_net_config, &server_i, "address");
     let address: String = address_yaml.into_string()
-        .expect("In yaml file, one ip adress is not of string type");
+        .expect("In yaml file, one ip address is not of string type");
 
     let port_server: u16 = read_yaml(hash_net_config, &server_i, "port_server")
         .as_i64()
-        .expect("In yaml file, one port adress is not of int type")
+        .expect("In yaml file, one port address is not of int type")
         as u16;
 
     let port_client: u16 = read_yaml(hash_net_config, &server_i, "port_client")
         .as_i64()
-        .expect("In yaml file, one port adress is not of int type")
+        .expect("In yaml file, one port address is not of int type")
         as u16;
     
     (address, port_server, port_client)

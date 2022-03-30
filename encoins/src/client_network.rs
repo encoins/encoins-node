@@ -14,7 +14,7 @@ pub fn client_listener(socket : (String, u16), iosender : Sender<RespInstruction
     let listener = TcpListener::bind(socket)
         .expect("Problem with the binding to the client socket");
 
-    log!("Waiting a client...");
+    //log!("Waiting a client...");
     for stream in listener.incoming()
     {
         match stream
@@ -60,7 +60,7 @@ fn handle_client(mut stream: TcpStream, address: &str, sender: Sender<RespInstru
                     return;
                 }
 
-                log!("buff from client {:?}", buf);
+                //log!("buff from client {:?}", buf);
 
                 let instruction : Instruction = deserialize(&buf[..])
                     .expect("Problem with the deserialization of a client message");

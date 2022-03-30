@@ -107,7 +107,7 @@ pub fn initialize(write_logs : bool, main_file_path : Option<String>, _proc_nb :
                         MAIN_DIRECTORY_PATH = String::from(exec_file_path.to_str()
                             .expect("Failed to convert current exe path to string"));
                         MAIN_DIRECTORY_PATH.push_str("/files");
-                        MAIN_DIRECTORY_PATH = String::from(format!("{}", MAIN_DIRECTORY_PATH));
+                        MAIN_DIRECTORY_PATH = String::from(format!("{}{}", MAIN_DIRECTORY_PATH,_proc_nb));
                     }
                 Some(path) =>
                     {
